@@ -28,6 +28,8 @@ FUNCTIONS
 WIP
 - account for multiple tonal resonant frequencies (fund, 3rd, 5th, 7th)
 - plot rf and dissipation as func of time (indv and comb)
+- gui
+    - when entering col names, autopopulate based on first entry
 Q's
 - what are the baseline times of the sample data sent?
 - do we need this script to process multiple sheets at once?
@@ -44,13 +46,23 @@ abs_base_tf = time(9, 9, 19)
 # column names
 abs_time_col = 'Time'
 rel_time_col = 'Relative_time'
-rf_col = 'Frequency_1'
-dis_col = 'Dissipation_0'
+num_freqs_tested = 5
+# number after indicates which resonant frequency testing on (fundamental, 1st, 3rd, etc)
+rf_col_fund = 'Frequency_0'
+dis_col_fund = 'Dissipation_0'
+rf_col_3 = 'Frequency_1'
+dis_col_3 = 'Dissipation_1'
+rf_col_5 = 'Frequency_2'
+dis_col_5 = 'Dissipation_2'
+rf_col_7 = 'Frequency_3'
+dis_col_7 = 'Dissipation_3'
+rf_col_9 = 'Frequency_4'
+dis_col_9 = 'Dissipation_4' 
 
 
 # grab singular file and create dataframe from it
 df = pd.read_csv(f"raw_data/{file_name}{file_ext}")
-data_df = df[[abs_time_col,rel_time_col, rf_col, dis_col]]
+data_df = df[[abs_time_col,rel_time_col, rf_col_fund, dis_col_fund]]
 data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
 # find baseline time range
@@ -64,24 +76,24 @@ data_df = data_df.reset_index(drop=True)
 # grab values from baseline for avg
 base_tf_ind = data_df[data_df[abs_time_col].str.contains(str(abs_base_tf))].index[0]
 baseline_df = data_df[:base_tf_ind]
-rf_base_avg = baseline_df[rf_col].mean()
-dis_base_avg = baseline_df[dis_col].mean()
+rf_base_avg = baseline_df[rf_col_fund].mean()
+dis_base_avg = baseline_df[dis_col_fund].mean()
 
 # lower rf curve s.t. baseline is approx at y=0
-data_df[rf_col] -= rf_base_avg
-
+data_df[rf_col_fund] -= rf_base_avg
 
 # PLOTTING
 x_time = data_df[rel_time_col]
-y_rf = data_df[rf_col]
-y_dis = data_df[dis_col]
+y_rf = data_df[rf_col_fund]
+y_dis = data_df[dis_col_fund]
 plt.figure(1, clear=True)
+plt.axhline(0, color='gray')
 plt.plot(x_time, y_rf, label="resonant freq")
-plt.figure(1).savefig(f"qcmb-plots/{file_name}-plot.png")
+plt.figure(1).savefig(f"qcmb-plots/{file_name}-rf-plot.png")
 plt.figure(2, clear=True)
 plt.plot(x_time, y_dis, label="dissipation")
-
-
+plt.grid(True, which='major', axis='y', color='gray', linewidth='1')
+plt.figure(2).savefig(f"qcmb-plots/{file_name}-dis-plot.png")
 
 
 print(f"{data_df.head()}\n{data_df.tail()}")

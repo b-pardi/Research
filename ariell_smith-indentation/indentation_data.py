@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 6/22/2022, 3:56 pm
-Last Modified: 6/27/2022 10:31 am
+Last Modified: 9/3/2022 3:25pm
 """
 
 import pandas as pd
@@ -26,6 +26,7 @@ sd: squared distance, comb_df: combined dataframe
 TASKS
 - grabs all sheets from 'indentation_data' folder and converts them to dataframes
 - scrubs data to left of curve start (highest y values), and after <CURVE_TIME> to the right of curve start
+- removes points below the force value at tf
 - currently generates individual plots for each sheet, one figure with each data set plotted and color coded,
 one figure with all data from all sheets in one BIG plot, and a box and whisker plot of Tau values from each sheet
 - fits curve for each individual plot along with getting R^2 and Tau values
@@ -87,24 +88,37 @@ for df in dfs:
     max_force = fvt_df['Fn (uN)'].max()
     max_force_ind = fvt_df[fvt_df['Fn (uN)'] == max_force].index
 
-    # find 60 seconds after max force point
+    # find 60 seconds after max force point (tf)
     t0 = fvt_df.loc[fvt_df['Fn (uN)'] == max_force, 'time(seconds)'].values[0]
     tf = t0 + curve_time
+
+    # find the force at tf
+    time_margin = 0.05
+    force_margin = 0.0001
+    tf_df = fvt_df['time(seconds)'].between(tf-time_margin, tf+time_margin)
+    tf_df = tf_df[tf_df]
+    tf_ind = tf_df.index[0]
+    f_tf = fvt_df['Fn (uN)'].loc[tf_ind]
 
     # only need values to the right of max force point,
     # and left of 60 seconds after max force point
     fvt_df = fvt_df[max_force_ind[0]:]
     fvt_df = fvt_df.drop(fvt_df[fvt_df['time(seconds)'] > tf].index)
+    # remove values that fall too far below force value at end of curve 
+    fvt_df = fvt_df.drop(fvt_df[fvt_df['Fn (uN)'] < f_tf - force_margin].index)
     fvt_df = fvt_df.reset_index(drop=True)
 
     xdata = fvt_df['time(seconds)']
     ydata = fvt_df['Fn (uN)']
 
-    params, cv = curve_fit(monoExp, xdata, ydata, p0)
-    m, t, b = params
-    tau = 1 / t
-    taus.append(tau)
-    yfit = monoExp(xdata, m, t, b)
+    try:
+        params, cv = curve_fit(monoExp, xdata, ydata, p0)
+        m, t, b = params
+        tau = 1 / t
+        taus.append(tau)
+        yfit = monoExp(xdata, m, t, b)
+    except Exception as exc:
+        print(f"Curve fit failed! Check initial paramters 'p0': {exc}")
 
     # determine curve fit accuracy using R² diffs
     sd = np.square(ydata - yfit)
