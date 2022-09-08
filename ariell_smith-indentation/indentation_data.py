@@ -30,6 +30,7 @@ TASKS
 - currently generates individual plots for each sheet, one figure with each data set plotted and color coded,
 one figure with all data from all sheets in one BIG plot, and a box and whisker plot of Tau values from each sheet
 - fits curve for each individual plot along with getting R^2 and Tau values
+- writes tau values to 'taus.txt'
 
 WIP
 - none
@@ -42,14 +43,18 @@ curve_time = 60
 DPI = 320
 
 # find sheets in path, concat into 1 large data frame
-data_path = Path.joinpath(Path.cwd(), "indentation_data1")
+data_path = Path.joinpath(Path.cwd(), "indentation_data")
 sheets = [file for file in data_path.iterdir() if file.suffix == ".xlsx"]
 
 # check file grabbing
 for sheet in sheets:
     assert os.path.isfile(sheet)
 
-dfs = [pd.read_excel(file, skiprows=0) for file in sheets]
+# create file pointer for writing Tau values later
+tau_file = open("taus.txt", 'w')
+taus_csv = open("taus-csv.txt", 'w')
+
+dfs = [pd.read_excel(file, skiprows=7) for file in sheets]
 titles = []
 scrubbed_dfs = []
 taus = []
@@ -128,13 +133,18 @@ for df in dfs:
     if rsq < 0.9:
         print("WARNING: weak curve fit")
 
+    # write Tau values to a text file
+    text = f"R² = {rsq}\nTau = {tau}\n"
+    tau_file.write(f"for file: {titles[i]}\n")
+    tau_file.write(text)
+    taus_csv.write(f"{tau}\n")
+
     # PLOTTING THE DATA AND CURVE FIT
     # subtract t0 to shift curve left to start at 0,
     # mult by 1000000 to account for units being micro
     plt.figure(1, clear=True)
     plt.plot(xdata-t0, ydata*1000000, label="data")
     plt.plot(xdata-t0, yfit*1000000, '--', label='curve fit', color='black')
-    text = f"R² = {rsq}\nTau = {tau}"
     plt.plot([], [], ' ', label = text)
     plt.legend(loc='upper right')
     plt.xlabel('Time (s)')
@@ -172,3 +182,7 @@ plt.figure(3).savefig("indentation_plots/BIGplot.png", dpi=DPI)
 plt.figure(4)
 plt.boxplot(taus, vert=True)
 plt.figure(4).savefig("indentation_plots/Taus_BnW.png", dpi=DPI)
+
+# close tau file
+tau_file.close()
+taus_csv.close()
