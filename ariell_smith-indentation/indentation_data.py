@@ -44,6 +44,8 @@ DPI = 320
 
 # find sheets in path, concat into 1 large data frame
 data_path = Path.joinpath(Path.cwd(), "indentation_data")
+# use this data path for data outside the main folder the script is in
+data_path = Path("your absolute path")
 sheets = [file for file in data_path.iterdir() if file.suffix == ".xlsx"]
 
 # check file grabbing
@@ -54,7 +56,8 @@ for sheet in sheets:
 tau_file = open("taus.txt", 'w')
 taus_csv = open("taus-csv.txt", 'w')
 
-dfs = [pd.read_excel(file, skiprows=7) for file in sheets]
+# If unable to find column index, check the skiprows value here!
+dfs = [pd.read_excel(file, skiprows=0) for file in sheets]
 titles = []
 scrubbed_dfs = []
 taus = []
