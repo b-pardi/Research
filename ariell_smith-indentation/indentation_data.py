@@ -33,19 +33,43 @@ one figure with all data from all sheets in one BIG plot, and a box and whisker 
 - writes tau values to 'taus.txt'
 
 WIP
-- none
+- plot format
+- reevaluate how to find start of curve (derivative of data)
+- adjust how data is entered in tau vals (name,tau,r^2)
+- error bars (different script)
+
+PLOT FORMATTING
+- axis title, Arial size 16
+- number size 14
+- legend ?
+- x indentation force, F(sub)i ; F is in italics
+- make scale for numbers consistent across the board
 """
+
+### INPUT VARIABLES ##
+
+# use this data path for data outside the main folder the script is in
+#data_path = Path("your absolute path")
+
+# If you would like to remove previously made plots before making more, set to True
+will_remove_plots = True
+
+# If unable to find column index, check the skiprows value here!
+rows_skipped = 7
 
 # TIME PARAMETER FOR LENGTH OF CURVE, data this long after curve start will be removed
 curve_time = 60
+
+# estimate of expected initial values
+p0 = (2000, .1, 50)
+
 # pixel density of plots, higher number -> more detail and more memory
 # if program running slow, lower to ~80
 DPI = 320
 
 # find sheets in path, concat into 1 large data frame
 data_path = Path.joinpath(Path.cwd(), "indentation_data")
-# use this data path for data outside the main folder the script is in
-data_path = Path("your absolute path")
+
 sheets = [file for file in data_path.iterdir() if file.suffix == ".xlsx"]
 
 # check file grabbing
@@ -56,8 +80,13 @@ for sheet in sheets:
 tau_file = open("taus.txt", 'w')
 taus_csv = open("taus-csv.txt", 'w')
 
-# If unable to find column index, check the skiprows value here!
-dfs = [pd.read_excel(file, skiprows=0) for file in sheets]
+if will_remove_plots == True:
+    plot_path = Path.joinpath(Path.cwd(), "indentation_plots")
+    old_plots = [file for file in plot_path.iterdir() if file.suffix == ".png"]
+    for plot in old_plots:
+        plot.unlink()
+
+dfs = [pd.read_excel(file, skiprows=rows_skipped) for file in sheets]
 titles = []
 scrubbed_dfs = []
 taus = []
@@ -68,8 +97,6 @@ for path in sheets:
 # curve to fit
 def monoExp(x, m, t, b):
     return m * np.exp(-t * x) + b
-# estimate of expected initial values
-p0 = (2000, .1, 50)
 
 for df in dfs:
     # debugging
@@ -140,22 +167,31 @@ for df in dfs:
     text = f"R² = {rsq}\nTau = {tau}\n"
     tau_file.write(f"for file: {titles[i]}\n")
     tau_file.write(text)
-    taus_csv.write(f"{tau}\n")
+    taus_csv.write(f"{tau},")
 
-    # PLOTTING THE DATA AND CURVE FIT
+    '''PLOTTING THE DATA AND CURVE FIT'''
     # subtract t0 to shift curve left to start at 0,
     # mult by 1000000 to account for units being micro
+    # figure 1 is indiv. plot for each sheet, figure 2 is combined plot of all sheets in dir.
     plt.figure(1, clear=True)
     plt.plot(xdata-t0, ydata*1000000, label="data")
-    plt.plot(xdata-t0, yfit*1000000, '--', label='curve fit', color='black')
+    # curve fit plots in try/except because of some data does not fit curve properly
+    try:
+        plt.plot(xdata-t0, yfit*1000000, '--', label='curve fit', color='black')
+    except Exception as exc:
+        print(f"Curve fit failed! Data in: {titles[i]}\n err: {exc}")
     plt.plot([], [], ' ', label = text)
     plt.legend(loc='upper right')
     plt.xlabel('Time (s)')
     plt.ylabel('Force (μn)')
     plt.figure(1).savefig(f"indentation_plots/{titles[i]}-plot.png", dpi=DPI)
+
     plt.figure(2)
-    plt.plot(xdata-t0, ydata*1000000, label="data") 
-    plt.plot(xdata-t0, yfit*1000000, '--', label='curve fit', color='black')
+    plt.plot(xdata-t0, ydata*1000000, label="data")
+    try:
+        plt.plot(xdata-t0, yfit*1000000, '--', label='curve fit', color='black')
+    except Exception as exc:
+        print(f"Curve fit failed! Data in: {titles[i]}\n err: {exc}")
     scrubbed_dfs.append(fvt_df)
     i+=1
 
