@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 from scipy import stats
 from pathlib import Path
 import os
+import csv
 
 """
 README
@@ -91,8 +92,22 @@ for sheet in sheets:
     assert os.path.isfile(sheet)
 
 # create file pointer for writing Tau values later
-tau_youngs_file = open("aggregate_data/taus-youngs.csv", 'w')
-tau_youngs_file.write("file_name,data_category,Tau,T_rsq,E,E_rsq\n")
+infile = False
+tau_youngs_file = open("aggregate_data/taus-youngs.csv", 'a+')
+header = "file_name,data_category,Tau,T_rsq,E,E_rsq\n"
+reader = csv.reader(tau_youngs_file)
+print(f"reader: {reader}")
+for row in reader:
+    print(row)
+    if row == header:
+        infile = True
+        print("is in file")
+
+if "file_name," in tau_youngs_file.read():
+    print("we ball")
+
+if not infile:
+    tau_youngs_file.write(header)
 
 if will_remove_plots == True:
     plot_path = Path.joinpath(Path.cwd(), "indentation_plots")
