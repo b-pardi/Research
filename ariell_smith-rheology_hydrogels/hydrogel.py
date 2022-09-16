@@ -16,7 +16,7 @@ path = os.getcwd()
 
 # making data frame  
 print(path)
-df = pd.read_excel(r'C:\Users\\ariel\OneDrive\Desktop\2021-08-06-Hydrogels_AriellSmith_updated.xlsx')
+df = pd.read_excel('2021-08-06-Hydrogels_AriellSmith_updated.xlsx')
 
 
 #plotting the data in a scatter plot
@@ -53,10 +53,12 @@ df = pd.read_excel(r'C:\Users\\ariel\OneDrive\Desktop\2021-08-06-Hydrogels_Ariel
 #d_fn = sns.scatterplot(x = 'ASC-c_pH6.78_sample 8_test2_part2_04.15.2022', y = 'Loss Modulus_ ASC-c 6.85_test 2_part 2_sample8[Pa]', data = df, color = 'none', marker = 'o', edgecolor = 'blue', label = 'G\u2032\u2032, pH 6.78 ASCc')
 ## FOR BRANDON##
 '''SET 1'''
-d_fn = sns.scatterplot(x = 'Average_Card-card_All sample_test 1 _04.15.2022', y = 'Average_Card-card_storage modulus_04.15.2022', data = df, color = 'red', marker = 'o', edgecolor = 'red', label = 'G\u2032, pH 6.8 Card-Card')
+d_fn = sns.scatterplot(x = 'Average_Card-card_All sample_test 1 _04.15.2022', y = 'Average_Card-card_storage modulus_04.15.2022', data = df, color = 'none', marker = 'o', edgecolor = 'red', label = 'G\u2032\u2032, pH 6.8 Card-Card')
 d_fn = sns.scatterplot(x = 'Average_Card-card_All sample_test 1 _04.15.2022', y = 'Average_Card-card_loss modulus_04.15.2022', data = df, color = 'none', marker = 'o', edgecolor = 'red', label = 'G\u2032\u2032, pH 6.8 Card-Card')
+d_fn.errorbar(x = 'Average_Card-card_All sample_test 1 _04.15.2022', y = 'Average_Card-card_storage modulus_04.15.2022', yerr = 'Standard deviation_Storage modulus_ASC_test1', fmt='none', data = df)
 d_fn = sns.scatterplot(x = 'Average_ASCc_All sample_test 1 _04.15.2022', y = 'Average_ASCc_test1_storage modulus_04.15.2022', data = df, color = 'black', marker = 'o', edgecolor = 'black', label = 'G\u2032, pH 6.8 ASCc')
 d_fn = sns.scatterplot(x = 'Average_ASCc_All sample_test 1 _04.15.2022', y = 'Average_ASCc_test1_loss modulus_04.15.2022', data = df, color = 'none', marker = 'o', edgecolor = 'black', label = 'G\u2032\u2032, pH 6.8 ASCc')
+d_fn.errorbar(x = 'Average_ASCc_All sample_test 1 _04.15.2022', y = 'Average_Card-card_storage modulus_04.15.2022', yerr = 'standard deviation of Loss modulus_ test1_ASCc+Card', fmt='none', data = df)
 ## FOR BRANDON##
 '''SET 2'''
 #d_fn = sns.scatterplot(x = 'Average_Card-card_All sample_test 2 _04.15.2022', y = 'Average_Card-card_test2_storage modulus_04.15.2022', data = df, color = 'red', marker = 'o', edgecolor = 'red', label = 'G\u2032, pH 6.8 Card-Card')
@@ -84,6 +86,7 @@ d_fn = sns.scatterplot(x = 'Average_ASCc_All sample_test 1 _04.15.2022', y = 'Av
 '''SET 1'''
 d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall_Storagemodulus_Average', data = df, color = 'g', marker = 'o', edgecolor = 'g', label = 'G\u2032, pH 6.8 ASC')
 d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall_Lossmodulus_Average', data = df, color = 'none', marker = 'o', edgecolor = 'g', label = 'G\u2032\u2032, pH 6.8 ASC')
+d_fn.errorbar(x = 'Average_AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC_test1_05.06.2022_pH6.88_Sampleall_Lossmodulus_Average', yerr = 'standard deviation of Loss modulus_ test1_ASCc+Card', fmt='none', data = df)
 
 '''SET 2'''
 #d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASC_test2_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC_test2_05.06.2022_pH6.88_Sampleall_Storagemodulus_Average', data = df, color = 'g', marker = 'o', edgecolor = 'g', label = 'G\u2032, pH 6.8 ASC')
@@ -92,6 +95,8 @@ d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASC_test1_05.06.2022_pH6.88_Samp
 '''SET 1'''
 d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASCc+Card_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC+Card_test1_05.06.2022_pH6.88_Sampleall_Storagemodulus_Average', data = df, color = 'orange', marker = 'o', edgecolor = 'orange', label = 'G\u2032, pH 6.8 ASCc-Card')
 d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASCc+Card_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASCc+Card_test1_05.06.2022_pH6.88_Sampleall_Lossmodulus_Average', data = df, color = 'none', marker = 'o', edgecolor = 'orange', label = 'G\u2032\u2032, pH 6.8 ASCc-Card')
+d_fn.errorbar(x = 'Average_AriellSmith_ASCc+Card_test1_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASCc+Card_test1_05.06.2022_pH6.88_Sampleall_Lossmodulus_Average', yerr = 'Standard deviation_Loss Modulus_ASC_test2', fmt='none', data = df)
+
 
 '''SET 2'''
 #d_fn = sns.scatterplot(x = 'Average_AriellSmith_ASCc+Card_test2_05.06.2022_pH6.88_Sampleall', y = 'AriellSmith_ASC+Card_test2_05.06.2022_pH6.88_Sampleall_Storagemodulus_Average', data = df, color = 'orange', marker = 'o', edgecolor = 'orange', label = 'G\u2032, pH 6.8 ASCc-Card')

@@ -12,6 +12,9 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install',
 'matplotlib'])
 
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+'seaborn'])
+
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
 'pathlib'])
 
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 

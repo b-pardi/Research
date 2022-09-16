@@ -1,14 +1,15 @@
 """
 Author: Brandon Pardi
 Created: 6/22/2022, 3:56 pm
-Last Modified: 9/3/2022 3:25pm
+Last Modified: 9/15/2022 12:30pm
 """
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+import seaborn as sns
 from scipy.optimize import curve_fit
+from scipy import stats
 from pathlib import Path
 import os
 
@@ -35,8 +36,10 @@ one figure with all data from all sheets in one BIG plot, and a box and whisker 
 WIP
 - plot format
 - reevaluate how to find start of curve (derivative of data)
-- adjust how data is entered in tau vals (name,tau,r^2)
+    - avg of x number highest points
+    - gaussian fit to 
 - error bars (different script)
+- youngs modulus
 
 PLOT FORMATTING
 - axis title, Arial size 16
@@ -51,24 +54,35 @@ PLOT FORMATTING
 # use this data path for data outside the main folder the script is in
 #data_path = Path("your absolute path")
 
+# indicate what category of data for later swarm plots
+# 0: soft, 1: stiff, 2: soft viscoelastic, 3: stiff viscoelastic
+data_category = 0
+
 # If you would like to remove previously made plots before making more, set to True
 will_remove_plots = True
 
 # If unable to find column index, check the skiprows value here!
-rows_skipped = 7
+rows_skipped = 0
 
 # TIME PARAMETER FOR LENGTH OF CURVE, data this long after curve start will be removed
 curve_time = 60
+
+# finding start of curve requires finding max value,
+# to avoid outliars it will average x number of max force points
+# this variable will determing how many to average
+num_max_pts_to_avg = 5
+
+gauss_x_range = 200
 
 # estimate of expected initial values
 p0 = (2000, .1, 50)
 
 # pixel density of plots, higher number -> more detail and more memory
 # if program running slow, lower to ~80
-DPI = 320
+DPI = 160
 
 # find sheets in path, concat into 1 large data frame
-data_path = Path.joinpath(Path.cwd(), "indentation_data")
+data_path = Path.joinpath(Path.cwd(), "indentation_data_noisy")
 
 sheets = [file for file in data_path.iterdir() if file.suffix == ".xlsx"]
 
@@ -77,8 +91,8 @@ for sheet in sheets:
     assert os.path.isfile(sheet)
 
 # create file pointer for writing Tau values later
-tau_file = open("taus.txt", 'w')
-taus_csv = open("taus-csv.txt", 'w')
+tau_youngs_file = open("aggregate_data/taus-youngs.csv", 'w')
+tau_youngs_file.write("file_name,data_category,Tau,T_rsq,E,E_rsq\n")
 
 if will_remove_plots == True:
     plot_path = Path.joinpath(Path.cwd(), "indentation_plots")
@@ -90,6 +104,9 @@ dfs = [pd.read_excel(file, skiprows=rows_skipped) for file in sheets]
 titles = []
 scrubbed_dfs = []
 taus = []
+time_margin = 0.05
+force_margin = 0.0001
+data_category_list = ['soft', 'stiff', 'soft_viscoelastic', 'stiff_viscoelastic']
 i = 0
 for path in sheets:
     titles.append(os.path.basename(path))
@@ -97,6 +114,10 @@ for path in sheets:
 # curve to fit
 def monoExp(x, m, t, b):
     return m * np.exp(-t * x) + b
+
+# curve fit for finding max value
+def gauss(x, H, A, x0, sigma):
+    return H + A * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2))
 
 for df in dfs:
     # debugging
@@ -120,16 +141,22 @@ for df in dfs:
     pd.options.mode.chained_assignment = 'warn'
 
     # find the start of the curve (point of greatest force)
-    max_force = fvt_df['Fn (uN)'].max()
+    # use average of x largest y values to reduce chance of outliars,
+    # and prevent curve from starting at incorrect place
+    max_force_mean = fvt_df['Fn (uN)'].nlargest(num_max_pts_to_avg).mean()
+    max_force = fvt_df.iloc[(fvt_df['Fn (uN)'] - max_force_mean).abs().argsort()[0],:]['Fn (uN)']
     max_force_ind = fvt_df[fvt_df['Fn (uN)'] == max_force].index
+    #max_force = fvt_df['Fn (uN)'].max()
+    print(f"max force chosen: {max_force} @{max_force_ind[0]}")
+    '''gauss_x = fvt_df.loc[max_force_ind-gauss_x_range:max_force_ind+gauss_x_range]['time(seconds)'].values
+    gauss_y = fvt_df.loc[max_force_ind-gauss_x_range:max_force_ind+gauss_x_range]['Fn (uN)'].values
+    gauss_param, gauss_cv = curve_fit(gauss, gauss_x, gauss_y)'''
 
     # find 60 seconds after max force point (tf)
-    t0 = fvt_df.loc[fvt_df['Fn (uN)'] == max_force, 'time(seconds)'].values[0]
+    t0 = fvt_df.loc[fvt_df['Fn (uN)'] >= max_force-force_margin, 'time(seconds)'].values[0]
     tf = t0 + curve_time
 
     # find the force at tf
-    time_margin = 0.05
-    force_margin = 0.0001
     tf_df = fvt_df['time(seconds)'].between(tf-time_margin, tf+time_margin)
     tf_df = tf_df[tf_df]
     tf_ind = tf_df.index[0]
@@ -146,28 +173,23 @@ for df in dfs:
     xdata = fvt_df['time(seconds)']
     ydata = fvt_df['Fn (uN)']
 
-    try:
-        params, cv = curve_fit(monoExp, xdata, ydata, p0)
-        m, t, b = params
-        tau = 1 / t
-        taus.append(tau)
-        yfit = monoExp(xdata, m, t, b)
-    except Exception as exc:
-        print(f"Curve fit failed! Check initial paramters 'p0': {exc}")
+    exp_params, exp_cv = curve_fit(monoExp, xdata, ydata, p0)
+    m, t, b = exp_params
+    tau = 1 / t
+    taus.append(tau)
+    yfit = monoExp(xdata, m, t, b)
 
     # determine curve fit accuracy using R² diffs
     sd = np.square(ydata - yfit)
     sd_mean = np.square(ydata-np.mean(ydata))
-    rsq = 1 - np.sum(sd) / np.sum(sd_mean)
-    print(f"for data in '{titles[i]}':\nTau = {tau}\nR² = {rsq}")
-    if rsq < 0.9:
+    T_rsq = 1 - np.sum(sd) / np.sum(sd_mean)
+    print(f"for data in '{titles[i]}':\nTau = {tau}\nR² = {T_rsq}")
+    if T_rsq < 0.9:
         print("WARNING: weak curve fit")
-
+    
     # write Tau values to a text file
-    text = f"R² = {rsq}\nTau = {tau}\n"
-    tau_file.write(f"for file: {titles[i]}\n")
-    tau_file.write(text)
-    taus_csv.write(f"{tau},")
+    text = f"R² = {T_rsq}\nTau = {tau}\n"
+    tau_youngs_file.write(f"{titles[i]},{data_category_list[data_category]},{tau},{T_rsq},na,na\n")
 
     '''PLOTTING THE DATA AND CURVE FIT'''
     # subtract t0 to shift curve left to start at 0,
@@ -198,30 +220,11 @@ for df in dfs:
 # this figure has all indiv sheets plotted onto it
 plt.figure(2).savefig("indentation_plots/multiplot.png", dpi=DPI)
 
-# Large dataframe of all data in sheets
-comb_df = pd.concat(scrubbed_dfs)
-temp_df = comb_df[comb_df['time(seconds)'].apply(lambda x: isinstance(x, str))]
-if (temp_df.size > 0):
-    comb_df = comb_df.drop(comb_df.index[temp_df.index])
-comb_df = comb_df.sort_values(by='time(seconds)')
-comb_df = comb_df.dropna().reset_index(drop=True)
-xdata = comb_df['time(seconds)']
-ydata = comb_df['Fn (uN)']
-print(comb_df.head())
-print(comb_df.tail())
-
-# plots ALL data at once (not super useful with current sample data)
-plt.figure(3)
-plt.plot(xdata-t0, ydata*1000000, label="data")
-plt.xlabel('Time (s)')
-plt.ylabel('Force (μn)')
-plt.figure(3).savefig("indentation_plots/BIGplot.png", dpi=DPI)
-
 # box and whisker plot for Tau values
 plt.figure(4)
 plt.boxplot(taus, vert=True)
+plt.xlabel('Tau')
 plt.figure(4).savefig("indentation_plots/Taus_BnW.png", dpi=DPI)
 
 # close tau file
-tau_file.close()
-taus_csv.close()
+tau_youngs_file.close()
