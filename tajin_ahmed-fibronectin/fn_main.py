@@ -75,6 +75,10 @@ for i in range(tempgui.num_freqs_tested):
     plt.figure(2, clear=False)
     plt.plot(x_time, y_dis, label=f"dissipation - {i}")
 
+    plt.figure(3, clear=True)
+    plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
+    plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
+
     print(f"{data_df.head()}\n{data_df.tail()}")
     print(f"{baseline_df.head()}\n{baseline_df.tail()}")
     print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}")
