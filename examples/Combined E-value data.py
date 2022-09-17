@@ -15,10 +15,10 @@ import seaborn as sns
 import scipy.optimize
 
 # choose directory where files are stored
-directory1="C:/Users/ariel/OneDrive/Desktop/8.8filtered data"
+directory1="C:/Users/Brandon/Documents/00 School Files 00/University/Research/ariell_smith-indentation/indentation_data_noisy/PAA_8.8kpa_S02_L03_C02.xlsx"
 lenofdir1 = len(directory1)  # find the length of the directory
 
-directory2="C:/Users/ariel/OneDrive/Documents/2022.06.08_All filtered samples_40kPa_A.S(1)/2022.06.08_All filtered samples_40kPa_A.S"
+directory2="C:/Users/Brandon/Documents/00 School Files 00/University/Research/ariell_smith-indentation/indentation_data2PAA_40kpa_S01_L01_C03..xlsx"
 lenofdir2 = len(directory2)  # find the length of the directory
 
 
@@ -157,5 +157,6 @@ fig,ax = plt.subplots()
 ax.boxplot(my_dict.values())
 ax.set_xticklabels(my_dict.keys())
 ax.set_ylabel("Young's modulus (kPa)",fontsize = 16)
-
-
+plt.figure(1)
+plt.boxplot(my_dict.values())
+plt.savefig("YOUNGS-plot")

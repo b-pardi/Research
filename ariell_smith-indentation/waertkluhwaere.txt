@@ -4,16 +4,6 @@ Created: 6/22/2022, 3:56 pm
 Last Modified: 9/15/2022 12:30pm
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.optimize import curve_fit
-from scipy import stats
-from pathlib import Path
-import os
-import sys
-
 """
 README
 - Please execute 'install_packages.py' BEFORE running this script
@@ -54,11 +44,11 @@ PLOT FORMATTING
 # use this data path for data outside the main folder the script is in
 #data_path = Path("your absolute path")
 # use this one if keeping sheets in the directory with the script
-data_path = Path.joinpath(Path.cwd(), "indentation_data2")
+data_path = Path.joinpath(Path.cwd(), "indentation_data_noisy")
 
 # indicate what category of data for later swarm plots
 # 0: soft, 1: stiff, 2: soft viscoelastic, 3: stiff viscoelastic
-data_category = 1
+data_category = 0
 
 # If you would like to remove previously made plots before making more, set to True
 will_remove_plots = True
@@ -72,7 +62,7 @@ curve_time = 60
 # finding start of curve for tau vals requires finding max value,
 # to avoid outliars it will average x number of max force points
 # this variable will determing how many to average
-num_max_pts_to_avg = 7
+num_max_pts_to_avg = 5
 
 # similar to above, however for Youngs mod vals this is how many points to find the std dev of the mean of,
 # to then remove everything within 3x that range
@@ -87,7 +77,7 @@ p0_tau = (2000, .1, 50)
 p0_E = (0)
 
 # constants for Youngs Modulus function
-R = 0.00159 
+R = 0.00159  # [m]
 nu = 0.5
 
 # pixel density of plots, higher number -> more detail and more memory
@@ -105,13 +95,11 @@ tau_youngs_file_RO = open("aggregate_data/taus-youngs.csv", 'r')
 tau_youngs_file = open("aggregate_data/taus-youngs.csv", 'a')
 header = "file_name,data_category,Tau,T_rsq,E,E_rsq\n"
 
-# check if header already exists in csv (if new file it won't)
 if header not in tau_youngs_file_RO.read():
     tau_youngs_file.write(header)
 else:
     print("header already exists")
 
-# remove old plots if indicated by user above
 if will_remove_plots == True:
     plot_path = Path.joinpath(Path.cwd(), "indentation_plots")
     old_plots = [file for file in plot_path.iterdir() if file.suffix == ".png"]
@@ -143,7 +131,6 @@ def gauss(x, H, A, x0, sigma):
 def youngs_monoExp(x, E):
     return ((4/3) * R**(1/2) * x**(3/2) * E)/(1-nu**2)
 
-# open all sheets into dfs
 try:
     dfs = [pd.read_excel(file, skiprows=rows_skipped) for file in sheets]
 except ValueError as ve:
@@ -151,28 +138,31 @@ except ValueError as ve:
     sys.exit(1)
 
 for df in dfs:
-    # only need time and force columns for tau,
-    # and z displacement and force columns for youngs
+    # only need time and force columns
     fvt_df = df[['time(seconds)', 'Fn (uN)']]
     fvd_df = df[['z-stage (um)', 'Fn (uN)']]
 
+    plt.plot(fvd_df['z-stage (um)'], fvt_df['Fn (uN)'], 'o', ls='')
+    plt.savefig(f"indentation_plots/temp-{i}.png")
+
+    
     '''GENERAL CLEANING'''
 
     # some entries contained 'na' for time so they will be removed
     fvt_df = fvt_df.dropna(axis=0, how='any', inplace=False)
-    fvd_df = fvd_df.dropna(axis=0, how='any', inplace=False)
     temp_df = fvt_df[fvt_df['time(seconds)'].apply(lambda x: isinstance(x, str))]
     if (temp_df.size > 0):
         fvt_df = fvt_df.drop(fvt_df.index[temp_df.index])
 
+    fvd_df = fvd_df.dropna(axis=0, how='any', inplace=False)
+
     # ensure units are all same
     fvt_df = fvt_df.astype(float)
-    fvd_df = fvd_df.astype(float)
+    fvd_df = fvt_df.astype(float)
 
     # account for units being micro
     pd.options.mode.chained_assignment = None
     fvt_df.loc[:,'Fn (uN)'] /= 1000000
-    fvd_df.loc[:,'Fn (uN)'] /= 1000000
     fvd_df.loc[:,'z-stage (um)'] /= 1000000
     pd.options.mode.chained_assignment = 'warn'
 
@@ -211,15 +201,13 @@ for df in dfs:
 
 
     '''YOUNGS MODULUS CLEANING'''
-
     # only need everything up til the max force point
     fvd_df = fvd_df[:max_force_ind[0]+1]
     # find std dev and keep everything more than 3 times it
-    std_dev = fvd_df['Fn (uN)'].iloc[:youngs_pts_to_avg].std()
-    fvd_df = fvd_df[fvd_df['Fn (uN)'] >= 3 * std_dev]
+    std_dev = fvd_df['Fn (uN)'].iloc[0:youngs_pts_to_avg].std()
+    fvd_df = 
     fvd_df = fvd_df.reset_index(drop=True)
 
-    # put data df columns into lists
     xdata_tau = fvt_df['time(seconds)']
     xdata_E = fvd_df['z-stage (um)']
     ydata_tau = fvt_df['Fn (uN)']
@@ -247,7 +235,7 @@ for df in dfs:
     if T_rsq < 0.9:
         print("WARNING: weak TAU curve fit")
 
-    # for youngs modulus
+    # for youngs mod
     sd_E = np.square(ydata_E - yfit_E)
     sd_E_mean = np.square(ydata_E - np.mean(ydata_E))
     E_rsq = 1 - np.sum(sd_E) / np.sum(sd_E_mean)
@@ -262,17 +250,13 @@ for df in dfs:
     E_text = f"E = {E}\nR² = {E_rsq}\n"
     tau_youngs_file.write(f"{titles[i]},{data_category_list[data_category]},{tau},{T_rsq},{E},{E_rsq}\n")
 
-    '''
-    PLOTTING THE DATA AND CURVE FIT
-
-        subtract t0 for taus to shift curve left to start at 0,
-        subtract by mins dataset for youngs to shift to 0
-        mult by 1000000 to account for units being micro
-        figure 1 is indiv. plot for each Taus,
-        figure 2 is indiv. plot for each Youngs mod,
-        figure 3 is combined plot of all sheets in dir for Tau,
-        figure 4 is combined plot of all sheets in dir for Youngs mod
-    '''
+    '''PLOTTING THE DATA AND CURVE FIT'''
+    # subtract t0 to shift curve left to start at 0,
+    # mult by 1000000 to account for units being micro
+    # figure 1 is indiv. plot for each Taus,
+    # figure 2 is indiv. plot for each Youngs mod,
+    # figure 3 is combined plot of all sheets in dir for Tau,
+    # figure 4 is combined plot of all sheets in dir for Youngs mod
     plt.figure(1, clear=True)
     plt.plot(xdata_tau-t0, ydata_tau*1000000, 'o', label="data", linestyle='')
     plt.plot(xdata_tau-t0, yfit_tau*1000000, '--', label='tau curve fit', color='black')
@@ -283,11 +267,12 @@ for df in dfs:
     plt.figure(1).savefig(f"indentation_plots/{titles[i]}-TAU-plot.png", dpi=DPI)
 
     plt.figure(2, clear=True)
-    plt.plot((xdata_E-min(xdata_E))*1000000, (ydata_E-min(ydata_E))*1000000, 'o', label="E data", linestyle='')
-    plt.plot((xdata_E-min(xdata_E))*1000000, (yfit_E-min(yfit_E))*1000000, '--', label='E curve fit', color='black')
+    plt.plot(xdata_E*1000000, ydata_E*1000000, 'o', label="E data", linestyle='')
+    plt.plot(xdata_E*1000000, yfit_E*1000000, '--', label='E curve fit', color='black')
     plt.plot([], [], ' ', label = E_text)
     plt.legend(loc='upper right')
     plt.xlabel('z-stage(μm)')
+    #plt.xlim(min(xdata_E), max(xdata_E))
     plt.ylabel('Force (μn)')
     plt.figure(2).savefig(f"indentation_plots/{titles[i]}-YOUNGS-plot.png", dpi=DPI)
 
@@ -296,8 +281,8 @@ for df in dfs:
     plt.plot(xdata_tau-t0, yfit_tau*1000000, '--', label='curve fit', color='black')
 
     plt.figure(4)
-    plt.plot((xdata_E-min(xdata_E))*1000000, (ydata_E-min(ydata_E))*1000000, 'o', label="E data", linestyle='')
-    plt.plot((xdata_E-min(xdata_E))*1000000, (yfit_E-min(yfit_E))*1000000, '--', label='curve fit', color='black')
+    plt.plot(xdata_E-t0, ydata_E*1000000, label="data")
+    plt.plot(xdata_E-t0, yfit_E*1000000, '--', label='curve fit', color='black')
     i+=1
 
 # this figure has all indiv sheets plotted onto it
@@ -314,7 +299,7 @@ plt.figure(5).savefig("indentation_plots/Taus_BnW.png", dpi=DPI)
 # temp box and whisker plot for Tau values
 plt.figure(6)
 plt.boxplot(Es, vert=True)
-plt.xlabel('Young\'s Modulus')
+plt.xlabel('Tau')
 plt.figure(6).savefig("indentation_plots/E_BnW.png", dpi=DPI)
 
 # close tau file
