@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 6/22/2022, 3:56 pm
-Last Modified: 9/15/2022 12:30pm
+Last Modified: 9/16/2022 9:30pm
 """
 
 import pandas as pd
@@ -17,28 +17,32 @@ import sys
 """
 README
 - Please execute 'install_packages.py' BEFORE running this script
+- Check the input variables section and make sure all user defined inputs are correct
 - make sure the data is in a folder entitled 'indentation_data', and that the script is in the same file path level as the folder
+    OR use the global path outlined in the input variables section
 - script will name individual plots the same name as its corresponding sheet, followed by '-plot'
-- var curve_time can be adjusted depending on the data set for the x length of the curve
+- var curve_time can be adjusted depending on the data set for the x length of the curve for tau values
 - if program running slow, lower var DPI to ~80
 - var names; df(s) short for dataframe(s), fvt_df: force vs time data frame, fvd_df: force vs displacement df
-sd: squared distance, comb_df: combined dataframe
-- tau and R vals for each sheet are printed AND recorded in the legend of its respective plot
+    sd: squared distance,
+- tau, youngs mod, and their rsq vals for each sheet are printed AND recorded in the legend of its respective plot,
+- those values are also appended to 'taus-youngs.csv' for later swarmplot use
 
 TASKS
 - grabs all sheets from 'indentation_data' folder and converts them to dataframes
-- scrubs data to left of curve start (highest y values), and after <CURVE_TIME> to the right of curve start
-- removes points below the force value at tf
-- currently generates individual plots for each sheet, one figure with each data set plotted and color coded,
-one figure with all data from all sheets in one BIG plot, and a box and whisker plot of Tau values from each sheet
-- fits curve for each individual plot along with getting R^2 and Tau values
-- writes tau values to 'taus.txt'
+- for taus, scrubs data to left of curve start (highest y values), and after <CURVE_TIME> to the right of curve start
+    also removes points below the force value at tf
+- for youngs mod values, removes everything after the max force point,
+    as well as finds the std dev of the first <youngs_pts_to_avg> data points,
+    and removes everything less than 3 times that value
+- currently generates individual plots for each sheet, and one figure with each data set plotted and color coded
+- box and whisker plots for E and tau will be generated in 'taus-youngs.py' when enough aggregate data is collected
+- fits curve for each individual plot along with getting R^2 values
+- writes tau and youngs mod values to 'taus-youngs.csv'
 
 WIP
 - plot format
-- youngs modulus
-    - remove everything within std of mean of first 500* y points AND anything after max force,
-    - and start of whats left is curve needed
+- taus-youngs.py
 
 PLOT FORMATTING
 - axis title, Arial size 16
