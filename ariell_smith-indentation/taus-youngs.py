@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.optimize import curve_fit
+import sys
 
 
 '''
@@ -24,9 +25,18 @@ WIP
 - currently viscoelastic data does not exist yet.
 '''
 
-df = pd.read_csv("aggregate_data/taus-youngs.csv")
+# error checking for opening csv file into df
+try:
+    df = pd.read_csv("aggregate_data/taus-youngs.csv")
+except pd.errors.EmptyDataError as empty_err:
+    print(f"Data frame empty!\nerr: {empty_err}")
+    sys.exit(1)
+except pd.errors.ParserError as parse_err:
+    print(f"Could not parse CSV, check for improper delimiters\n(clear csv and try again)\n{parse_err}")
+    sys.exit(1)
+
 df = df.drop_duplicates()
-#df.to_csv("aggregate_data/taus-youngs.csv")
+#df.to_csv("aggregate_data/taus-youngs.csv", index=False)
 
 tau_df = df[['Tau', 'data_category']]
 tau_rsq_df = df[['T_rsq', 'data_category']]

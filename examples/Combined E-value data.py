@@ -15,10 +15,10 @@ import seaborn as sns
 import scipy.optimize
 
 # choose directory where files are stored
-directory1="C:/Users/Brandon/Documents/00 School Files 00/University/Research/ariell_smith-indentation/indentation_data_noisy/PAA_8.8kpa_S02_L03_C02.xlsx"
+directory1="C:/Users/Brandon Pardi/Documents/00 School Files 00/Research/ariell_smith-indentation/indentation_data_noisy/PAA_8.8kpa_S02_L02_C03.xlsx"
 lenofdir1 = len(directory1)  # find the length of the directory
 
-directory2="C:/Users/Brandon/Documents/00 School Files 00/University/Research/ariell_smith-indentation/indentation_data2PAA_40kpa_S01_L01_C03..xlsx"
+directory2="C:/Users/Brandon/Documents/00 School Files 00/University/Research/ariell_smith-indentation/indentation_data2/PAA_40kpa_S01_L01_C03..xlsx"
 lenofdir2 = len(directory2)  # find the length of the directory
 
 
@@ -70,6 +70,7 @@ for f in xls_files1:
 
     xs = dfFinal["z-stage (um)"]
     ys = dfFinal["Fn (uN)"]
+    print(f"{xs}\n{ys}")
 
     # perform the fit
     p0 = (0)  # start with values near those we expect
@@ -132,6 +133,10 @@ for f in xls_files2:
     p0 = (0)  # start with values near those we expect
     params, cv = scipy.optimize.curve_fit(monoExp, xs, ys, p0)
     E = params
+    yfit = monoExp(xs, E)
+    plt.figure(2)
+    plt.plot(xs, yfit)
+    plt.figure(2).savefig("TEST.png")
 
     # determine quality of the fit
     squaredDiffs = np.square(ys - monoExp(xs, E))
@@ -148,10 +153,12 @@ for f in xls_files2:
     rSquaredallvals.append(rSquared)
     Eallvals2.append(E[0]) # Append current E to variable
 
-
+    
 
 
 my_dict = {'soft':Eallvals1, 'stiff': Eallvals2,}
+
+
 
 fig,ax = plt.subplots()
 ax.boxplot(my_dict.values())
