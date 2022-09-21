@@ -33,6 +33,10 @@ WIP
     - when entering col names, autopopulate based on first entry
 - plot for all freqs and all dis
 - naming plots just put rf and dis
+- rename columns in excel sheet to:
+    fundamental_freq, fundamental_dis
+    3rd_freq, 3rd_dis, etc. 5, 7, 9
+- write csv with cleaned data
 
 Q's
 - what is expected of me from the research update presentation?

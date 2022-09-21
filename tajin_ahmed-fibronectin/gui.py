@@ -2,6 +2,21 @@ from tkinter import *
 from datetime import datetime, time
 
 
+'''
+GUI notes
+- file name box (later maybe window to search for file)
+- checkbox for each frequency being plotted
+    - checkbox for raw and clean data
+        - raw data plots are individual for overtone of each freq/dis
+        - cleaned plots will be overlapped (all overtones of freq and all of dis)
+- abs base time t0, tf
+- checkbox for other formulas (normalize data)
+
+- look into:
+    - interactive plots (plotly)
+'''
+
+
 ### INPUT DEFINITIONS ###
 file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C"
 file_ext = '.csv'
