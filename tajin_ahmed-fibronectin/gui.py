@@ -1,4 +1,5 @@
 from tkinter import *
+import sys
 from datetime import datetime, time
 
 
@@ -27,53 +28,83 @@ abs_time_col = 'Time'
 rel_time_col = 'Relative_time'
 num_freqs_tested = 5
 
-# number after indicates which resonant frequency testing on (fundamental, 1st, 3rd, etc)
-'''rf_col_fund = 'Frequency_0'
-dis_col_fund = 'Dissipation_0'
-rf_col_3 = 'Frequency_1'
-dis_col_3 = 'Dissipation_1'
-rf_col_5 = 'Frequency_2'
-dis_col_5 = 'Dissipation_2'
-rf_col_7 = 'Frequency_3'
-dis_col_7 = 'Dissipation_3'
-rf_col_9 = 'Frequency_4'
-dis_col_9 = 'Dissipation_4' '''
+'''Variable Initializations'''
+file_info = []
 
-col_names = []
+'''Function Defintions for UI events'''
+def col_names_submit():
+    file_info.append(file_name_entry.get())
+    file_info.append(file_path_entry.get())
 
+def clear_file_data():
+    global file_info
+    file_info = []
+    cleared_label.grid(row=12, column=0)
+    file_name_entry.delete(0, END)
+    file_path_entry.delete(0, END)
+
+def handle_fn_focus_in(_):
+    file_name_entry.delete(0, END)
+    file_name_entry.config(fg='black')
+
+def handle_fn_focus_out(_):
+    file_name_entry.delete(0, END)
+    file_name_entry.config(fg='gray')
+    file_name_entry.insert(0, "File name here")
+
+def handle_fp_focus_in(_):
+    file_path_entry.delete(0, END)
+    file_path_entry.config(fg='black')
+
+def handle_fp_focus_out(_):
+    file_path_entry.delete(0, END)
+    file_path_entry.config(fg='gray')
+    file_path_entry.insert(0, "Enter path to file (leave blank if in same dir)")    
+
+
+'''Enter event loop for UI'''
 root = Tk()
 
-def col_names_submit():
-    col_names.append(rf_col_fund_entry.get())
-    col_names.append(dis_col_fund_entry.get())
-
-def clear_cols():
-    col_names = []
-    cleared_label.grid(row=12, column=0)
-    rf_col_fund_entry.delete(0, END)
-    dis_col_fund_entry.delete(0, END)
-
-
-col_names_label = Label(root, text="Enter column names as they appear in excel")
+# define and place file info labels and buttons
+file_name_label = Label(root, text="Enter data file information ")
 spacing = Label(root, text="         ")
-col_names_label.grid(row=0, column=0)
+file_name_label.grid(row=0, column=0)
 spacing.grid(row=1, column=0)
 cleared_label = Label(root, text="Cleared!")
 
-rf_col_fund_entry = Entry(root, width=40)
-rf_col_fund_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
-rf_col_fund_entry.insert(1, "fundamental resonant frequency")
-dis_col_fund_entry = Entry(root, width=40)
-dis_col_fund_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
-dis_col_fund_entry.insert(0, "fundamental dissipation")
+file_name_entry = Entry(root, width=40, bg='white', fg='gray')
+file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
+file_name_entry.insert(0, "File name here")
+file_name_entry.bind("<FocusIn>", handle_fn_focus_in)
+file_name_entry.bind("<FocusOut>", handle_fn_focus_out)
 
-col_names_submit_button = Button(root, text="Submit column names", padx=12, pady=8, command=col_names_submit)
-col_names_submit_button.grid(row=10, column=0)
-clear_button = Button(root, text="Clear Entries", padx=12, pady=8, command=clear_cols)
-clear_button.grid(row=11, column=0)
+file_path_entry = Entry(root, width=40, bg='white', fg='gray')
+file_path_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
+file_path_entry.insert(0, "Enter path to file (leave blank if in same dir)")
+file_path_entry.bind("<FocusIn>", handle_fp_focus_in)
+file_path_entry.bind("<FocusOut>", handle_fp_focus_out)
 
+file_data_submit_button = Button(root, text="Submit file information", padx=12, pady=8, command=col_names_submit)
+file_data_submit_button.grid(row=10, column=0)
+file_data_clear_button = Button(root, text="Clear Entries", padx=12, pady=8, command=clear_file_data)
+file_data_clear_button.grid(row=11, column=0)
+
+# define and place checkboxes
+
+
+# conclude UI event loop
 root.mainloop()
 
-rf_col_fund = col_names[0]
-dis_col_fund = col_names[1]
-print(col_names)
+''' Grab data from UI temp into variables for data analysis'''
+
+# assign file info data
+if len(file_info) == 0:
+    print("please define file information!")
+    sys.exit(1)
+elif len(file_info) == 1:
+    file_name = file_info[0]
+else:
+    file_name = file_info[0]
+    file_path = file_info[1]
+
+print(file_info)
