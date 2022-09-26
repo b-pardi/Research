@@ -51,21 +51,37 @@ figure 4: Youngs mod rsq
 '''
 
 plt.figure(1)
-sns.swarmplot(x='data_category', y='Tau', data=tau_df)
-sns.boxplot(x='data_category', y='Tau', data=tau_df, boxprops={'facecolor':'None'})
+swarm1 = sns.swarmplot(x='data_category', y='Tau', data=tau_df)
+box1 = sns.boxplot(x='data_category', y='Tau', data=tau_df, boxprops={'facecolor':'None'})
+medians1 = tau_df.groupby(['data_category'])['Tau'].median()
+v_offset1 = tau_df['Tau'].median() * 0.02 # offset so display isn't right on line
+for xtick in box1.get_xticks():
+    box1.text(xtick,medians1[xtick] + v_offset1,medians1[xtick], horizontalalignment='center', size='x-small', color='b')
 plt.savefig("taus-youngs_plots/TAUS-swarmplot.png")
 
 plt.figure(2)
-sns.swarmplot(x='data_category', y='T_rsq', data=tau_rsq_df)
-sns.boxplot(x='data_category', y='T_rsq', data=tau_rsq_df, boxprops={'facecolor':'None'})
+swarm2 = sns.swarmplot(x='data_category', y='T_rsq', data=tau_rsq_df)
+box2 = sns.boxplot(x='data_category', y='T_rsq', data=tau_rsq_df, boxprops={'facecolor':'None'})
+medians2 = tau_rsq_df.groupby(['data_category'])['T_rsq'].median()
+v_offset2 = tau_rsq_df['T_rsq'].median() * 0.005
+for xtick in box2.get_xticks():
+    box2.text(xtick,medians2[xtick] + v_offset2,medians2[xtick], horizontalalignment='center', size='x-small', color='b')
 plt.savefig("taus-youngs_plots/TAUS-RSQ-swarmplot.png")
 
 plt.figure(3)
-sns.swarmplot(x='data_category', y='E', data=E_df)
-sns.boxplot(x='data_category', y='E', data=E_df, boxprops={'facecolor':'None'})
+swarm3 = sns.swarmplot(x='data_category', y='E', data=E_df)
+box3 = sns.boxplot(x='data_category', y='E', data=E_df, boxprops={'facecolor':'None'})
+medians3 = E_df.groupby(['data_category'])['E'].median()
+v_offset3 = E_df['E'].median() * 0.02
+for xtick in box3.get_xticks():
+    box3.text(xtick,medians3[xtick] + v_offset3,medians3[xtick], horizontalalignment='center', size='x-small', color='b')
 plt.savefig("taus-youngs_plots/YOUNGS-swarmplot.png")
 
 plt.figure(4)
-sns.swarmplot(x='data_category', y='E_rsq', data=E_rsq_df)
-sns.boxplot(x='data_category', y='E_rsq', data=E_rsq_df, boxprops={'facecolor':'None'})
+swarm4 = sns.swarmplot(x='data_category', y='E_rsq', data=E_rsq_df)
+box4 = sns.boxplot(x='data_category', y='E_rsq', data=E_rsq_df, boxprops={'facecolor':'None'})
+medians4 = E_rsq_df.groupby(['data_category'])['E_rsq'].median()
+v_offset4 = E_rsq_df['E_rsq'].median() * 0.005
+for xtick in box4.get_xticks():
+    box4.text(xtick,medians4[xtick] + v_offset4,medians4[xtick], horizontalalignment='center', size='x-small', color='b')
 plt.savefig("taus-youngs_plots/YOUNGS-RSQ-swarmplot.png")

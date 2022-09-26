@@ -60,7 +60,7 @@ data_path = Path.joinpath(Path.cwd(), "indentation_data_noisy")
 
 # indicate what category of data for later swarm plots
 # 0: soft, 1: stiff, 2: soft viscoelastic, 3: stiff viscoelastic
-data_category = 0
+data_category = 1
 
 # If you would like to remove previously made plots before making more, set to True
 will_remove_plots = True
