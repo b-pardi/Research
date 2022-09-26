@@ -179,7 +179,6 @@ for df in dfs:
     max_force_mean = fvt_df['Fn (uN)'].nlargest(num_max_pts_to_avg).mean()
     max_force = fvt_df.iloc[(fvt_df['Fn (uN)'] - max_force_mean).abs().argsort()[0],:]['Fn (uN)']
     max_force_ind = fvt_df[fvt_df['Fn (uN)'] == max_force].index
-    #max_force = fvt_df['Fn (uN)'].max()
 
     # find 60 seconds after max force point (tf)
     t0 = fvt_df.loc[fvt_df['Fn (uN)'] >= max_force-force_margin, 'time(seconds)'].values[0]

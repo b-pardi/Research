@@ -11,7 +11,7 @@ from scipy.optimize import curve_fit
 from pathlib import Path
 from datetime import datetime, time
 
-import tempgui
+import gui
 
 """
 README
@@ -25,55 +25,53 @@ FUNCTIONS
 - opens defined file and reads it into a dataframe
 - find average resonant frequency of baseline, and lowers curve by that amount
 - cleans data by removing points before baseline, and lowers by aforemention average
-- plots are frequencies and dissipations
+- plots are frequencies and dissipations of each channel specified in gui.py
 
 WIP
 - gui
-    - tempgui will hold input variables until gui is working
-    - when entering col names, autopopulate based on first entry
-- plot for all freqs and all dis
 - naming plots just put rf and dis
 - rename columns in excel sheet to:
     fundamental_freq, fundamental_dis
     3rd_freq, 3rd_dis, etc. 5, 7, 9
 - write csv with cleaned data
 
-Q's
-- what is expected of me from the research update presentation?
 """
 
+'''Variable Declarations'''
+abs_time_col = 'Time'
+rel_time_col = 'Relative_time'
 
 # grab singular file and create dataframe from it
-df = pd.read_csv(f"raw_data/{tempgui.file_name}{tempgui.file_ext}")
+df = pd.read_csv(f"raw_data/{gui.file_name}{gui.file_ext}")
 
-for i in range(tempgui.num_freqs_tested):
+for i in range(gui.clean_num_freqs_tested):
     # grab data from df and grab only columns we need, then drop nan values
-    data_df = df[[tempgui.abs_time_col,tempgui.rel_time_col, tempgui.rf_cols[i], tempgui.dis_cols[i]]]
+    data_df = df[[gui.abs_time_col,gui.rel_time_col, gui.rf_cols[i], gui.dis_cols[i]]]
     data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
     # find baseline time range
-    baseline_dur = datetime.combine(datetime.min, tempgui.abs_base_tf) - datetime.combine(datetime.min, tempgui.abs_base_t0)
+    baseline_dur = datetime.combine(datetime.min, gui.abs_base_tf) - datetime.combine(datetime.min, gui.abs_base_t0)
     # locate where baseline starts/ends
-    base_t0_ind = data_df[data_df[tempgui.abs_time_col].str.contains(str(tempgui.abs_base_t0))].index[0]
+    base_t0_ind = data_df[data_df[gui.abs_time_col].str.contains(str(gui.abs_base_t0))].index[0]
     # remove everything before baseline
     data_df = data_df[base_t0_ind:]
     data_df = data_df.reset_index(drop=True)
 
     # find baseline and grab values from baseline for avg
-    base_tf_ind = data_df[data_df[tempgui.abs_time_col].str.contains(str(tempgui.abs_base_tf))].index[0]
+    base_tf_ind = data_df[data_df[gui.abs_time_col].str.contains(str(gui.abs_base_tf))].index[0]
     baseline_df = data_df[:base_tf_ind]
     # compute average of rf and dis
-    rf_base_avg = baseline_df[tempgui.rf_cols[i]].mean()
-    dis_base_avg = baseline_df[tempgui.dis_cols[i]].mean()
+    rf_base_avg = baseline_df[gui.rf_cols[i]].mean()
+    dis_base_avg = baseline_df[gui.dis_cols[i]].mean()
 
     # lower rf curve s.t. baseline is approx at y=0
-    data_df[tempgui.rf_cols[i]] -= rf_base_avg
-    data_df[tempgui.dis_cols[i]] -=dis_base_avg
+    data_df[gui.rf_cols[i]] -= rf_base_avg
+    data_df[gui.dis_cols[i]] -=dis_base_avg
 
     # PLOTTING
-    x_time = data_df[tempgui.rel_time_col]
-    y_rf = data_df[tempgui.rf_cols[i]]
-    y_dis = data_df[tempgui.dis_cols[i]]
+    x_time = data_df[gui.rel_time_col]
+    y_rf = data_df[gui.rf_cols[i]]
+    y_dis = data_df[gui.dis_cols[i]]
     plt.figure(1, clear=False)
     plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
     plt.figure(2, clear=False)
