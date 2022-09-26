@@ -42,9 +42,12 @@ abs_time_col = 'Time'
 rel_time_col = 'Relative_time'
 
 # grab singular file and create dataframe from it
-df = pd.read_csv(f"raw_data/{gui.file_name}{gui.file_ext}")
+if gui.file_path == "":
+    df = pd.read_csv(f"raw_data/{gui.file_name}")
+else:
+    df = pd.read_csv(f"{gui.file_path}/{gui.file_name}")
 
-for i in range(gui.clean_num_freqs_tested):
+for i in range(gui.clean_num_channels_tested):
     # grab data from df and grab only columns we need, then drop nan values
     data_df = df[[gui.abs_time_col,gui.rel_time_col, gui.rf_cols[i], gui.dis_cols[i]]]
     data_df = data_df.dropna(axis=0, how='any', inplace=False)

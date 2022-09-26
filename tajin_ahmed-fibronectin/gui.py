@@ -56,6 +56,12 @@ def col_names_submit():
     else:
         will_overwrite_file = False
 
+    global abs_base_t0
+    global abs_base_tf
+    abs_base_t0 = time(hours_entry_t0.get(),minutes_entry_t0.get(),seconds_entry_t0.get())
+    abs_base_tf = time(hours_entry_tf.get(),minutes_entry_tf.get(),seconds_entry_tf.get())
+    submitted_label.grid(row=13, column=0)
+
 def clear_file_data():
     global file_info
     file_info = []
@@ -284,7 +290,7 @@ def receive_clean_checkboxes():
 '''Enter event loop for UI'''
 root = Tk()
 fr = Frame(root)
-fr.grid(row=7, column=0)
+fr.grid(row=7, column=0, rowspan=2)
 
 
 # define and place file info labels and buttons
@@ -294,6 +300,7 @@ spacing = Label(root, text="         ")
 file_name_label.grid(row=0, column=0)
 spacing.grid(row=1, column=0)
 cleared_label = Label(root, text="Cleared!")
+submitted_label = Label(root, text="Submitted!")
 
 file_name_entry = Entry(root, width=40, bg='white', fg='gray')
 file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
@@ -312,22 +319,36 @@ file_overwrite_check = Checkbutton(root, text='Overwrite file with cleaned data?
 file_overwrite_check.grid(row=5, column=0)
 
 baseline_frame = Frame(fr)
-baseline_time_label = Label(baseline_frame, text="Enter absolute baseline time")
+baseline_time_label = Label(root, text="Enter absolute baseline time")
 baseline_time_label.grid(row=6, column=0)
 
 baseline_frame.grid(row=7, column=0, columnspan=1)
-hours_label = Label(baseline_frame, text="H: ")
-hours_label.grid(row=0, column=0)
-hours_entry = Entry(baseline_frame, width=5, bg='white', fg='gray')
-hours_entry.grid(row=0, column=1)
-minutes_label = Label(baseline_frame, text="H: ")
-minutes_label.grid(row=0, column=2)
-minutes_entry = Entry(baseline_frame, width=5, bg='white', fg='gray')
-minutes_entry.grid(row=0, column=3)
-seconds_label = Label(baseline_frame, text="H: ")
-seconds_label.grid(row=0, column=4)
-seconds_entry = Entry(baseline_frame, width=5, bg='white', fg='gray')
-seconds_entry.grid(row=0, column=5)
+hours_label_t0 = Label(baseline_frame, text="H0: ")
+hours_label_t0.grid(row=0, column=0)
+hours_entry_t0 = Entry(baseline_frame, width=5, bg='white', fg='gray')
+hours_entry_t0.grid(row=0, column=1)
+minutes_label_t0 = Label(baseline_frame, text="M0: ")
+minutes_label_t0.grid(row=0, column=2)
+minutes_entry_t0 = Entry(baseline_frame, width=5, bg='white', fg='gray')
+minutes_entry_t0.grid(row=0, column=3)
+seconds_label_t0 = Label(baseline_frame, text="S0: ")
+seconds_label_t0.grid(row=0, column=4)
+seconds_entry_t0 = Entry(baseline_frame, width=5, bg='white', fg='gray')
+seconds_entry_t0.grid(row=0, column=5)
+
+hours_label_tf = Label(baseline_frame, text="Hf: ")
+hours_label_tf.grid(row=1, column=0)
+hours_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
+hours_entry_tf.grid(row=1, column=1)
+minutes_label_tf = Label(baseline_frame, text="Mf: ")
+minutes_label_tf.grid(row=1, column=2)
+minutes_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
+minutes_entry_tf.grid(row=1, column=3)
+seconds_label_tf = Label(baseline_frame, text="Sf: ")
+seconds_label_tf.grid(row=1, column=4)
+seconds_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
+seconds_entry_tf.grid(row=1, column=5)
+spacing.grid(row=8, column=0)
 
 file_data_submit_button = Button(root, text="Submit file information", padx=12, pady=8, command=col_names_submit)
 file_data_submit_button.grid(row=10, column=0)
@@ -414,10 +435,9 @@ print(total_num_channels_tested)
 if len(file_info) == 0:
     print("please define file information!")
     sys.exit(1)
-elif len(file_info) == 1:
-    file_name = file_info[0]
 else:
     file_name = file_info[0]
-    file_path = file_info[1]
+    if file_info[1] == 'Enter path to file (leave blank if in same dir)':
+        file_path = ""
 
 print(file_info)
