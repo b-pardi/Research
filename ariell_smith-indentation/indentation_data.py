@@ -37,7 +37,7 @@ TASKS
 - currently generates individual plots for each sheet, and one figure with each data set plotted and color coded
 - box and whisker plots for E and tau will be generated in 'taus-youngs.py' when enough aggregate data is collected
 - fits curve for each individual plot along with getting R^2 values
-- writes tau and youngs mod values to 'taus-youngs.csv'
+- writes tau and youngs mod values to 'taus-youngs.csv' for use with 'taus-youngs.py'
 
 WIP
 - plot format
@@ -45,7 +45,7 @@ WIP
 PLOT FORMATTING
 - axis title, Arial size 16
 - number size 14
-- legend ?
+- legend Arial size 16
 - x indentation force, F(sub)i ; F is in italics
 - make scale for numbers consistent across the board
 """

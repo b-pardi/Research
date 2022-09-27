@@ -1,6 +1,7 @@
 from tkinter import *
 import sys
 from datetime import time
+from tkinter.font import BOLD
 from turtle import clear
 
 
@@ -33,7 +34,7 @@ WIP
 
 
 '''Variable Initializations'''
-file_info = []
+file_info = ['','']
 will_plot_raw_data = False
 will_plot_clean_data = False
 will_overwrite_file = True
@@ -48,8 +49,8 @@ which_plot = {'raw': {'ch1_freq': False, 'ch1_dis': False, 'ch2_freq': False, 'c
 
 '''Function Defintions for UI events'''
 def col_names_submit():
-    file_info.append(file_name_entry.get())
-    file_info.append(file_path_entry.get())
+    file_info[0] = file_name_entry.get()
+    file_info[1] = file_path_entry.get()
     global will_overwrite_file
     if file_overwrite_var.get() == 1:
         will_overwrite_file = True
@@ -58,16 +59,44 @@ def col_names_submit():
 
     global abs_base_t0
     global abs_base_tf
-    abs_base_t0 = time(hours_entry_t0.get(),minutes_entry_t0.get(),seconds_entry_t0.get())
-    abs_base_tf = time(hours_entry_tf.get(),minutes_entry_tf.get(),seconds_entry_tf.get())
+    h0 = hours_entry_t0.get()
+    m0 = minutes_entry_t0.get()
+    s0 = seconds_entry_t0.get()
+    hf = hours_entry_tf.get()
+    mf = minutes_entry_tf.get()
+    sf = seconds_entry_tf.get()
+    if(h0 == '' and m0 == '' and s0 == ''):
+        h0 = 0
+        m0 = 0
+        s0 = 0
+    if(hf == '' and mf == '' and sf == ''):
+        hf = 0
+        mf = 0
+        sf = 0
+    try:
+        abs_base_t0 = time(int(h0),int(m0),int(s0))
+        abs_base_tf = time(int(hf),int(mf),int(sf))
+    except ValueError as exc:
+        err_label.grid(row=20, column=0)
+        print(f"Please enter integer values for time: {exc}")
     submitted_label.grid(row=13, column=0)
 
 def clear_file_data():
     global file_info
+    global abs_base_t0
+    global abs_base_tf
     file_info = []
+    abs_base_t0 = time(0, 0, 0)
+    abs_base_tf = time(0, 0, 0)
     cleared_label.grid(row=12, column=0)
     file_name_entry.delete(0, END)
     file_path_entry.delete(0, END)
+    hours_entry_t0.delete(0, END)
+    minutes_entry_t0.delete(0, END)
+    seconds_entry_t0.delete(0, END)
+    hours_entry_tf.delete(0, END)
+    minutes_entry_tf.delete(0, END)
+    seconds_entry_tf.delete(0, END)
     file_overwrite_var.set(0)
 
 def handle_fn_focus_in(_):
@@ -301,6 +330,7 @@ file_name_label.grid(row=0, column=0)
 spacing.grid(row=1, column=0)
 cleared_label = Label(root, text="Cleared!")
 submitted_label = Label(root, text="Submitted!")
+err_label = Label(root, text="Error occured,\nplease see terminal for details", font=("Arial",14))
 
 file_name_entry = Entry(root, width=40, bg='white', fg='gray')
 file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
@@ -348,7 +378,7 @@ seconds_label_tf = Label(baseline_frame, text="Sf: ")
 seconds_label_tf.grid(row=1, column=4)
 seconds_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
 seconds_entry_tf.grid(row=1, column=5)
-spacing.grid(row=8, column=0)
+spacing.grid(row=9, column=0)
 
 file_data_submit_button = Button(root, text="Submit file information", padx=12, pady=8, command=col_names_submit)
 file_data_submit_button.grid(row=10, column=0)
@@ -419,6 +449,7 @@ root.mainloop()
 
 # assign file info data
 print(which_plot)
+print(f"{abs_base_t0}\n{abs_base_tf}")
 raw_num_channels_tested = 0
 clean_num_channels_tested = 0
 for channel in which_plot['raw'].items():
@@ -441,3 +472,12 @@ else:
         file_path = ""
 
 print(file_info)
+print("\n\n")
+
+'''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
+'''file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
+file_path = ""
+clean_num_channels_tested = 4
+abs_base_t0 = time(8,29,48)
+abs_base_tf = time(9,5,55)
+'''
