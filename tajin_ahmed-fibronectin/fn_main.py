@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 8/31/2022, 1:20 pm
-Last Modified: 9/27/2022 3:56 pm
+Last Modified: 9/27/2022 4:35 pm
 """
 
 import pandas as pd
@@ -20,19 +20,26 @@ README
 - if error occurs, it will be displayed in the terminal
 
 FUNCTIONS
+- opens 'gui.py' to define information
 - opens defined file and reads it into a dataframe
+- renames columns as dictated below in Variable Declarations section
 - find average resonant frequency of baseline, and lowers curve by that amount
 - cleans data by removing points before baseline, and lowers by aforemention average
 - plots are frequencies and dissipations of each channel specified in gui.py
+- 
 
 WIP
 - gui
+- ERROR CHECKING
 - plot data for each channel based on 'gui.whichplot' dict
     - currently only works when selecting all for plot clean data
 - plotting raw data
-- write to csv new column names
 - write csv with cleaned data (dependent on checkbox in gui)
+- alternate plot options:
+    - plot dF and dD together
+    - normalize F
 """
+
 
 '''Variable Declarations'''
 abs_time_col = 'Time'
@@ -57,9 +64,10 @@ if 'Frequency_0' in df.columns:
     'Frequency_2':freqs[2], 'Dissipation_2':disps[2],
     'Frequency_3':freqs[3], 'Dissipation_3':disps[3],
     'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
+    df.to_csv("raw_data/08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv", index=False)
 
-
-for i in range(int(gui.clean_num_channels_tested/2)+1):
+'''Cleaning Data and plotting clean data'''
+for i in range(int(gui.clean_num_channels_tested/2)):
     # grab data from df and grab only columns we need, then drop nan values
     data_df = df[[abs_time_col,rel_time_col,freqs[i] ,disps[i]]]
     data_df = data_df.dropna(axis=0, how='any', inplace=False)
@@ -97,9 +105,14 @@ for i in range(int(gui.clean_num_channels_tested/2)+1):
     plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
 
     '''print(f"{data_df.head()}\n{data_df.tail()}")
-    print(f"{baseline_df.head()}\n{baseline_df.tail()}")
-    print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")'''
+    print(f"{baseline_df.head()}\n{baseline_df.tail()}")'''
+    print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
+    if i == 0:
+        cleaned_df = data_df[[abs_time_col,rel_time_col]]
+    #pd.concat([cleaned_df,data_df[freqs[i]]])
+
+    print(cleaned_df.head())
 # Titles, lables, etc. for plots
 plt.figure(1, clear=False)
 plt.axhline(0, color='gray')

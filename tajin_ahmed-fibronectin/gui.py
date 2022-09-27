@@ -6,17 +6,17 @@ from turtle import clear
 
 
 '''
-GUI notes
+GUI features
 - file name box (later maybe window to search for file)
 - checkbox for each frequency being plotted
     - checkbox for raw and clean data
         - raw data plots are individual for overtone of each freq/dis
-        - cleaned plots will be overlapped (all overtones of freq and all of dis)
 - abs base time t0, tf
-- checkbox for other formulas (normalize data)
 
 WIP
-- define t0 and tf  baseline time for cleaned data
+- alternate plot options:
+    - plot dF and dD together
+    - normalize F
 
 - look into:
     - interactive plots (plotly)
@@ -37,14 +37,16 @@ WIP
 file_info = ['','']
 will_plot_raw_data = False
 will_plot_clean_data = False
-will_overwrite_file = True
+will_overwrite_file = False
 abs_base_t0 = time(0, 0, 0)
 abs_base_tf = time(0, 0, 0)
-which_plot = {'raw': {'ch1_freq': False, 'ch1_dis': False, 'ch2_freq': False, 'ch2_dis': False,
-                    'ch3_freq': False, 'ch3_dis': False, 'ch4_freq': False, 'ch4_dis': False},
+which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
+                    '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
+                    '9th_freq': False, '9th_dis': False},
 
-            'clean': {'ch1_freq': False, 'ch1_dis': False, 'ch2_freq': False, 'ch2_dis': False,
-                    'ch3_freq': False, 'ch3_dis': False, 'ch4_freq': False, 'ch4_dis': False}}
+            'clean': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
+                    '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
+                    '9th_freq': False, '9th_dis': False}}
 
 
 '''Function Defintions for UI events'''
@@ -130,6 +132,8 @@ def clear_raw_checks():
     raw_ch3_dis_var.set(0)
     raw_ch4_freq_var.set(0)
     raw_ch4_dis_var.set(0)
+    raw_ch5_freq_var.set(0)
+    raw_ch5_dis_var.set(0)
     for channel in which_plot['raw']:
         which_plot['raw'][channel] = False
         
@@ -143,6 +147,8 @@ def select_all_raw_checks():
     raw_ch3_dis_var.set(1)
     raw_ch4_freq_var.set(1)
     raw_ch4_dis_var.set(1)
+    raw_ch5_freq_var.set(1)
+    raw_ch5_dis_var.set(1)
     for channel in which_plot['raw']:
         which_plot['raw'][channel] = True
 
@@ -155,6 +161,8 @@ def clear_clean_checks():
     clean_ch3_dis_var.set(0)
     clean_ch4_freq_var.set(0)
     clean_ch4_dis_var.set(0)
+    clean_ch5_freq_var.set(0)
+    clean_ch5_dis_var.set(0)
     for channel in which_plot['clean']:
         which_plot['clean'][channel] = False
 
@@ -167,6 +175,8 @@ def select_all_clean_checks():
     clean_ch3_dis_var.set(1)
     clean_ch4_freq_var.set(1)
     clean_ch4_dis_var.set(1)
+    clean_ch5_freq_var.set(1)
+    clean_ch5_dis_var.set(1)
     for channel in which_plot['clean']:
         which_plot['clean'][channel] = True
 
@@ -187,46 +197,58 @@ def receive_raw_checkboxes():
         raw_ch3_dis_check.grid(row=7, column=2)
         raw_ch4_freq_check.grid(row=8, column=2)
         raw_ch4_dis_check.grid(row=9, column=2)
+        raw_ch5_freq_check.grid(row=10, column=2)
+        raw_ch5_dis_check.grid(row=11, column=2)
 
         if raw_ch1_freq_var.get() == 1:
-            which_plot['raw']['ch1_freq'] = True
+            which_plot['raw']['fundamental_freq'] = True
         else:
-            which_plot['raw']['ch1_freq'] = False
+            which_plot['raw']['fundamental_freq'] = False
 
         if raw_ch1_dis_var.get() == 1:
-            which_plot['raw']['ch1_dis'] = True
+            which_plot['raw']['fundamental_dis'] = True
         else:
-            which_plot['raw']['ch1_dis'] = False
+            which_plot['raw']['fundamental_dis'] = False
 
         if raw_ch2_freq_var.get() == 1:
-            which_plot['raw']['ch2_freq'] = True
+            which_plot['raw']['3rd_freq'] = True
         else:
-            which_plot['raw']['ch2_freq'] = False
+            which_plot['raw']['3rd_freq'] = False
 
         if raw_ch2_dis_var.get() == 1:
-            which_plot['raw']['ch2_dis'] = True
+            which_plot['raw']['3rd_dis'] = True
         else:
-            which_plot['raw']['ch2_dis'] = False
+            which_plot['raw']['3rd_dis'] = False
 
         if raw_ch3_freq_var.get() == 1:
-            which_plot['raw']['ch3_freq'] = True
+            which_plot['raw']['5th_freq'] = True
         else:
-            which_plot['raw']['ch3_freq'] = False
+            which_plot['raw']['5th_freq'] = False
 
         if raw_ch3_dis_var.get() == 1:
-            which_plot['raw']['ch3_dis'] = True
+            which_plot['raw']['5th_dis'] = True
         else:
-            which_plot['raw']['ch3_dis'] = False
+            which_plot['raw']['5th_dis'] = False
 
         if raw_ch4_freq_var.get() == 1:
-            which_plot['raw']['ch4_freq'] = True
+            which_plot['raw']['7th_freq'] = True
         else:
-            which_plot['raw']['ch4_freq'] = False
+            which_plot['raw']['7th_freq'] = False
 
         if raw_ch4_dis_var.get() == 1:
-            which_plot['raw']['ch4_dis'] = True
+            which_plot['raw']['7th_dis'] = True
         else:
-            which_plot['raw']['ch4_dis'] = False
+            which_plot['raw']['7th_dis'] = False
+
+        if raw_ch5_freq_var.get() == 1:
+            which_plot['raw']['9th_freq'] = True
+        else:
+            which_plot['raw']['9th_freq'] = False
+
+        if raw_ch5_dis_var.get() == 1:
+            which_plot['raw']['9th_dis'] = True
+        else:
+            which_plot['raw']['9th_dis'] = False
 
     else:
         will_plot_raw_data = False
@@ -239,6 +261,8 @@ def receive_raw_checkboxes():
         raw_ch3_dis_check.grid_forget()
         raw_ch4_freq_check.grid_forget()
         raw_ch4_dis_check.grid_forget()
+        raw_ch5_freq_check.grid_forget()
+        raw_ch5_dis_check.grid_forget()
         select_all_raw_checks_button.grid_forget()
         clear_raw_checks_button.grid_forget()
         
@@ -260,46 +284,58 @@ def receive_clean_checkboxes():
         clean_ch3_dis_check.grid(row=7, column=3)
         clean_ch4_freq_check.grid(row=8, column=3)
         clean_ch4_dis_check.grid(row=9, column=3)
+        clean_ch5_freq_check.grid(row=10, column=3)
+        clean_ch5_dis_check.grid(row=11, column=3)
 
         if clean_ch1_freq_var.get() == 1:
-            which_plot['clean']['ch1_freq'] = True
+            which_plot['clean']['fundamental_freq'] = True
         else:
-            which_plot['clean']['ch1_freq'] = False
+            which_plot['clean']['fundamental_freq'] = False
 
         if clean_ch1_dis_var.get() == 1:
-            which_plot['clean']['ch1_dis'] = True
+            which_plot['clean']['fundamental_dis'] = True
         else:
-            which_plot['clean']['ch1_dis'] = False
+            which_plot['clean']['fundamental_dis'] = False
 
         if clean_ch2_freq_var.get() == 1:
-            which_plot['clean']['ch2_freq'] = True
+            which_plot['clean']['3rd_freq'] = True
         else:
-            which_plot['clean']['ch2_freq'] = False
+            which_plot['clean']['3rd_freq'] = False
 
         if clean_ch2_dis_var.get() == 1:
-            which_plot['clean']['ch2_dis'] = True
+            which_plot['clean']['3rd_dis'] = True
         else:
-            which_plot['clean']['ch2_dis'] = False
+            which_plot['clean']['3rd_dis'] = False
 
         if clean_ch3_freq_var.get() == 1:
-            which_plot['clean']['ch3_freq'] = True
+            which_plot['clean']['5th_freq'] = True
         else:
-            which_plot['clean']['ch3_freq'] = False
+            which_plot['clean']['5th_freq'] = False
 
         if clean_ch3_dis_var.get() == 1:
-            which_plot['clean']['ch3_dis'] = True
+            which_plot['clean']['5th_dis'] = True
         else:
-            which_plot['clean']['ch3_dis'] = False
+            which_plot['clean']['5th_dis'] = False
 
         if clean_ch4_freq_var.get() == 1:
-            which_plot['clean']['ch4_freq'] = True
+            which_plot['clean']['7th_freq'] = True
         else:
-            which_plot['clean']['ch4_freq'] = False
+            which_plot['clean']['7th_freq'] = False
 
         if clean_ch4_dis_var.get() == 1:
-            which_plot['clean']['ch4_dis'] = True
+            which_plot['clean']['7th_dis'] = True
         else:
-            which_plot['clean']['ch4_dis'] = False
+            which_plot['clean']['7th_dis'] = False
+
+        if clean_ch5_freq_var.get() == 1:
+            which_plot['clean']['9th_freq'] = True
+        else:
+            which_plot['clean']['9th_freq'] = False
+
+        if clean_ch5_dis_var.get() == 1:
+            which_plot['clean']['9th_dis'] = True
+        else:
+            which_plot['clean']['9th_dis'] = False
 
     else:
         will_plot_clean_data = False
@@ -312,6 +348,8 @@ def receive_clean_checkboxes():
         clean_ch3_dis_check.grid_forget()
         clean_ch4_freq_check.grid_forget()
         clean_ch4_dis_check.grid_forget()
+        clean_ch5_freq_check.grid_forget()
+        clean_ch5_dis_check.grid_forget()
         select_all_clean_checks_button.grid_forget()
         clear_clean_checks_button.grid_forget()
 
@@ -409,6 +447,10 @@ raw_ch4_freq_var = IntVar()
 raw_ch4_freq_check = Checkbutton(root, text="Ch 4 frequency", variable=raw_ch4_freq_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
 raw_ch4_dis_var = IntVar()
 raw_ch4_dis_check = Checkbutton(root, text="Ch 4 dissipation", variable=raw_ch4_dis_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
+raw_ch5_freq_var = IntVar()
+raw_ch5_freq_check = Checkbutton(root, text="Ch 5 frequency", variable=raw_ch5_freq_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
+raw_ch5_dis_var = IntVar()
+raw_ch5_dis_check = Checkbutton(root, text="Ch 5 dissipation", variable=raw_ch5_dis_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
 
 clear_raw_checks_button = Button(root, text='clear all', command=clear_raw_checks)
 select_all_raw_checks_button = Button(root, text='select all', command=select_all_raw_checks)
@@ -436,6 +478,10 @@ clean_ch4_freq_var = IntVar()
 clean_ch4_freq_check = Checkbutton(root, text="Ch 4 frequency", variable=clean_ch4_freq_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
 clean_ch4_dis_var = IntVar()
 clean_ch4_dis_check = Checkbutton(root, text="Ch 4 dissipation", variable=clean_ch4_dis_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
+clean_ch5_freq_var = IntVar()
+clean_ch5_freq_check = Checkbutton(root, text="Ch 5 frequency", variable=clean_ch5_freq_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
+clean_ch5_dis_var = IntVar()
+clean_ch5_dis_check = Checkbutton(root, text="Ch 5 dissipation", variable=clean_ch5_dis_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
 
 clear_clean_checks_button = Button(root, text='clear all', command=clear_clean_checks)
 select_all_clean_checks_button = Button(root, text='select all', command=select_all_clean_checks)
@@ -463,21 +509,29 @@ for channel in which_plot['clean'].items():
 total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
 print(total_num_channels_tested)
 
+''' ERROR CHECKING '''
+# verify file info
 if len(file_info) == 0:
     print("please define file information!")
     sys.exit(1)
+#elif (file_info[0] == '' or file_info[0] == 'File name here'):
+#    print("File name not specified")
+#    sys.exit(1)
 else:
     file_name = file_info[0]
     if file_info[1] == 'Enter path to file (leave blank if in same dir)':
         file_path = ""
 
+# verify baseline time entered
+#do that
+
 print(file_info)
 print("\n\n")
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-'''file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
+file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
 file_path = ""
-clean_num_channels_tested = 4
+clean_num_channels_tested = 10
 abs_base_t0 = time(8,29,48)
 abs_base_tf = time(9,5,55)
-'''
+
