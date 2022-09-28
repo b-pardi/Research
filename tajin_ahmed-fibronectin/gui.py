@@ -14,6 +14,7 @@ GUI features
 - abs base time t0, tf
 
 WIP
+- input for scale of time (seconds, minues, hours)
 - alternate plot options:
     - plot dF and dD together
     - normalize F
@@ -40,6 +41,7 @@ will_plot_clean_data = False
 will_overwrite_file = False
 abs_base_t0 = time(0, 0, 0)
 abs_base_tf = time(0, 0, 0)
+x_timescale = 's'
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},

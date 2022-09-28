@@ -92,7 +92,7 @@ nu = 0.5
 
 # pixel density of plots, higher number -> more detail and more memory
 # if program running slow, lower to ~80
-DPI = 160
+DPI = 200
 
 # find sheets in path, concat into 1 large data frame
 sheets = [file for file in data_path.iterdir() if file.suffix == ".xlsx"]
@@ -282,32 +282,48 @@ for df in dfs:
     plt.plot(xdata_tau, ydata_tau*1000000, 'o', label="data", linestyle='')
     plt.plot(xdata_tau, yfit_tau*1000000, '--', label='tau curve fit', color='black')
     plt.plot([], [], ' ', label = tau_text)
-    plt.legend(loc='upper right')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Force (μn)')
-    plt.figure(1).savefig(f"indentation_plots/{titles[i]}-TAU-plot.png", dpi=DPI)
+    plt.legend(loc='best', prop={'family': 'Arial'})
+    plt.xticks(fontsize=14, fontfamily='Arial')
+    plt.yticks(fontsize=14, fontfamily='Arial')
+    plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
+    plt.ylabel("Indentation Force " + '$\it{F}$' + u'ᵢ' + " (" + '$\it{μn}$' + ")", fontsize=16, fontfamily='Arial')
+    plt.figure(1).savefig(f"indentation_plots/{titles[i]}-TAU-plot.png", bbox_inches='tight', dpi=DPI)
 
     plt.figure(2, clear=True)
     plt.plot(xdata_E, ydata_E, 'o', label="E data", linestyle='')
     plt.plot(xdata_E, yfit_E, '--', label='E curve fit', color='black')
     plt.plot([], [], ' ', label = E_text)
-    plt.legend(loc='upper right')
-    plt.xlabel('z-stage(μm)')
-    plt.ylabel('Force (μn)')
-    plt.figure(2).savefig(f"indentation_plots/{titles[i]}-YOUNGS-plot.png", dpi=DPI)
+    plt.legend(loc='best', prop={'family': 'Arial'})
+    plt.xticks(fontsize=14, fontfamily='Arial')
+    plt.yticks(fontsize=14, fontfamily='Arial')
+    plt.xlabel('z-stage (' + '$\it{μn}$' + ')', fontsize=16, fontfamily='Arial')
+    plt.ylabel("Indentation Force " + '$\it{F}$' + u'ᵢ' + " (" + '$\it{μn}$' + ")", fontsize=16, fontfamily='Arial')
+    plt.figure(2).savefig(f"indentation_plots/{titles[i]}-YOUNGS-plot.png", bbox_inches='tight', dpi=DPI)
 
     plt.figure(3)
-    plt.plot(xdata_tau-t0, ydata_tau*1000000, label="data")
-    plt.plot(xdata_tau-t0, yfit_tau*1000000, '--', label='curve fit', color='black')
+    plt.plot(xdata_tau, ydata_tau*1000000, 'o', label="data", linestyle='')
+    plt.plot(xdata_tau, yfit_tau*1000000, '--', label='tau curve fit', color='black')
 
     plt.figure(4)
-    plt.plot((xdata_E-min(xdata_E))*1000000, (ydata_E-min(ydata_E))*1000000, 'o', label="E data", linestyle='')
-    plt.plot((xdata_E-min(xdata_E))*1000000, (yfit_E-min(ydata_E))*1000000, '--', label='curve fit', color='black')
+    plt.plot(xdata_E, ydata_E, 'o', label="E data", linestyle='')
+    plt.plot(xdata_E, yfit_E, '--', label='E curve fit', color='black')
+    
     i+=1
 
 # this figure has all indiv sheets plotted onto it
-plt.figure(3).savefig("indentation_plots/TAU-multiplot.png", dpi=DPI)
-plt.figure(4).savefig("indentation_plots/YOUNGS-multiplot.png", dpi=DPI)
+plt.figure(3)
+plt.xticks(fontsize=14, fontfamily='Arial')
+plt.yticks(fontsize=14, fontfamily='Arial')
+plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
+plt.ylabel("Indentation Force " + '$\it{F}$' + u'ᵢ' + " (" + '$\it{μn}$' + ")", fontsize=16, fontfamily='Arial')
+plt.figure(3).savefig("indentation_plots/TAU-multiplot.png", bbox_inches='tight', dpi=DPI)
+
+plt.figure(4)
+plt.xticks(fontsize=14, fontfamily='Arial')
+plt.yticks(fontsize=14, fontfamily='Arial')
+plt.xlabel('z-stage (' + '$\it{μn}$' + ')', fontsize=16, fontfamily='Arial')
+plt.ylabel("Indentation Force " + '$\it{F}$' + u'ᵢ' + " (" + '$\it{μn}$' + ")", fontsize=16, fontfamily='Arial')
+plt.figure(4).savefig("indentation_plots/YOUNGS-multiplot.png", bbox_inches='tight', dpi=DPI)
 
 # close tau file
 tau_youngs_file.close()

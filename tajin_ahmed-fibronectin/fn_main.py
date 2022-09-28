@@ -31,6 +31,9 @@ FUNCTIONS
 WIP
 - gui
 - ERROR CHECKING
+    - if columns not selected
+    - if time not entered
+    - if time entered not valid (not in the column)
 - plot data for each channel based on 'gui.whichplot' dict
     - currently only works when selecting all for plot clean data
 - plotting raw data
@@ -38,6 +41,12 @@ WIP
 - alternate plot options:
     - plot dF and dD together
     - normalize F
+    - dD vs dF
+
+- transparent bg for plot
+- scale to minutes for x axis (gui input to determine)
+- y axis for dissipation scale * 10^(-6)
+
 """
 
 
@@ -100,14 +109,14 @@ for i in range(int(gui.clean_num_channels_tested/2)):
     plt.figure(2, clear=False)
     plt.plot(x_time, y_dis, label=f"dissipation - {i}")
 
-    plt.figure(3, clear=True)
+    '''plt.figure(3, clear=True)
     plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
     plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
-
-    '''print(f"{data_df.head()}\n{data_df.tail()}")
-    print(f"{baseline_df.head()}\n{baseline_df.tail()}")'''
+    '''
+    
     print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
+    # cleaned df to overwrite old data
     if i == 0:
         cleaned_df = data_df[[abs_time_col,rel_time_col]]
     #pd.concat([cleaned_df,data_df[freqs[i]]])
@@ -115,16 +124,25 @@ for i in range(int(gui.clean_num_channels_tested/2)):
     print(cleaned_df.head())
 # Titles, lables, etc. for plots
 plt.figure(1, clear=False)
-plt.axhline(0, color='gray')
-plt.legend(loc='best')
-plt.xlabel('Time (s)')
-plt.ylabel('Frequency')
-plt.title(f"QCMB Resonant Frequency")
-plt.figure(1).savefig(f"qcmb-plots/resonant-freq-plot.png")
+plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+plt.xticks(fontsize=14, fontfamily='Arial')
+plt.yticks(fontsize=14, fontfamily='Arial')
+if gui.x_timescale == 's':
+    plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
+elif gui.x_timescale == 'm':
+    plt.xlabel("Time (" + '$\it{m}$' + ")", fontsize=16, fontfamily='Arial')
+plt.ylabel("Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")", fontsize=16, fontfamily='Arial')
+plt.title(f"QCM-D Resonant Frequency", fontsize=16, fontfamily='Arial')
+plt.figure(1).savefig(f"qcmb-plots/resonant-freq-plot.png", bbox_inches='tight', transparent=True)
+
 plt.figure(2, clear=False)
-plt.legend(loc='best')
-plt.xlabel('Time (s)')
-plt.ylabel('Dissipation')
-plt.title(f"QCMB Dissipation")
-plt.grid(True, which='major', axis='y', color='gray', linewidth='1')
-plt.figure(2).savefig(f"qcmb-plots/dissipation-plot.png")
+plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+plt.xticks(fontsize=14, fontfamily='Arial')
+plt.yticks(fontsize=14, fontfamily='Arial')
+if gui.x_timescale == 's':
+    plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
+elif gui.x_timescale == 'm':
+    plt.xlabel("Time (" + '$\it{m}$' + ")", fontsize=16, fontfamily='Arial')
+plt.ylabel("Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=16, fontfamily='Arial')
+plt.title(f"QCM-D Dissipation", fontsize=16, fontfamily='Arial')
+plt.figure(2).savefig(f"qcmb-plots/dissipation-plot.png", bbox_inches='tight', transparent=True)
