@@ -428,13 +428,14 @@ file_data_clear_button.grid(row=11, column=0)
 
 # SECOND COLUMN ENTRIES (define and place checkboxes for raw data)
 plot_raw_data_var = IntVar()
-plot_raw_data_check = Checkbutton(root, text="Plot raw data?", variable=plot_raw_data_var, onvalue=1, offvalue=2, command=receive_raw_checkboxes, padx=60, pady=10)
+plot_raw_data_check = Checkbutton(root, text="Plot raw data?", variable=plot_raw_data_var,onvalue=1, offvalue=2, command=receive_raw_checkboxes, padx=60, pady=10)
 plot_raw_data_check.grid(row=0, column=2)
 which_raw_channels_label = Label(root, text="which channels for full raw data?")
 
 # a lot of checkboxes for selecting which channels to plot for clean and raw data
 raw_ch1_freq_var = IntVar()
-raw_ch1_freq_check = Checkbutton(root, text="Ch 1 frequency", variable=raw_ch1_freq_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
+raw_ch1_freq_check = Checkbutton(root, text="Ch 1 frequency", variable=raw_ch1_freq_var,
+    onvalue=1, offvalue=0, command=receive_raw_checkboxes)
 raw_ch1_dis_var = IntVar()
 raw_ch1_dis_check = Checkbutton(root, text="Ch 1 dissipation", variable=raw_ch1_dis_var, onvalue=1, offvalue=0, command=receive_raw_checkboxes)
 raw_ch2_freq_var = IntVar()
