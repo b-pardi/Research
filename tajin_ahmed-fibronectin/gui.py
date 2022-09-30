@@ -18,6 +18,7 @@ WIP
 - alternate plot options:
     - plot dF and dD together
     - normalize F
+    - dD vs dF
 
 - look into:
     - interactive plots (plotly)
@@ -355,6 +356,9 @@ def receive_clean_checkboxes():
         select_all_clean_checks_button.grid_forget()
         clear_clean_checks_button.grid_forget()
 
+def receive_scale_checkboxes():
+    pass
+
 
 '''Enter event loop for UI'''
 root = Tk()
@@ -490,6 +494,29 @@ clear_clean_checks_button = Button(root, text='clear all', command=clear_clean_c
 select_all_clean_checks_button = Button(root, text='select all', command=select_all_clean_checks)
 
 
+# FOURTH COLUMN ENTRIES - options for graph
+# scale time, df and dD together, normalize f
+plot_options_label = Label(root, text="Options for plots", padx=50, pady=10)
+plot_options_label.grid(row=0, column=4)
+spacing.grid(row=1, column=4)
+
+plot_dF_dD_together_check = Checkbutton()
+normalize_F_check = Checkbutton()
+plot_dD_v_dF_check = Checkbutton()
+interactive_plot_check = Checkbutton()
+
+scale_time_label = Label(root, text="Change scale of time?")
+scale_time_label.grid(row=12, column=0)
+seconds_scale_var = IntVar()
+# default to seconds
+# PUT INTO FRAME
+seconds_scale_check = Checkbutton(root, text="seconds", variable=seconds_scale_var, onvalue=1, offvalue=0, command=receive_scale_checkboxes)
+minutes_scale_var = IntVar()
+minutes_scale_check = Checkbutton()
+hours_scale_var = IntVar()
+hours_scale_check = Checkbutton()
+
+
 # conclude UI event loop
 root.mainloop()
 
@@ -525,10 +552,11 @@ else:
     if file_info[1] == 'Enter path to file (leave blank if in same dir)':
         file_path = ""
 
-# verify baseline time entered
+# verify baseline time entered, if only raw data box checked, no need to base time
 #do that
 
 print(file_info)
+
 print("\n\n")
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''

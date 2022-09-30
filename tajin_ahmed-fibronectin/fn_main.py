@@ -43,7 +43,6 @@ WIP
     - normalize F
     - dD vs dF
 
-- transparent bg for plot
 - scale to minutes for x axis (gui input to determine)
 - y axis for dissipation scale * 10^(-6)
 
