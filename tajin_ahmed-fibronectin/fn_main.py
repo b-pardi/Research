@@ -29,11 +29,7 @@ FUNCTIONS
 - 
 
 WIP
-- gui
-- ERROR CHECKING
-    - if columns not selected
-    - if time not entered
-    - if time entered not valid (not in the column)
+- ERROR CHECKING?
 - plot data for each channel based on 'gui.whichplot' dict
     - currently only works when selecting all for plot clean data
 - plotting raw data
@@ -74,51 +70,67 @@ if 'Frequency_0' in df.columns:
     'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
     df.to_csv("raw_data/08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv", index=False)
 
+# FUNC TO GRAB WHICH THINGS TO PLOT INTO LIST FOR EACH OPTIN
+def get_channels():
+    pass
+
 '''Cleaning Data and plotting clean data'''
-for i in range(int(gui.clean_num_channels_tested/2)):
-    # grab data from df and grab only columns we need, then drop nan values
-    data_df = df[[abs_time_col,rel_time_col,freqs[i] ,disps[i]]]
-    data_df = data_df.dropna(axis=0, how='any', inplace=False)
+if gui.will_plot_clean_data:
+    clean_freqs = []
+    clean_disps = []
+    for channel in gui.which_plot['clean'].items():
+        if channel[1] == True:
+            if channel[0].__contains__('freq'):
+                print(f"F: {channel[0]}")
+                clean_freqs.append(channel[0])
+            else:
+                clean_disps.append(channel[0])
+                print(f"D: {channel[0]}")
 
-    # find baseline time range
-    baseline_dur = datetime.combine(datetime.min, gui.abs_base_tf) - datetime.combine(datetime.min, gui.abs_base_t0)
-    # locate where baseline starts/ends
-    base_t0_ind = data_df[data_df[abs_time_col].str.contains(t0_str)].index[0]
-    # remove everything before baseline
-    data_df = data_df[base_t0_ind:]
-    data_df = data_df.reset_index(drop=True)
+    for i in range(int(gui.clean_num_channels_tested/2)):
+        # grab data from df and grab only columns we need, then drop nan values
+        data_df = df[[abs_time_col,rel_time_col,freqs[i] ,disps[i]]]
+        data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
-    # find baseline and grab values from baseline for avg
-    base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
-    baseline_df = data_df[:base_tf_ind]
-    # compute average of rf and dis
-    rf_base_avg = baseline_df[freqs[i]].mean()
-    dis_base_avg = baseline_df[disps[i]].mean()
+        # find baseline time range
+        baseline_dur = datetime.combine(datetime.min, gui.abs_base_tf) - datetime.combine(datetime.min, gui.abs_base_t0)
+        # locate where baseline starts/ends
+        base_t0_ind = data_df[data_df[abs_time_col].str.contains(t0_str)].index[0]
+        # remove everything before baseline
+        data_df = data_df[base_t0_ind:]
+        data_df = data_df.reset_index(drop=True)
 
-    # lower rf curve s.t. baseline is approx at y=0
-    data_df[freqs[i]] -= rf_base_avg
-    data_df[disps[i]] -= dis_base_avg
+        # find baseline and grab values from baseline for avg
+        base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
+        baseline_df = data_df[:base_tf_ind]
+        # compute average of rf and dis
+        rf_base_avg = baseline_df[freqs[i]].mean()
+        dis_base_avg = baseline_df[disps[i]].mean()
 
-    # PLOTTING
-    x_time = data_df[rel_time_col]
-    y_rf = data_df[freqs[i]]
-    y_dis = data_df[disps[i]]
-    plt.figure(1, clear=False)
-    plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
-    plt.figure(2, clear=False)
-    plt.plot(x_time, y_dis, label=f"dissipation - {i}")
+        # lower rf curve s.t. baseline is approx at y=0
+        data_df[freqs[i]] -= rf_base_avg
+        data_df[disps[i]] -= dis_base_avg
 
-    '''plt.figure(3, clear=True)
-    plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
-    plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
-    '''
-    
-    print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
+        # PLOTTING
+        x_time = data_df[rel_time_col]
+        y_rf = data_df[freqs[i]]
+        y_dis = data_df[disps[i]]
+        plt.figure(1, clear=False)
+        plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
+        plt.figure(2, clear=False)
+        plt.plot(x_time, y_dis, label=f"dissipation - {i}")
 
-    # cleaned df to overwrite old data
-    if i == 0:
-        cleaned_df = data_df[[abs_time_col,rel_time_col]]
-    #pd.concat([cleaned_df,data_df[freqs[i]]])
+        '''plt.figure(3, clear=True)
+        plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
+        plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
+        '''
+        
+        print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
+
+        # cleaned df to overwrite old data
+        if i == 0:
+            cleaned_df = data_df[[abs_time_col,rel_time_col]]
+        #pd.concat([cleaned_df,data_df[freqs[i]]])
 
     print(cleaned_df.head())
 # Titles, lables, etc. for plots

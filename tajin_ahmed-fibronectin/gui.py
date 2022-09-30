@@ -1,8 +1,12 @@
+"""
+Author: Brandon Pardi
+Created: 9/7/2022, 12:40 pm
+Last Modified: 9/30/2022 2:15 pm
+"""
+
 from tkinter import *
 import sys
 from datetime import time
-from tkinter.font import BOLD
-from turtle import clear
 
 
 '''
@@ -12,30 +16,23 @@ GUI features
     - checkbox for raw and clean data
         - raw data plots are individual for overtone of each freq/dis
 - abs base time t0, tf
-
-WIP
-- input for scale of time (seconds, minues, hours)
+- input for scale of time (seconds, minutes, hours)
 - alternate plot options:
     - plot dF and dD together
     - normalize F
     - dD vs dF
 
+
+WIP
+- error checking? (need gui testing)
 - look into:
     - interactive plots (plotly)
     - open explorer to search for file
 '''
 
 
-### INPUT DEFINITIONS ###
-#file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C"
-#file_ext = '.csv'
-#abs_base_t0 = time(8, 35, 52)
-#abs_base_tf = time(9, 9, 19)
-# column names
-
-
-
 '''Variable Initializations'''
+
 file_info = ['','']
 will_plot_raw_data = False
 will_plot_clean_data = False
@@ -43,6 +40,10 @@ will_overwrite_file = False
 abs_base_t0 = time(0, 0, 0)
 abs_base_tf = time(0, 0, 0)
 x_timescale = 's'
+will_plot_dF_dD_together = False
+will_normalize_F = False
+will_plot_dD_v_dF = False
+will_interactive_plot = False
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},
@@ -356,14 +357,55 @@ def receive_clean_checkboxes():
         select_all_clean_checks_button.grid_forget()
         clear_clean_checks_button.grid_forget()
 
-def receive_scale_checkboxes():
-    pass
+def receive_scale_radios():
+    global x_timescale
+    if scale_time_var.get() == 1:
+        time_scale_frame.grid(row=9, column=4)
+        if which_time_scale_var.get() == 1:
+            x_timescale = 's'
+        elif which_time_scale_var.get() == 2:
+            x_timescale = 'm'
+        elif which_time_scale_var.get() == 3:
+            x_timescale = 'h'
+        else:
+            x_timescale= 'u'
+    else:
+        time_scale_frame.grid_forget()
+        x_timescale = 's'
+
+def receive_optional_checkboxes():
+    global will_plot_dF_dD_together
+    global will_normalize_F
+    global will_plot_dD_v_dF
+    global will_interactive_plot
+
+    if plot_dF_dD_together_var.get() == 1:
+        will_plot_dF_dD_together = True
+    else:
+        will_plot_dF_dD_together = False
+
+    if normalize_F_var.get() == 1:
+        will_normalize_F = True
+    else:
+        will_normalize_F = False
+
+    if plot_dD_v_dF_var.get() == 1:
+        will_plot_dD_v_dF = True
+    else:
+        will_plot_dD_v_dF = False
+
+    if interactive_plot_var.get() == 1:
+        will_interactive_plot = True
+    else:
+        will_interactive_plot = False
 
 
 '''Enter event loop for UI'''
 root = Tk()
 fr = Frame(root)
+fr2 = Frame(root)
 fr.grid(row=7, column=0, rowspan=2)
+fr2.grid(row=10, column=4)
 
 
 # define and place file info labels and buttons
@@ -500,22 +542,32 @@ plot_options_label = Label(root, text="Options for plots", padx=50, pady=10)
 plot_options_label.grid(row=0, column=4)
 spacing.grid(row=1, column=4)
 
-plot_dF_dD_together_check = Checkbutton()
-normalize_F_check = Checkbutton()
-plot_dD_v_dF_check = Checkbutton()
-interactive_plot_check = Checkbutton()
+plot_dF_dD_together_var = IntVar()
+plot_dF_dD_together_check = Checkbutton(root, text="Plot Δf and Δd together", variable=plot_dF_dD_together_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
+plot_dF_dD_together_check.grid(row=2, column=4)
+normalize_F_var = IntVar()
+normalize_F_check = Checkbutton(root, text="Normalize Δf with overtone", variable=normalize_F_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
+normalize_F_check.grid(row=3, column=4)
+plot_dD_v_dF_var = IntVar()
+plot_dD_v_dF_check = Checkbutton(root, text="Plot Δd vs Δf", variable=plot_dD_v_dF_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
+plot_dD_v_dF_check.grid(row=4, column=4)
+interactive_plot_var = IntVar()
+interactive_plot_check = Checkbutton(root, text="Interactive plot (not avail)", variable=interactive_plot_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
+interactive_plot_check.grid(row=5, column=4)
 
-scale_time_label = Label(root, text="Change scale of time?")
-scale_time_label.grid(row=12, column=0)
-seconds_scale_var = IntVar()
+scale_time_var = IntVar()
+scale_time_check = Checkbutton(root, text="Change scale of time? (default (s))", variable=scale_time_var, onvalue=1, offvalue=0, command=receive_scale_radios)
+scale_time_check.grid(row=8, column=4)
 # default to seconds
 # PUT INTO FRAME
-seconds_scale_check = Checkbutton(root, text="seconds", variable=seconds_scale_var, onvalue=1, offvalue=0, command=receive_scale_checkboxes)
-minutes_scale_var = IntVar()
-minutes_scale_check = Checkbutton()
-hours_scale_var = IntVar()
-hours_scale_check = Checkbutton()
-
+time_scale_frame = Frame(fr2)
+which_time_scale_var = IntVar()
+seconds_scale_check = Radiobutton(time_scale_frame, text="seconds", variable=which_time_scale_var, value=1, command=receive_scale_radios)
+seconds_scale_check.grid(row=0, column=0)
+minutes_scale_check = Radiobutton(time_scale_frame, text="minutes", variable=which_time_scale_var, value=2, command=receive_scale_radios)
+minutes_scale_check.grid(row=0, column=1)
+hours_scale_check = Radiobutton(time_scale_frame, text="hours", variable=which_time_scale_var, value=3, command=receive_scale_radios)
+hours_scale_check.grid(row=0, column=2)
 
 # conclude UI event loop
 root.mainloop()
@@ -540,7 +592,10 @@ total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
 print(total_num_channels_tested)
 
 ''' ERROR CHECKING '''
-# verify file info
+
+'''Verify File Info'''
+'''
+# make sure file name was inputted
 if len(file_info) == 0:
     print("please define file information!")
     sys.exit(1)
@@ -553,9 +608,34 @@ else:
         file_path = ""
 
 # verify baseline time entered, if only raw data box checked, no need to base time
-#do that
+if will_plot_clean_data and abs_base_t0 == time(0,0,0) and abs_base_tf == time(0,0,0):
+    print("User indicated plot clean data,\ndid not enter baseline time")
+    sys.exit(1)
 
+#verify data checks
+# check if any channels were selected to test
+if total_num_channels_tested == 0:
+    print("User did not select any channels to plot")
+    sys.exit(1)
+
+# check if clean data was chosen, but no clean channels selected
+if will_plot_clean_data and clean_num_channels_tested == 0:
+    print("User indicated to plot clean channels,\ndid not indicate which")
+    sys.exit(1)
+
+# check if raw data was chosen, but no raw data was selected
+if will_plot_raw_data and raw_num_channels_tested == 0:
+    print("User indicated to plot raw channels,\ndid not indicate which")
+    sys.exit(1)
+
+# verify options
+if x_timescale == 'u':
+    print("User indicated to change timescale,\nbut did not specify what scale")
+    sys.exit(1)
+'''
 print(file_info)
+print(will_plot_dF_dD_together)
+print(x_timescale)
 
 print("\n\n")
 
