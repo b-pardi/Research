@@ -85,7 +85,7 @@ def get_channels(scrub_level):
 
     return (freq_list, disp_list)
     
-def set_plot(fig_num, fig_x, fig_y, fig_title, fn):
+def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.figure(fig_num, clear=False)
     plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
     plt.xticks(fontsize=14, fontfamily='Arial')
@@ -93,7 +93,8 @@ def set_plot(fig_num, fig_x, fig_y, fig_title, fn):
     plt.xlabel(fig_x, fontsize=16, fontfamily='Arial')
     plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
     plt.title(fig_title, fontsize=16, fontfamily='Arial')
-    plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True)
+    if will_save:
+        plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True)
 
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
@@ -122,7 +123,8 @@ if gui.will_plot_clean_data:
         
     for i in range(clean_iters):
         # grab data from df and grab only columns we need, then drop nan values
-        data_df = df[[abs_time_col,rel_time_col,freqs[i],disps[i]]]
+        data_df = df[[abs_time_col,rel_time_col,clean_freqs[i],clean_disps[i]]]
+        print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
         data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
         # find baseline time range
@@ -137,24 +139,24 @@ if gui.will_plot_clean_data:
         base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
         baseline_df = data_df[:base_tf_ind]
         # compute average of rf and dis
-        rf_base_avg = baseline_df[freqs[i]].mean()
-        dis_base_avg = baseline_df[disps[i]].mean()
+        rf_base_avg = baseline_df[clean_freqs[i]].mean()
+        dis_base_avg = baseline_df[clean_disps[i]].mean()
 
         # lower rf curve s.t. baseline is approx at y=0
-        data_df[freqs[i]] -= rf_base_avg
-        data_df[disps[i]] -= dis_base_avg
+        data_df[clean_freqs[i]] -= rf_base_avg
+        data_df[clean_disps[i]] -= dis_base_avg
 
         # PLOTTING
         x_time = data_df[rel_time_col]
-        y_rf = data_df[freqs[i]]
-        y_dis = data_df[disps[i]]
+        y_rf = data_df[clean_freqs[i]]
+        y_dis = data_df[clean_disps[i]]
         plt.figure(1, clear=False)
         # don't plot data for channels not selected
         if i < freq_plot_cap:
-            plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
+            plt.plot(x_time, y_rf, label=f"resonant freq - {clean_freqs[i]}")
         plt.figure(2, clear=False)
         if i < disp_plot_cap:
-            plt.plot(x_time, y_dis, label=f"dissipation - {i}")
+            plt.plot(x_time, y_dis, label=f"dissipation - {clean_disps[i]}")
 
         '''plt.figure(3, clear=True)
         plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
@@ -167,31 +169,73 @@ if gui.will_plot_clean_data:
         if gui.will_overwrite_file:
             if i == 0:
                 cleaned_df = data_df[[abs_time_col,rel_time_col]]
-            cleaned_df = pd.concat([cleaned_df,data_df[freqs[i]]], axis=1)
-            cleaned_df = pd.concat([cleaned_df,data_df[disps[i]]], axis=1)
+            cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
+            cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
     if gui.will_overwrite_file:
         print(cleaned_df.head())
         cleaned_df.to_csv(f"raw_data/CLEANED-{gui.file_name}", index=False)
 
+    # Titles, lables, etc. for plots
+    rf_fig_title = "QCM-D Resonant Frequency"
+    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
+    if gui.x_timescale == 's':
+        rf_fig_x = "Time (" + '$\it{s}$' + ")"
+    elif gui.x_timescale == 'm':
+        rf_fig_x = "Time (" + '$\it{m}$' + ")"
+    else:
+        rf_fig_x = "Time (" + '$\it{h}$' + ")"
+
+    rf_fn = f"qcmb-plots/resonant-freq-plot.png"
+
+    dis_fig_title = "QCM-D Dissipation"
+    dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+    dis_fig_x = rf_fig_x
+    dis_fn = f"qcmb-plots/dissipation-plot.png"
+
+    # fig 1: clean freq plot
+    # fig 2: clean disp plot
+    setup_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn, True)
+    setup_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn, True)
+
+# Gathering raw data for individual plots
+if gui.will_plot_raw_data:
+    # plot definitions
+    rf_fig_title = "RAW QCM-D Resonant Frequency"
+    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
+    if gui.x_timescale == 's':
+        rf_fig_x = "Time (" + '$\it{s}$' + ")"
+    elif gui.x_timescale == 'm':
+        rf_fig_x = "Time (" + '$\it{m}$' + ")"
+    else:
+        rf_fig_x = "Time (" + '$\it{h}$' + ")"
+
+    dis_fig_title = "RAW QCM-D Dissipation"
+    dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+    dis_fig_x = rf_fig_x
 
 
-# Titles, lables, etc. for plots
-rf_fig_title = "QCM-D Resonant Frequency"
-rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
-if gui.x_timescale == 's':
-    rf_fig_x = "Time (" + '$\it{s}$' + ")"
-elif gui.x_timescale == 'm':
-    rf_fig_x = "Time (" + '$\it{m}$' + ")"
-else:
-    rf_fig_x = "Time (" + '$\it{h}$' + ")"
+    raw_freqs, raw_disps = get_channels('raw')
+    # gather and plot raw freq data
+    for i in range(len(raw_freqs)):
+        rf_data_df = df[[abs_time_col,rel_time_col,raw_freqs[i]]]
+        rf_data_df = rf_data_df.dropna(axis=0, how='any', inplace=False)
+        x_time = rf_data_df[rel_time_col]
+        y_rf = rf_data_df[raw_freqs[i]]
+        plt.figure(3, clear=True)
+        plt.plot(x_time, y_rf, label=f"raw resonant freq - {i}")
+        rf_fn = f"qcmb-plots/RAW-resonant-freq-plot-{raw_freqs[i]}.png"
+        setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
+        plt.figure(3).savefig(rf_fn, bbox_inches='tight', transparent=True)
 
-rf_fn = f"qcmb-plots/resonant-freq-plot.png"
+    for i in range(len(raw_disps)):
+        dis_data_df = df[[abs_time_col,rel_time_col,raw_disps[i]]]
+        dis_data_df = dis_data_df.dropna(axis=0, how='any', inplace=False)
+        x_time = dis_data_df[rel_time_col]
+        y_dis = dis_data_df[raw_disps[i]]
+        plt.figure(4, clear=True)
+        plt.plot(x_time, y_dis, label=f"raw dissipation - {i}")
+        dis_fn = f"qcmb-plots/RAW-dissipation-plot-{raw_freqs[i]}.png"
+        setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
+        plt.figure(4).savefig(dis_fn, bbox_inches='tight', transparent=True)
 
-dis_fig_title = "QCM-D Dissipation"
-dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
-dis_fig_x = rf_fig_x
-dis_fn = f"qcmb-plots/dissipation-plot.png"
-
-set_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
-set_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
