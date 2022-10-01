@@ -23,17 +23,16 @@ FUNCTIONS
 - opens 'gui.py' to define information
 - opens defined file and reads it into a dataframe
 - renames columns as dictated below in Variable Declarations section
+- checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
 - find average resonant frequency of baseline, and lowers curve by that amount
 - cleans data by removing points before baseline, and lowers by aforemention average
 - plots are frequencies and dissipations of each channel specified in gui.py
-- 
+- if overwrite file selected, will replace file data with the data it had just cleaned
+    - Not advised if not selecting ALL plots
 
 WIP
 - ERROR CHECKING?
-- plot data for each channel based on 'gui.whichplot' dict
-    - currently only works when selecting all for plot clean data
 - plotting raw data
-- write csv with cleaned data (dependent on checkbox in gui)
 - alternate plot options:
     - plot dF and dD together
     - normalize F
@@ -86,6 +85,15 @@ def get_channels(scrub_level):
 
     return (freq_list, disp_list)
     
+def set_plot(fig_num, fig_x, fig_y, fig_title, fn):
+    plt.figure(fig_num, clear=False)
+    plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+    plt.xticks(fontsize=14, fontfamily='Arial')
+    plt.yticks(fontsize=14, fontfamily='Arial')
+    plt.xlabel(fig_x, fontsize=16, fontfamily='Arial')
+    plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
+    plt.title(fig_title, fontsize=16, fontfamily='Arial')
+    plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True)
 
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
@@ -156,7 +164,6 @@ if gui.will_plot_clean_data:
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
         # cleaned df to overwrite old data
-        print(gui.will_overwrite_file)
         if gui.will_overwrite_file:
             if i == 0:
                 cleaned_df = data_df[[abs_time_col,rel_time_col]]
@@ -168,27 +175,23 @@ if gui.will_plot_clean_data:
         cleaned_df.to_csv(f"raw_data/CLEANED-{gui.file_name}", index=False)
 
 
-# Titles, lables, etc. for plots
-plt.figure(1, clear=False)
-plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
-plt.xticks(fontsize=14, fontfamily='Arial')
-plt.yticks(fontsize=14, fontfamily='Arial')
-if gui.x_timescale == 's':
-    plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
-elif gui.x_timescale == 'm':
-    plt.xlabel("Time (" + '$\it{m}$' + ")", fontsize=16, fontfamily='Arial')
-plt.ylabel("Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")", fontsize=16, fontfamily='Arial')
-plt.title(f"QCM-D Resonant Frequency", fontsize=16, fontfamily='Arial')
-plt.figure(1).savefig(f"qcmb-plots/resonant-freq-plot.png", bbox_inches='tight', transparent=True)
 
-plt.figure(2, clear=False)
-plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
-plt.xticks(fontsize=14, fontfamily='Arial')
-plt.yticks(fontsize=14, fontfamily='Arial')
+# Titles, lables, etc. for plots
+rf_fig_title = "QCM-D Resonant Frequency"
+rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
 if gui.x_timescale == 's':
-    plt.xlabel("Time (" + '$\it{s}$' + ")", fontsize=16, fontfamily='Arial')
+    rf_fig_x = "Time (" + '$\it{s}$' + ")"
 elif gui.x_timescale == 'm':
-    plt.xlabel("Time (" + '$\it{m}$' + ")", fontsize=16, fontfamily='Arial')
-plt.ylabel("Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=16, fontfamily='Arial')
-plt.title(f"QCM-D Dissipation", fontsize=16, fontfamily='Arial')
-plt.figure(2).savefig(f"qcmb-plots/dissipation-plot.png", bbox_inches='tight', transparent=True)
+    rf_fig_x = "Time (" + '$\it{m}$' + ")"
+else:
+    rf_fig_x = "Time (" + '$\it{h}$' + ")"
+
+rf_fn = f"qcmb-plots/resonant-freq-plot.png"
+
+dis_fig_title = "QCM-D Dissipation"
+dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+dis_fig_x = rf_fig_x
+dis_fn = f"qcmb-plots/dissipation-plot.png"
+
+set_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
+set_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
