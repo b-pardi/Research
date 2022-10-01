@@ -71,22 +71,24 @@ if 'Frequency_0' in df.columns:
     df.to_csv("raw_data/08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv", index=False)
 
 # FUNC TO GRAB WHICH THINGS TO PLOT INTO LIST FOR EACH OPTIN
-def get_channels():
-    pass
+def get_channels(scrub_level):
+    freq_list = []
+    disp_list = []
+        
+    for channel in gui.which_plot[scrub_level].items():
+        if channel[1] == True:
+            if channel[0].__contains__('freq'):
+                freq_list.append(channel[0])
+            elif channel[0].__contains__('dis'):
+                disp_list.append(channel[0])
+
+    return (freq_list, disp_list)
+    
 
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
-    clean_freqs = []
-    clean_disps = []
-    for channel in gui.which_plot['clean'].items():
-        if channel[1] == True:
-            if channel[0].__contains__('freq'):
-                print(f"F: {channel[0]}")
-                clean_freqs.append(channel[0])
-            else:
-                clean_disps.append(channel[0])
-                print(f"D: {channel[0]}")
-
+    clean_freqs, clean_disps = get_channels('clean')
+    
     for i in range(int(gui.clean_num_channels_tested/2)):
         # grab data from df and grab only columns we need, then drop nan values
         data_df = df[[abs_time_col,rel_time_col,freqs[i] ,disps[i]]]
