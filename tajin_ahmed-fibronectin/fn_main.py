@@ -70,13 +70,15 @@ if 'Frequency_0' in df.columns:
     'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
     df.to_csv("raw_data/08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv", index=False)
 
-# FUNC TO GRAB WHICH THINGS TO PLOT INTO LIST FOR EACH OPTIN
+# function fills list of channels selected to be clean plot from gui
 def get_channels(scrub_level):
     freq_list = []
     disp_list = []
         
     for channel in gui.which_plot[scrub_level].items():
+        # dict entry for that channel is true then append to list
         if channel[1] == True:
+            # check if channel looking at is a frequency or dissipation and append approppriately
             if channel[0].__contains__('freq'):
                 freq_list.append(channel[0])
             elif channel[0].__contains__('dis'):
@@ -88,10 +90,31 @@ def get_channels(scrub_level):
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
     clean_freqs, clean_disps = get_channels('clean')
-    
-    for i in range(int(gui.clean_num_channels_tested/2)):
+    clean_iters = 0
+    freq_plot_cap = len(clean_freqs)
+    disp_plot_cap = len(clean_disps)
+    diff = len(clean_freqs) - len(clean_disps)
+    # if different num of freq and raw channels, must do equal amount for plotting,
+    # but can just not plot the results later; set plot cap for the lesser
+    # diff pos -> more freq channels than disp
+    if diff > 0:
+        clean_iters = len(clean_freqs)
+        disp_plot_cap = len(clean_disps)
+        for i in range(diff, clean_iters):
+            clean_disps.append(disps[i])
+    # diff neg -> more disp channels than freq
+    elif diff < 0:
+        clean_iters = len(clean_disps)
+        freq_plot_cap = len(clean_freqs)
+        for i in range(abs(diff), clean_iters):
+            clean_freqs.append(freqs[i])
+    # if length same, then iterations is length of either
+    else:
+        clean_iters = len(clean_freqs)
+        
+    for i in range(clean_iters):
         # grab data from df and grab only columns we need, then drop nan values
-        data_df = df[[abs_time_col,rel_time_col,freqs[i] ,disps[i]]]
+        data_df = df[[abs_time_col,rel_time_col,freqs[i],disps[i]]]
         data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
         # find baseline time range
@@ -118,9 +141,11 @@ if gui.will_plot_clean_data:
         y_rf = data_df[freqs[i]]
         y_dis = data_df[disps[i]]
         plt.figure(1, clear=False)
-        plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
+        if i < freq_plot_cap:
+            plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
         plt.figure(2, clear=False)
-        plt.plot(x_time, y_dis, label=f"dissipation - {i}")
+        if i < disp_plot_cap:
+            plt.plot(x_time, y_dis, label=f"dissipation - {i}")
 
         '''plt.figure(3, clear=True)
         plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
@@ -130,11 +155,15 @@ if gui.will_plot_clean_data:
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
         # cleaned df to overwrite old data
-        if i == 0:
-            cleaned_df = data_df[[abs_time_col,rel_time_col]]
-        #pd.concat([cleaned_df,data_df[freqs[i]]])
+        if gui.will_overwrite_file:
+            if i == 0:
+                cleaned_df = data_df[[abs_time_col,rel_time_col]]
+            cleaned_df = pd.concat([cleaned_df,data_df[freqs[i]]], axis=1)
+            cleaned_df = pd.concat([cleaned_df,data_df[disps[i]]], axis=1)
 
-    print(cleaned_df.head())
+   # print(cleaned_df.head())
+
+
 # Titles, lables, etc. for plots
 plt.figure(1, clear=False)
 plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
