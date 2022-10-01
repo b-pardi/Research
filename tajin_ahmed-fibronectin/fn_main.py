@@ -141,6 +141,7 @@ if gui.will_plot_clean_data:
         y_rf = data_df[freqs[i]]
         y_dis = data_df[disps[i]]
         plt.figure(1, clear=False)
+        # don't plot data for channels not selected
         if i < freq_plot_cap:
             plt.plot(x_time, y_rf, label=f"resonant freq - {i}")
         plt.figure(2, clear=False)
@@ -155,13 +156,16 @@ if gui.will_plot_clean_data:
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
         # cleaned df to overwrite old data
+        print(gui.will_overwrite_file)
         if gui.will_overwrite_file:
             if i == 0:
                 cleaned_df = data_df[[abs_time_col,rel_time_col]]
             cleaned_df = pd.concat([cleaned_df,data_df[freqs[i]]], axis=1)
             cleaned_df = pd.concat([cleaned_df,data_df[disps[i]]], axis=1)
 
-   # print(cleaned_df.head())
+    if gui.will_overwrite_file:
+        print(cleaned_df.head())
+        cleaned_df.to_csv(f"raw_data/CLEANED-{gui.file_name}", index=False)
 
 
 # Titles, lables, etc. for plots
