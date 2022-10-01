@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 8/31/2022, 1:20 pm
-Last Modified: 9/27/2022 4:35 pm
+Last Modified: 10/1/2022 3:42 pm
 """
 
 import pandas as pd
@@ -24,19 +24,20 @@ FUNCTIONS
 - opens defined file and reads it into a dataframe
 - renames columns as dictated below in Variable Declarations section
 - checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
-- find average resonant frequency of baseline, and lowers curve by that amount
-- cleans data by removing points before baseline, and lowers by aforemention average
+Clean Data:
+    - find average resonant frequency of baseline, and lowers curve by that amount
+    - cleans data by removing points before baseline, and lowers by aforemention average
 - plots are frequencies and dissipations of each channel specified in gui.py
 - if overwrite file selected, will replace file data with the data it had just cleaned
     - Not advised if not selecting ALL plots
+- plots raw data individually as specified in gui
+- option to normalize data by dividing frequency by its respective overtone
+- option to plot change in dissipation vs change in frequency
 
 WIP
 - ERROR CHECKING?
-- plotting raw data
 - alternate plot options:
-    - plot dF and dD together
-    - normalize F
-    - dD vs dF
+    - plot dF and dD together (multiaxis plot)
 
 - scale to minutes for x axis (gui input to determine)
 - y axis for dissipation scale * 10^(-6)
@@ -135,6 +136,21 @@ if gui.will_plot_clean_data:
         data_df = data_df[base_t0_ind:]
         data_df = data_df.reset_index(drop=True)
 
+        # normalize by overtone
+        if gui.will_normalize_F:
+            overtone = 1
+            if clean_freqs[i].__contains__("3"):
+                overtone = 3
+            if clean_freqs[i].__contains__("5"):
+                overtone = 5
+            if clean_freqs[i].__contains__("7"):
+                overtone = 7
+            if clean_freqs[i].__contains__("9"):
+                overtone = 9
+            print(data_df.head())
+            data_df[clean_freqs[i]] /= overtone
+            print(data_df.head())
+
         # find baseline and grab values from baseline for avg
         base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
         baseline_df = data_df[:base_tf_ind]
@@ -158,10 +174,10 @@ if gui.will_plot_clean_data:
         if i < disp_plot_cap:
             plt.plot(x_time, y_dis, label=f"dissipation - {clean_disps[i]}")
 
-        '''plt.figure(3, clear=True)
-        plt.plot(x_time, y_rf, label=f"indv resonant freq - {i}")
-        plt.figure(3).savefig(f"qcmb-plots/resonant-freq-plot-indv{i}.png")
-        '''
+        # plotting change in disp vs change in freq
+        if gui.will_plot_dD_v_dF:
+            plt.figure(5, clear=False)
+            plt.plot(y_rf, y_dis, 'o', label=f"{clean_disps[i]} vs {clean_freqs[i]}")
         
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
@@ -177,7 +193,12 @@ if gui.will_plot_clean_data:
         cleaned_df.to_csv(f"raw_data/CLEANED-{gui.file_name}", index=False)
 
     # Titles, lables, etc. for plots
-    rf_fig_title = "QCM-D Resonant Frequency"
+    if gui.will_normalize_F:
+        rf_fig_title = "QCM-D Resonant Frequency - NORMALIZED"
+        rf_fn = f"qcmb-plots/NORM-resonant-freq-plot.png"
+    else:
+        rf_fig_title = "QCM-D Resonant Frequency"
+        rf_fn = f"qcmb-plots/resonant-freq-plot.png"
     rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
     if gui.x_timescale == 's':
         rf_fig_x = "Time (" + '$\it{s}$' + ")"
@@ -186,8 +207,6 @@ if gui.will_plot_clean_data:
     else:
         rf_fig_x = "Time (" + '$\it{h}$' + ")"
 
-    rf_fn = f"qcmb-plots/resonant-freq-plot.png"
-
     dis_fig_title = "QCM-D Dissipation"
     dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
     dis_fig_x = rf_fig_x
@@ -195,8 +214,13 @@ if gui.will_plot_clean_data:
 
     # fig 1: clean freq plot
     # fig 2: clean disp plot
+    # fig 5: dD v dF
     setup_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn, True)
     setup_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn, True)
+    if gui.will_plot_dD_v_dF:
+        dVf_fn = f"qcmb-plots/disp_V_freq-plot.png"
+        dVf_title = "Dissipiation against Frequency"
+        setup_plot(5, dis_fig_y, rf_fig_y, dis_fig_title, dVf_fn, True)
 
 # Gathering raw data for individual plots
 if gui.will_plot_raw_data:
