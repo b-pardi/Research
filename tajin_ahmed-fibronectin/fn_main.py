@@ -7,7 +7,7 @@ Last Modified: 10/1/2022 3:42 pm
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from datetime import datetime, time
+from datetime import datetime
 
 import gui
 
@@ -33,12 +33,11 @@ Clean Data:
 - plots raw data individually as specified in gui
 - option to normalize data by dividing frequency by its respective overtone
 - option to plot change in dissipation vs change in frequency
+- option for multi axis plot with change in frequency and dissipation vs time
+
 
 WIP
 - ERROR CHECKING?
-- alternate plot options:
-    - plot dF and dD together (multiaxis plot)
-
 - scale to minutes for x axis (gui input to determine)
 - y axis for dissipation scale * 10^(-6)
 
@@ -52,6 +51,11 @@ freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq']
 disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis']
 t0_str = str(gui.abs_base_t0).lstrip('0')
 tf_str = str(gui.abs_base_tf).lstrip('0')
+
+# Some plot labels
+dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
+
 
 # grab singular file and create dataframe from it
 if gui.file_path == "":
@@ -85,7 +89,16 @@ def get_channels(scrub_level):
                 disp_list.append(channel[0])
 
     return (freq_list, disp_list)
-    
+
+def determine_xlabel():
+    if gui.x_timescale == 's':
+        return "Time (" + '$\it{s}$' + ")"
+    elif gui.x_timescale == 'm':
+        return "Time (" + '$\it{m}$' + ")"
+    else:
+        return "Time (" + '$\it{h}$' + ")"
+
+
 def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.figure(fig_num, clear=False)
     plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
@@ -147,9 +160,7 @@ if gui.will_plot_clean_data:
                 overtone = 7
             if clean_freqs[i].__contains__("9"):
                 overtone = 9
-            print(data_df.head())
             data_df[clean_freqs[i]] /= overtone
-            print(data_df.head())
 
         # find baseline and grab values from baseline for avg
         base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
@@ -179,6 +190,21 @@ if gui.will_plot_clean_data:
             plt.figure(5, clear=False)
             plt.plot(y_rf, y_dis, 'o', label=f"{clean_disps[i]} vs {clean_freqs[i]}")
         
+        # multi axis plot for change in freq and change in dis vs time
+        if gui.will_plot_dF_dD_together:
+            fig, ax1 = plt.subplots()
+            ax1.set_xlabel(determine_xlabel(), fontsize=16, fontfamily='Arial')
+            ax1.set_ylabel(rf_fig_y, fontsize=16, fontfamily='Arial')
+            ax2 = ax1.twinx()
+            ax2.set_ylabel(dis_fig_y,fontsize=16, fontfamily='Arial')
+            ax1.plot(x_time, y_rf, label=f"resonant freq - {clean_freqs[i]}", color='green')
+            ax2.plot(x_time, y_dis, label=f"dissipation - {clean_disps[i]}", color='blue')
+            fig.legend(loc='upper center', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+            plt.xticks(fontsize=14, fontfamily='Arial')
+            plt.yticks(fontsize=14, fontfamily='Arial')
+            plt.title("", fontsize=16, fontfamily='Arial')
+            plt.savefig(f"qcmb-plots/freq_dis_V_time_{freqs[i][:3]}", bbox_inches='tight', transparent=True)
+        
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
         # cleaned df to overwrite old data
@@ -187,6 +213,7 @@ if gui.will_plot_clean_data:
                 cleaned_df = data_df[[abs_time_col,rel_time_col]]
             cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
             cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
+
 
     if gui.will_overwrite_file:
         print(cleaned_df.head())
@@ -199,16 +226,9 @@ if gui.will_plot_clean_data:
     else:
         rf_fig_title = "QCM-D Resonant Frequency"
         rf_fn = f"qcmb-plots/resonant-freq-plot.png"
-    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
-    if gui.x_timescale == 's':
-        rf_fig_x = "Time (" + '$\it{s}$' + ")"
-    elif gui.x_timescale == 'm':
-        rf_fig_x = "Time (" + '$\it{m}$' + ")"
-    else:
-        rf_fig_x = "Time (" + '$\it{h}$' + ")"
+    rf_fig_x = determine_xlabel()
 
     dis_fig_title = "QCM-D Dissipation"
-    dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
     dis_fig_x = rf_fig_x
     dis_fn = f"qcmb-plots/dissipation-plot.png"
 
@@ -221,6 +241,7 @@ if gui.will_plot_clean_data:
         dVf_fn = f"qcmb-plots/disp_V_freq-plot.png"
         dVf_title = "Dissipiation against Frequency"
         setup_plot(5, dis_fig_y, rf_fig_y, dis_fig_title, dVf_fn, True)
+
 
 # Gathering raw data for individual plots
 if gui.will_plot_raw_data:
@@ -240,7 +261,7 @@ if gui.will_plot_raw_data:
 
 
     raw_freqs, raw_disps = get_channels('raw')
-    # gather and plot raw freq data
+    # gather and plot raw frequency data
     for i in range(len(raw_freqs)):
         rf_data_df = df[[abs_time_col,rel_time_col,raw_freqs[i]]]
         rf_data_df = rf_data_df.dropna(axis=0, how='any', inplace=False)
@@ -252,6 +273,7 @@ if gui.will_plot_raw_data:
         setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
         plt.figure(3).savefig(rf_fn, bbox_inches='tight', transparent=True)
 
+    # gather and plot raw dissipation data
     for i in range(len(raw_disps)):
         dis_data_df = df[[abs_time_col,rel_time_col,raw_disps[i]]]
         dis_data_df = dis_data_df.dropna(axis=0, how='any', inplace=False)
