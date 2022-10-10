@@ -644,5 +644,7 @@ file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.cs
 file_path = ""
 clean_num_channels_tested = 10
 abs_base_t0 = time(8,29,48)
+#abs_base_t0 = time(8,27,32)
 abs_base_tf = time(9,5,55)
+#abs_base_tf = time(10,4,3)
 
