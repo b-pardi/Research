@@ -65,7 +65,7 @@ tf_str = str(gui.abs_base_tf).lstrip('0')
 
 # Some plot labels
 dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
-rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
+rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (Hz)"
 
 
 # grab singular file and create dataframe from it
@@ -188,6 +188,13 @@ if gui.will_plot_clean_data:
         x_time = data_df[rel_time_col]
         y_rf = data_df[clean_freqs[i]]
         y_dis = data_df[clean_disps[i]]
+        if gui.x_timescale == 'm':
+            divisor = 60
+        elif gui.x_timescale == 'h':
+            divisor = 3600
+        x_time = [num / divisor for num in x_time]
+
+        # PLOTTING
         plt.figure(1, clear=False)
         # don't plot data for channels not selected
         if i < freq_plot_cap:
