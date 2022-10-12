@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 8/31/2022, 1:20 pm
-Last Modified: 10/1/2022 3:42 pm
+Last Modified: 10/10/2022 2:42 pm
 """
 
 import pandas as pd
@@ -18,6 +18,16 @@ README
     - OR specify file directory in gui
 - consistency in column placement and naming is required, however columns will be renamed
 - if error occurs, it will be displayed in the terminal
+- if uncaught error occurs, please notify me asap and describe what was done to reproduce
+- specify GUI
+    - file name (with exetension)
+    - file path (if not in predefined data directory)
+    - indicate if new clean data file should be created
+    - if plotting clean data, indicate baseline t0 and tf
+    - SUBMIT FILE INFO
+    - indicate which channels to plot for raw/clean data
+    - indicate which special plot options
+    - change scale of time if applicable
 
 FUNCTIONS
 - opens 'gui.py' to define information
@@ -38,9 +48,9 @@ Clean Data:
 
 WIP
 - ERROR CHECKING?
-- round up to nearest time pt if not in column
-- scale to minutes for x axis (gui input to determine)
 - y axis for dissipation scale * 10^(-6)
+- when inputting time, check for nearest time value,
+    in case time value not actually in data sheet
 
 """
 
@@ -93,11 +103,11 @@ def get_channels(scrub_level):
 
 def determine_xlabel():
     if gui.x_timescale == 's':
-        return "Time (" + '$\it{s}$' + ")"
+        return "Time (s)"
     elif gui.x_timescale == 'm':
-        return "Time (" + '$\it{m}$' + ")"
+        return "Time (min)"
     else:
-        return "Time (" + '$\it{h}$' + ")"
+        return "Time (hr)"
 
 
 def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
@@ -241,20 +251,15 @@ if gui.will_plot_clean_data:
     if gui.will_plot_dD_v_dF:
         dVf_fn = f"qcmb-plots/disp_V_freq-plot.png"
         dVf_title = "Dissipiation against Frequency"
-        setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
+        setup_plot(5, dis_fig_y, rf_fig_y, dis_fig_title, dVf_fn, True)
 
 
 # Gathering raw data for individual plots
 if gui.will_plot_raw_data:
     # plot definitions
     rf_fig_title = "RAW QCM-D Resonant Frequency"
-    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (" + '$\it{Hz}$' + ")"
-    if gui.x_timescale == 's':
-        rf_fig_x = "Time (" + '$\it{s}$' + ")"
-    elif gui.x_timescale == 'm':
-        rf_fig_x = "Time (" + '$\it{m}$' + ")"
-    else:
-        rf_fig_x = "Time (" + '$\it{h}$' + ")"
+    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (Hz)"
+    rf_fig_x = determine_xlabel()
 
     dis_fig_title = "RAW QCM-D Dissipation"
     dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
