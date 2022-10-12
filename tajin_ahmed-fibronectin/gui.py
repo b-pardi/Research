@@ -25,6 +25,8 @@ GUI features
 
 WIP
 - error checking? (need gui testing)
+- spacing between channel rows?
+- note to include extension for file name
 - look into:
     - interactive plots (plotly)
     - open explorer to search for file
@@ -594,7 +596,7 @@ print(total_num_channels_tested)
 ''' ERROR CHECKING '''
 
 '''Verify File Info'''
-'''
+
 # make sure file name was inputted
 if len(file_info) == 0:
     print("please define file information!")
@@ -632,7 +634,7 @@ if will_plot_raw_data and raw_num_channels_tested == 0:
 if x_timescale == 'u':
     print("User indicated to change timescale,\nbut did not specify what scale")
     sys.exit(1)
-'''
+
 print(file_info)
 print(will_plot_dF_dD_together)
 print(x_timescale)
@@ -642,8 +644,8 @@ print("\n\n")
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
 file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
 file_path = ""
-clean_num_channels_tested = 10
-abs_base_t0 = time(8,29,48)
+#clean_num_channels_tested = 10
+abs_base_t0 = time(9,0,21)
 #abs_base_t0 = time(8,27,32)
 abs_base_tf = time(9,5,55)
 #abs_base_tf = time(10,4,3)

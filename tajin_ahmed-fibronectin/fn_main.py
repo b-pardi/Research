@@ -38,6 +38,7 @@ Clean Data:
 
 WIP
 - ERROR CHECKING?
+- round up to nearest time pt if not in column
 - scale to minutes for x axis (gui input to determine)
 - y axis for dissipation scale * 10^(-6)
 
@@ -240,7 +241,7 @@ if gui.will_plot_clean_data:
     if gui.will_plot_dD_v_dF:
         dVf_fn = f"qcmb-plots/disp_V_freq-plot.png"
         dVf_title = "Dissipiation against Frequency"
-        setup_plot(5, dis_fig_y, rf_fig_y, dis_fig_title, dVf_fn, True)
+        setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
 
 
 # Gathering raw data for individual plots
