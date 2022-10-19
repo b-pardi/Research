@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 8/31/2022, 1:20 pm
-Last Modified: 10/10/2022 2:42 pm
+Last Modified: 10/19/2022 12:51 pm
 """
 
 import pandas as pd
@@ -48,8 +48,9 @@ Clean Data:
 
 WIP
 - ERROR CHECKING?
-- y axis for dissipation scale * 10^(-6)
-- when inputting time, check for nearest time value,
+    - if options are selected, make sure clean plot channels are selected
+    - account for error if can't find valid time
+    - when inputting time, check for nearest time value,
     in case time value not actually in data sheet
 
 """
@@ -64,8 +65,8 @@ t0_str = str(gui.abs_base_t0).lstrip('0')
 tf_str = str(gui.abs_base_tf).lstrip('0')
 
 # Some plot labels
-dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
-rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (Hz)"
+dis_fig_y = "Change in Dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
 
 
 # grab singular file and create dataframe from it
@@ -187,11 +188,15 @@ if gui.will_plot_clean_data:
         # PLOTTING
         x_time = data_df[rel_time_col]
         y_rf = data_df[clean_freqs[i]]
+        # scale disipation by 10^6
+        data_df[clean_disps[i]] *= 1000000
         y_dis = data_df[clean_disps[i]]
         if gui.x_timescale == 'm':
             divisor = 60
         elif gui.x_timescale == 'h':
             divisor = 3600
+        else:
+            divisor = 1
         x_time = [num / divisor for num in x_time]
 
         # PLOTTING
@@ -258,18 +263,18 @@ if gui.will_plot_clean_data:
     if gui.will_plot_dD_v_dF:
         dVf_fn = f"qcmb-plots/disp_V_freq-plot.png"
         dVf_title = "Dissipiation against Frequency"
-        setup_plot(5, dis_fig_y, rf_fig_y, dis_fig_title, dVf_fn, True)
+        setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
 
 
 # Gathering raw data for individual plots
 if gui.will_plot_raw_data:
     # plot definitions
     rf_fig_title = "RAW QCM-D Resonant Frequency"
-    rf_fig_y = "Change in frequency " + '$\it{Δf}$' + " (Hz)"
+    rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
     rf_fig_x = determine_xlabel()
 
     dis_fig_title = "RAW QCM-D Dissipation"
-    dis_fig_y = "Change in Dissipation " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+    dis_fig_y = "Change in Dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
     dis_fig_x = rf_fig_x
 
 
