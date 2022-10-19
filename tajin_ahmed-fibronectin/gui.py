@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 9/7/2022, 12:40 pm
-Last Modified: 9/30/2022 2:15 pm
+Last Modified: 10/19/2022 12:51 pm
 """
 
 from tkinter import *
@@ -117,7 +117,7 @@ def handle_fn_focus_out(_):
         file_name_entry.insert(0, "File name here (W/ EXTENSION)")
 
 def handle_fp_focus_in(_):
-    if file_path_entry.get() == "Enter path to file (leave blank if in same dir)":
+    if file_path_entry.get() == "Enter path to file (leave blank if in 'raw data' folder)":
         file_path_entry.delete(0, END)
         file_path_entry.config(fg='black')
 
@@ -125,7 +125,7 @@ def handle_fp_focus_out(_):
     if file_path_entry.get() == "":
         file_path_entry.delete(0, END)
         file_path_entry.config(fg='gray')
-        file_path_entry.insert(0, "Enter path to file (leave blank if in same dir)")    
+        file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")    
 
 def clear_raw_checks():
     raw_ch1_freq_var.set(0)
@@ -426,7 +426,7 @@ file_name_entry.bind("<FocusOut>", handle_fn_focus_out)
 
 file_path_entry = Entry(root, width=40, bg='white', fg='gray')
 file_path_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
-file_path_entry.insert(0, "Enter path to file (leave blank if in same dir)")
+file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")
 file_path_entry.bind("<FocusIn>", handle_fp_focus_in)
 file_path_entry.bind("<FocusOut>", handle_fp_focus_out)
 
@@ -603,7 +603,7 @@ if len(file_info) == 0:
 #    sys.exit(1)
 else:
     file_name = file_info[0]
-    if file_info[1] == 'Enter path to file (leave blank if in same dir)':
+    if file_info[1] == "Enter path to file (leave blank if in 'raw data' folder)":
         file_path = ""
 
 # verify baseline time entered, if only raw data box checked, no need to base time
@@ -639,12 +639,13 @@ print(x_timescale)
 print("\n\n")
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
-file_path = ""
+#file_name = "08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv"
+# 10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv
+#file_path = ""
 '''clean_num_channels_tested = 10
 abs_base_t0 = time(8,29,48)
-#abs_base_t0 = time(8,27,32)
+abs_base_t0 = time(17,2,26)
 abs_base_tf = time(9,5,55)
-#abs_base_tf = time(10,4,3)
+abs_base_tf = time(17,11,2)
 
 '''
