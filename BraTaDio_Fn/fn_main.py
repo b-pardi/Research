@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 8/31/2022, 1:20 pm
-Last Modified: 10/19/2022 12:51 pm
+Last Modified: 10/27/2022 8:39 pm
 """
 
 import pandas as pd
@@ -47,6 +47,7 @@ Clean Data:
 
 
 WIP
+- save different kinds of file types (png, tiff, pdf)
 - ERROR CHECKING?
     - if options are selected, make sure clean plot channels are selected
     - account for error if can't find valid time
@@ -86,6 +87,10 @@ if 'Frequency_0' in df.columns:
     'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
     df.to_csv("raw_data/08102022_n=2_Fn at 500 ug per ml and full SF on func gold at 37C.csv", index=False)
 
+# assign colors to overtones
+color_map_freq = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green', '7th_freq':'red', '9th_freq':'purple'}
+color_map_dis = {'fundamental_dis':'blue', '3rd_dis':'orange', '5th_dis':'green', '7th_dis':'red', '9th_dis':'purple'}
+
 # function fills list of channels selected to be clean plot from gui
 def get_channels(scrub_level):
     freq_list = []
@@ -104,11 +109,11 @@ def get_channels(scrub_level):
 
 def determine_xlabel():
     if gui.x_timescale == 's':
-        return "Time (s)"
+        return "Time, " + '$\it{Δt}$' + " (s)"
     elif gui.x_timescale == 'm':
-        return "Time (min)"
+        return "Time, " + '$\it{Δt}$' + " (min)"
     else:
-        return "Time (hr)"
+        return "Time, " + '$\it{Δt}$' + " (hr)"
 
 
 def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
@@ -120,7 +125,7 @@ def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
     plt.title(fig_title, fontsize=16, fontfamily='Arial')
     if will_save:
-        plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True)
+        plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True, dpi=400)
 
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
@@ -203,15 +208,15 @@ if gui.will_plot_clean_data:
         plt.figure(1, clear=False)
         # don't plot data for channels not selected
         if i < freq_plot_cap:
-            plt.plot(x_time, y_rf, label=f"resonant freq - {clean_freqs[i]}")
+            plt.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color=color_map_freq[clean_freqs[i]])
         plt.figure(2, clear=False)
         if i < disp_plot_cap:
-            plt.plot(x_time, y_dis, label=f"dissipation - {clean_disps[i]}")
+            plt.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color=color_map_dis[clean_disps[i]])
 
         # plotting change in disp vs change in freq
         if gui.will_plot_dD_v_dF:
             plt.figure(5, clear=False)
-            plt.plot(y_rf, y_dis, 'o', label=f"{clean_disps[i]} vs {clean_freqs[i]}")
+            plt.plot(y_rf, y_dis, '.', markersize=1, label=f"{clean_disps[i]} vs {clean_freqs[i]}")
         
         # multi axis plot for change in freq and change in dis vs time
         if gui.will_plot_dF_dD_together:
@@ -220,13 +225,13 @@ if gui.will_plot_clean_data:
             ax1.set_ylabel(rf_fig_y, fontsize=16, fontfamily='Arial')
             ax2 = ax1.twinx()
             ax2.set_ylabel(dis_fig_y,fontsize=16, fontfamily='Arial')
-            ax1.plot(x_time, y_rf, label=f"resonant freq - {clean_freqs[i]}", color='green')
-            ax2.plot(x_time, y_dis, label=f"dissipation - {clean_disps[i]}", color='blue')
+            ax1.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color='green')
+            ax2.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color='blue')
             fig.legend(loc='upper center', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
             plt.xticks(fontsize=14, fontfamily='Arial')
             plt.yticks(fontsize=14, fontfamily='Arial')
             plt.title("", fontsize=16, fontfamily='Arial')
-            plt.savefig(f"qcmd-plots/freq_dis_V_time_{freqs[i][:3]}", bbox_inches='tight', transparent=True)
+            plt.savefig(f"qcmd-plots/freq_dis_V_time_{freqs[i][:3]}", bbox_inches='tight', transparent=True, dpi=400)
         
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
@@ -286,10 +291,10 @@ if gui.will_plot_raw_data:
         x_time = rf_data_df[rel_time_col]
         y_rf = rf_data_df[raw_freqs[i]]
         plt.figure(3, clear=True)
-        plt.plot(x_time, y_rf, label=f"raw resonant freq - {i}")
+        plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=color_map_freq[clean_freqs[i]])
         rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}.png"
         setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
-        plt.figure(3).savefig(rf_fn, bbox_inches='tight', transparent=True)
+        plt.figure(3).savefig(rf_fn, bbox_inches='tight', transparent=True, dpi=400)
 
     # gather and plot raw dissipation data
     for i in range(len(raw_disps)):
@@ -298,8 +303,8 @@ if gui.will_plot_raw_data:
         x_time = dis_data_df[rel_time_col]
         y_dis = dis_data_df[raw_disps[i]]
         plt.figure(4, clear=True)
-        plt.plot(x_time, y_dis, label=f"raw dissipation - {i}")
+        plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=color_map_dis[clean_disps[i]])
         dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}.png"
         setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
-        plt.figure(4).savefig(dis_fn, bbox_inches='tight', transparent=True)
+        plt.figure(4).savefig(dis_fn, bbox_inches='tight', transparent=True, dpi=400)
 
