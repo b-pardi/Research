@@ -56,8 +56,11 @@ figure 3: Youngs Modulus
 figure 4: Youngs mod rsq
 '''
 
+colors = ["red", "black"]
+sns.set_palette(sns.color_palette(colors))
+
 plt.figure(1)
-swarm1 = sns.swarmplot(x='data_category', y='Tau', data=tau_df)
+swarm1 = sns.swarmplot(x='data_category', y='Tau', data=tau_df, hue='data_category')
 box1 = sns.boxplot(x='data_category', y='Tau', data=tau_df, boxprops={'facecolor':'None'})
 medians1 = tau_df.groupby(['data_category'])['Tau'].median()
 plt.xticks(fontsize=14, fontfamily='Arial')
@@ -67,7 +70,7 @@ plt.ylabel("Relaxation Time " + '$\it{τ}$' + " (" + '$\it{s}$' + ")", fontsize=
 plt.savefig("taus-youngs_plots/TAUS-swarmplot.png", bbox_inches='tight')
 
 plt.figure(2)
-swarm2 = sns.swarmplot(x='data_category', y='T_rsq', data=tau_rsq_df)
+swarm2 = sns.swarmplot(x='data_category', y='T_rsq', data=tau_rsq_df, hue='data_category')
 box2 = sns.boxplot(x='data_category', y='T_rsq', data=tau_rsq_df, boxprops={'facecolor':'None'})
 medians2 = tau_rsq_df.groupby(['data_category'])['T_rsq'].median()
 plt.xticks(fontsize=14, fontfamily='Arial')
@@ -77,7 +80,7 @@ plt.ylabel("Relaxation Time " + '$\it{τ}$' + " R² value", fontsize=16, fontfam
 plt.savefig("taus-youngs_plots/TAUS-RSQ-swarmplot.png", bbox_inches='tight')
 
 plt.figure(3)
-swarm3 = sns.swarmplot(x='data_category', y='E', data=E_df)
+swarm3 = sns.swarmplot(x='data_category', y='E', data=E_df, hue='data_category')
 box3 = sns.boxplot(x='data_category', y='E', data=E_df, boxprops={'facecolor':'None'})
 medians3 = E_df.groupby(['data_category'])['E'].median()
 plt.xticks(fontsize=14, fontfamily='Arial')
@@ -87,7 +90,7 @@ plt.ylabel("Young's Modulus " + '$\it{E}$' + " (" + '$\it{kPa}$' + ")", fontsize
 plt.savefig("taus-youngs_plots/YOUNGS-swarmplot.png", bbox_inches='tight')
 
 plt.figure(4)
-swarm4 = sns.swarmplot(x='data_category', y='E_rsq', data=E_rsq_df)
+swarm4 = sns.swarmplot(x='data_category', y='E_rsq', data=E_rsq_df, hue='data_category')
 box4 = sns.boxplot(x='data_category', y='E_rsq', data=E_rsq_df, boxprops={'facecolor':'None'})
 medians4 = E_rsq_df.groupby(['data_category'])['E_rsq'].median()
 plt.xticks(fontsize=14, fontfamily='Arial')
