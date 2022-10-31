@@ -39,6 +39,7 @@ will_plot_clean_data = False
 will_overwrite_file = False
 abs_base_t0 = time(0, 0, 0)
 abs_base_tf = time(0, 0, 0)
+fig_format = '.png'
 x_timescale = 's'
 will_plot_dF_dD_together = False
 will_normalize_F = False
@@ -360,7 +361,7 @@ def receive_clean_checkboxes():
 def receive_scale_radios():
     global x_timescale
     if scale_time_var.get() == 1:
-        time_scale_frame.grid(row=9, column=4)
+        time_scale_frame.grid(row=0, column=4)
         if which_time_scale_var.get() == 1:
             x_timescale = 's'
         elif which_time_scale_var.get() == 2:
@@ -372,6 +373,22 @@ def receive_scale_radios():
     else:
         time_scale_frame.grid_forget()
         x_timescale = 's'
+
+def receive_file_format_radios():
+    global fig_format
+    if change_fig_format_var.get() == 1:
+        file_format_frame.grid(row=0, column=4)
+        if which_file_format_var.get() == 1:
+            fig_format = 'png'
+        elif which_file_format_var.get() == 2:
+            fig_format = 'tiff'
+        elif which_file_format_var.get() == 3:
+            fig_format = 'pdf'
+        else:
+            fig_format = 'u'
+    else:
+        file_format_frame.grid_forget()
+        fig_format = '.pdf'
 
 def receive_optional_checkboxes():
     global will_plot_dF_dD_together
@@ -408,6 +425,7 @@ col2 = Frame(root)
 col3 = Frame(root)
 fr = Frame(col0)
 fr2 = Frame(col3)
+fr3 = Frame(col3)
 root.grid_rowconfigure(0, weight=1)
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
@@ -419,8 +437,8 @@ col1.grid(row=0, column=1, sticky='nsew', padx=(4,4), pady=(4,10))
 col2.grid(row=0, column=2, sticky='nsew', padx=(4,4), pady=(4,10))
 col3.grid(row=0, column=3, sticky='nsew', padx=(4,10), pady=(4,10))
 fr.grid(row=7, column=0, rowspan=2)
-fr2.grid(row=10, column=4)
-
+fr2.grid(row=8, column=4)
+fr3.grid(row=15, column=4)
 
 # change program icon
 icon = PhotoImage(file="m3b_comp.png")
@@ -569,11 +587,12 @@ interactive_plot_var = IntVar()
 interactive_plot_check = Checkbutton(col3, text="Interactive plot (not avail)", variable=interactive_plot_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
 interactive_plot_check.grid(row=5, column=4)
 
+# Options for changing the scale of x axis time
 scale_time_var = IntVar()
 scale_time_check = Checkbutton(col3, text="Change scale of time? (default (S))", variable=scale_time_var, onvalue=1, offvalue=0, command=receive_scale_radios)
-scale_time_check.grid(row=8, column=4, pady=(32,0))
+scale_time_check.grid(row=7, column=4, pady=(32,0))
 # default to seconds
-# PUT INTO FRAME
+# PUT INTO SUBFRAME
 time_scale_frame = Frame(fr2)
 which_time_scale_var = IntVar()
 seconds_scale_check = Radiobutton(time_scale_frame, text="Seconds", variable=which_time_scale_var, value=1, command=receive_scale_radios)
@@ -582,6 +601,22 @@ minutes_scale_check = Radiobutton(time_scale_frame, text="Minutes", variable=whi
 minutes_scale_check.grid(row=0, column=1)
 hours_scale_check = Radiobutton(time_scale_frame, text="Hours", variable=which_time_scale_var, value=3, command=receive_scale_radios)
 hours_scale_check.grid(row=0, column=2)
+
+# Options for changing file format of saved scatter plot figures
+change_fig_format_var = IntVar()
+change_fig_format_check = Checkbutton(col3, text="Change figure file format? (default .png)", variable=change_fig_format_var, onvalue=1, offvalue=0, command=receive_file_format_radios)
+change_fig_format_check.grid(row=14, column=4, pady=(8,0))
+# default png
+# PUT INTO SUBFRAME
+file_format_frame = Frame(fr3)
+which_file_format_var = IntVar()
+png_check = Radiobutton(file_format_frame, text=".png", variable=which_file_format_var, value=1, command=receive_file_format_radios)
+png_check.grid(row=0, column=0)
+tiff_check = Radiobutton(file_format_frame, text=".tiff", variable=which_file_format_var, value=2, command=receive_file_format_radios)
+tiff_check.grid(row=0, column=1)
+pdf_check = Radiobutton(file_format_frame, text=".pdf", variable=which_file_format_var, value=3, command=receive_file_format_radios)
+pdf_check.grid(row=0, column=2)
+
 
 # conclude UI event loop
 root.mainloop()
@@ -648,6 +683,10 @@ if x_timescale == 'u':
     print("User indicated to change timescale,\nbut did not specify what scale")
     sys.exit(1)
 
+if fig_format == 'u':
+    print("User indicated to change fig format,\nbut did not specify which")
+    sys.exit(1)
+
 print(file_info)
 print(will_plot_dF_dD_together)
 print(x_timescale)
@@ -655,11 +694,11 @@ print(x_timescale)
 print("\n\n")
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-file_name = "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv"
+#file_name = "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv"
 
 #file_path = ""
 #clean_num_channels_tested = 10
 #abs_base_t0 = time(8,29,48)
-abs_base_t0 = time(17,2,26)
+#abs_base_t0 = time(17,2,26)
 #abs_base_tf = time(9,5,55)
-abs_base_tf = time(17,11,2)
+#abs_base_tf = time(17,11,2)

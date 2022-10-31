@@ -125,7 +125,7 @@ def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
     plt.title(fig_title, fontsize=16, fontfamily='Arial')
     if will_save:
-        plt.figure(fig_num).savefig(fn, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(fig_num).savefig(fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
 '''Cleaning Data and plotting clean data'''
 if gui.will_plot_clean_data:
@@ -250,15 +250,15 @@ if gui.will_plot_clean_data:
     # Titles, lables, etc. for plots
     if gui.will_normalize_F:
         rf_fig_title = "QCM-D Resonant Frequency - NORMALIZED"
-        rf_fn = f"qcmd-plots/NORM-resonant-freq-plot.png"
+        rf_fn = f"qcmd-plots/NORM-resonant-freq-plot"
     else:
         rf_fig_title = "QCM-D Resonant Frequency"
-        rf_fn = f"qcmd-plots/resonant-freq-plot.png"
+        rf_fn = f"qcmd-plots/resonant-freq-plot"
     rf_fig_x = determine_xlabel()
 
     dis_fig_title = "QCM-D Dissipation"
     dis_fig_x = rf_fig_x
-    dis_fn = f"qcmd-plots/dissipation-plot.png"
+    dis_fn = f"qcmd-plots/dissipation-plot"
 
     # fig 1: clean freq plot
     # fig 2: clean disp plot
@@ -266,7 +266,7 @@ if gui.will_plot_clean_data:
     setup_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn, True)
     setup_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn, True)
     if gui.will_plot_dD_v_dF:
-        dVf_fn = f"qcmd-plots/disp_V_freq-plot.png"
+        dVf_fn = f"qcmd-plots/disp_V_freq-plot"
         dVf_title = "Dissipiation against Frequency"
         setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
 
@@ -292,9 +292,9 @@ if gui.will_plot_raw_data:
         y_rf = rf_data_df[raw_freqs[i]]
         plt.figure(3, clear=True)
         plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=color_map_freq[clean_freqs[i]])
-        rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}.png"
+        rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}"
         setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
-        plt.figure(3).savefig(rf_fn, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(3).savefig(rf_fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     # gather and plot raw dissipation data
     for i in range(len(raw_disps)):
@@ -304,7 +304,7 @@ if gui.will_plot_raw_data:
         y_dis = dis_data_df[raw_disps[i]]
         plt.figure(4, clear=True)
         plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=color_map_dis[clean_disps[i]])
-        dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}.png"
+        dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}"
         setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
-        plt.figure(4).savefig(dis_fn, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(4).savefig(dis_fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
