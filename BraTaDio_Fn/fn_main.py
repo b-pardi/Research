@@ -66,7 +66,7 @@ t0_str = str(gui.abs_base_t0).lstrip('0')
 tf_str = str(gui.abs_base_tf).lstrip('0')
 
 # Some plot labels
-dis_fig_y = "Change in Dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
 rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
 
 
@@ -279,7 +279,7 @@ if gui.will_plot_raw_data:
     rf_fig_x = determine_xlabel()
 
     dis_fig_title = "RAW QCM-D Dissipation"
-    dis_fig_y = "Change in Dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+    dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
     dis_fig_x = rf_fig_x
 
 
