@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from datetime import datetime
 
-from gui import *
-
 """
 README
 - Please execute 'install_packages.py' BEFORE running this script
@@ -62,10 +60,8 @@ abs_time_col = 'Time'
 rel_time_col = 'Relative_time'
 freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq']
 disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis']
-print("test1")
 t0_str = str(abs_base_t0).lstrip('0')
 tf_str = str(abs_base_tf).lstrip('0')
-print("test2")
 
 # Some plot labels
 dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
@@ -126,7 +122,7 @@ def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
     plt.title(fig_title, fontsize=16, fontfamily='Arial')
     if will_save:
-        plt.figure(fig_num).savefig(fn + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(fig_num).savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
 '''Cleaning Data and plotting clean data'''
 if will_plot_clean_data:
@@ -197,7 +193,6 @@ if will_plot_clean_data:
         # scale disipation by 10^6
         data_df[clean_disps[i]] *= 1000000
         y_dis = data_df[clean_disps[i]]
-        divisor = 1
         if x_timescale == 'm':
             divisor = 60
         elif x_timescale == 'h':
