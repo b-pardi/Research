@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from datetime import datetime
 
-import gui
-
 """
 README
 - Please execute 'install_packages.py' BEFORE running this script
@@ -30,14 +28,14 @@ README
     - change scale of time if applicable
 
 FUNCTIONS
-- opens 'gui.py' to define information
+- opens 'py' to define information
 - opens defined file and reads it into a dataframe
 - renames columns as dictated below in Variable Declarations section
 - checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
 Clean Data:
     - find average resonant frequency of baseline, and lowers curve by that amount
     - cleans data by removing points before baseline, and lowers by aforemention average
-- plots are frequencies and dissipations of each channel specified in gui.py
+- plots are frequencies and dissipations of each channel specified in py
 - if overwrite file selected, will replace file data with the data it had just cleaned
     - Not advised if not selecting ALL plots
 - plots raw data individually as specified in gui
@@ -62,8 +60,8 @@ abs_time_col = 'Time'
 rel_time_col = 'Relative_time'
 freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq']
 disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis']
-t0_str = str(gui.abs_base_t0).lstrip('0')
-tf_str = str(gui.abs_base_tf).lstrip('0')
+t0_str = str(abs_base_t0).lstrip('0')
+tf_str = str(abs_base_tf).lstrip('0')
 
 # Some plot labels
 dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
@@ -71,10 +69,10 @@ rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
 
 
 # grab singular file and create dataframe from it
-if gui.file_path == "":
-    df = pd.read_csv(f"raw_data/{gui.file_name}")
+if file_path == "":
+    df = pd.read_csv(f"raw_data/{file_name}")
 else:
-    df = pd.read_csv(f"{gui.file_path}/{gui.file_name}")
+    df = pd.read_csv(f"{file_path}/{file_name}")
 
 '''Rename Columns'''
 # check if an original column name is in df
@@ -96,7 +94,7 @@ def get_channels(scrub_level):
     freq_list = []
     disp_list = []
         
-    for channel in gui.which_plot[scrub_level].items():
+    for channel in which_plot[scrub_level].items():
         # dict entry for that channel is true then append to list
         if channel[1] == True:
             # check if channel looking at is a frequency or dissipation and append approppriately
@@ -108,9 +106,9 @@ def get_channels(scrub_level):
     return (freq_list, disp_list)
 
 def determine_xlabel():
-    if gui.x_timescale == 's':
+    if x_timescale == 's':
         return "Time, " + '$\it{Δt}$' + " (s)"
-    elif gui.x_timescale == 'm':
+    elif x_timescale == 'm':
         return "Time, " + '$\it{Δt}$' + " (min)"
     else:
         return "Time, " + '$\it{Δt}$' + " (hr)"
@@ -125,10 +123,10 @@ def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
     plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
     plt.title(fig_title, fontsize=16, fontfamily='Arial')
     if will_save:
-        plt.figure(fig_num).savefig(fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(fig_num).savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
 '''Cleaning Data and plotting clean data'''
-if gui.will_plot_clean_data:
+if will_plot_clean_data:
     clean_freqs, clean_disps = get_channels('clean')
     clean_iters = 0
     freq_plot_cap = len(clean_freqs)
@@ -159,7 +157,7 @@ if gui.will_plot_clean_data:
         data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
         # find baseline time range
-        baseline_dur = datetime.combine(datetime.min, gui.abs_base_tf) - datetime.combine(datetime.min, gui.abs_base_t0)
+        baseline_dur = datetime.combine(datetime.min, abs_base_tf) - datetime.combine(datetime.min, abs_base_t0)
         # locate where baseline starts/ends
         base_t0_ind = data_df[data_df[abs_time_col].str.contains(t0_str)].index[0]
         # remove everything before baseline
@@ -167,7 +165,7 @@ if gui.will_plot_clean_data:
         data_df = data_df.reset_index(drop=True)
 
         # normalize by overtone
-        if gui.will_normalize_F:
+        if will_normalize_F:
             overtone = 1
             if clean_freqs[i].__contains__("3"):
                 overtone = 3
@@ -196,9 +194,9 @@ if gui.will_plot_clean_data:
         # scale disipation by 10^6
         data_df[clean_disps[i]] *= 1000000
         y_dis = data_df[clean_disps[i]]
-        if gui.x_timescale == 'm':
+        if x_timescale == 'm':
             divisor = 60
-        elif gui.x_timescale == 'h':
+        elif x_timescale == 'h':
             divisor = 3600
         else:
             divisor = 1
@@ -214,12 +212,12 @@ if gui.will_plot_clean_data:
             plt.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color=color_map_dis[clean_disps[i]])
 
         # plotting change in disp vs change in freq
-        if gui.will_plot_dD_v_dF:
+        if will_plot_dD_v_dF:
             plt.figure(5, clear=False)
             plt.plot(y_rf, y_dis, '.', markersize=1, label=f"{clean_disps[i]} vs {clean_freqs[i]}")
         
         # multi axis plot for change in freq and change in dis vs time
-        if gui.will_plot_dF_dD_together:
+        if will_plot_dF_dD_together:
             fig, ax1 = plt.subplots()
             ax1.set_xlabel(determine_xlabel(), fontsize=16, fontfamily='Arial')
             ax1.set_ylabel(rf_fig_y, fontsize=16, fontfamily='Arial')
@@ -236,19 +234,19 @@ if gui.will_plot_clean_data:
         print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
         # cleaned df to overwrite old data
-        if gui.will_overwrite_file:
+        if will_overwrite_file:
             if i == 0:
                 cleaned_df = data_df[[abs_time_col,rel_time_col]]
             cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
             cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
 
-    if gui.will_overwrite_file:
+    if will_overwrite_file:
         print(cleaned_df.head())
-        cleaned_df.to_csv(f"raw_data/CLEANED-{gui.file_name}", index=False)
+        cleaned_df.to_csv(f"raw_data/CLEANED-{file_name}", index=False)
 
     # Titles, lables, etc. for plots
-    if gui.will_normalize_F:
+    if will_normalize_F:
         rf_fig_title = "QCM-D Resonant Frequency - NORMALIZED"
         rf_fn = f"qcmd-plots/NORM-resonant-freq-plot"
     else:
@@ -265,14 +263,14 @@ if gui.will_plot_clean_data:
     # fig 5: dD v dF
     setup_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn, True)
     setup_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn, True)
-    if gui.will_plot_dD_v_dF:
+    if will_plot_dD_v_dF:
         dVf_fn = f"qcmd-plots/disp_V_freq-plot"
         dVf_title = "Dissipiation against Frequency"
         setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
 
 
 # Gathering raw data for individual plots
-if gui.will_plot_raw_data:
+if will_plot_raw_data:
     # plot definitions
     rf_fig_title = "RAW QCM-D Resonant Frequency"
     rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
@@ -294,7 +292,7 @@ if gui.will_plot_raw_data:
         plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=color_map_freq[clean_freqs[i]])
         rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}"
         setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
-        plt.figure(3).savefig(rf_fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(3).savefig(rf_fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     # gather and plot raw dissipation data
     for i in range(len(raw_disps)):
@@ -306,5 +304,5 @@ if gui.will_plot_raw_data:
         plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=color_map_dis[clean_disps[i]])
         dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}"
         setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
-        plt.figure(4).savefig(dis_fn + '.' + gui.fig_format, format=gui.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.figure(4).savefig(dis_fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
