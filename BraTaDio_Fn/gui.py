@@ -33,7 +33,8 @@ WIP
 
 '''Variable Initializations'''
 
-file_info = ['','']
+file_name = ''
+file_path = ''
 will_plot_raw_data = False
 will_plot_clean_data = False
 will_overwrite_file = False
@@ -54,10 +55,72 @@ which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_
                     '9th_freq': False, '9th_dis': False}}
 
 
+''' ERROR CHECKING '''
+def error_check():
+    '''Verify File Info'''
+    global file_name
+    global file_path
+    # make sure file name was inputted
+    if (file_name == '' or file_name == 'File name here (W/ EXTENSION)'):
+        print("File name not specified")
+        sys.exit(1)
+    if file_path == "Enter path to file (leave blank if in 'raw data' folder)":
+        file_path = ""
+
+    # verify baseline time entered, if only raw data box checked, no need to base time
+    if will_plot_clean_data and abs_base_t0 == time(0,0,0) and abs_base_tf == time(0,0,0):
+        print("User indicated plot clean data,\ndid not enter baseline time")
+        sys.exit(1)
+
+    # verify data checks
+    print(which_plot)
+    print(f"{abs_base_t0}\n{abs_base_tf}")
+    raw_num_channels_tested = 0
+    clean_num_channels_tested = 0
+    for channel in which_plot['raw'].items():
+        if channel[1] == True:
+            raw_num_channels_tested += 1
+
+    for channel in which_plot['clean'].items():
+        if channel[1] == True:
+            clean_num_channels_tested += 1
+
+    total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
+    print(total_num_channels_tested)
+    # check if any channels were selected to test
+    if total_num_channels_tested == 0:
+        print("User did not select any channels to plot")
+        sys.exit(1)
+
+    # check if clean data was chosen, but no clean channels selected
+    if will_plot_clean_data and clean_num_channels_tested == 0:
+        print("User indicated to plot clean channels,\ndid not indicate which")
+        sys.exit(1)
+
+    # check if raw data was chosen, but no raw data was selected
+    if will_plot_raw_data and raw_num_channels_tested == 0:
+        print("User indicated to plot raw channels,\ndid not indicate which")
+        sys.exit(1)
+
+    # verify options
+    if x_timescale == 'u':
+        print("User indicated to change timescale,\nbut did not specify what scale")
+        sys.exit(1)
+
+    if fig_format == 'u':
+        print("User indicated to change fig format,\nbut did not specify which")
+        sys.exit(1)
+
+    print(will_plot_dF_dD_together)
+    print(x_timescale)
+
+
 '''Function Defintions for UI events'''
 def col_names_submit():
-    file_info[0] = file_name_entry.get()
-    file_info[1] = file_path_entry.get()
+    global file_name
+    global file_path
+    file_name = file_name_entry.get()
+    file_path = file_path_entry.get()
     global will_overwrite_file
     if file_overwrite_var.get() == 1:
         will_overwrite_file = True
@@ -416,6 +479,10 @@ def receive_optional_checkboxes():
     else:
         will_interactive_plot = False
 
+def run_script():
+    error_check()
+    exec(open("fn_main.py").read())
+
 
 '''Enter event loop for UI'''
 root = Tk()
@@ -617,81 +684,14 @@ tiff_check.grid(row=0, column=1)
 pdf_check = Radiobutton(file_format_frame, text=".pdf", variable=which_file_format_var, value=3, command=receive_file_format_radios)
 pdf_check.grid(row=0, column=2)
 
+# Submit and run button
+run_button = Button(col3, text="Submit and Run", padx=8, pady=6, width=20, command=run_script)
+run_button.grid(row=20, column=4, pady=(16,4))
+
 
 # conclude UI event loop
 root.mainloop()
 
-''' Grab data from UI temp into variables for data analysis'''
-
-
-# assign file info data
-print(which_plot)
-print(f"{abs_base_t0}\n{abs_base_tf}")
-raw_num_channels_tested = 0
-clean_num_channels_tested = 0
-for channel in which_plot['raw'].items():
-    if channel[1] == True:
-        raw_num_channels_tested += 1
-
-for channel in which_plot['clean'].items():
-    if channel[1] == True:
-        clean_num_channels_tested += 1
-
-total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
-print(total_num_channels_tested)
-
-''' ERROR CHECKING '''
-
-'''Verify File Info'''
-# make sure file name was inputted
-if len(file_info) == 0:
-    print("please define file information!")
-    sys.exit(1)
-elif (file_info[0] == '' or file_info[0] == 'File name here (W/ EXTENSION)'):
-    print("File name not specified")
-    sys.exit(1)
-else:
-    file_name = file_info[0]
-    if file_info[1] == "Enter path to file (leave blank if in 'raw data' folder)":
-        file_path = ""
-    else:
-        file_path = file_info[1]
-
-# verify baseline time entered, if only raw data box checked, no need to base time
-if will_plot_clean_data and abs_base_t0 == time(0,0,0) and abs_base_tf == time(0,0,0):
-    print("User indicated plot clean data,\ndid not enter baseline time")
-    sys.exit(1)
-
-#verify data checks
-# check if any channels were selected to test
-if total_num_channels_tested == 0:
-    print("User did not select any channels to plot")
-    sys.exit(1)
-
-# check if clean data was chosen, but no clean channels selected
-if will_plot_clean_data and clean_num_channels_tested == 0:
-    print("User indicated to plot clean channels,\ndid not indicate which")
-    sys.exit(1)
-
-# check if raw data was chosen, but no raw data was selected
-if will_plot_raw_data and raw_num_channels_tested == 0:
-    print("User indicated to plot raw channels,\ndid not indicate which")
-    sys.exit(1)
-
-# verify options
-if x_timescale == 'u':
-    print("User indicated to change timescale,\nbut did not specify what scale")
-    sys.exit(1)
-
-if fig_format == 'u':
-    print("User indicated to change fig format,\nbut did not specify which")
-    sys.exit(1)
-
-print(file_info)
-print(will_plot_dF_dD_together)
-print(x_timescale)
-
-print("\n\n")
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
 #file_name = "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv"
