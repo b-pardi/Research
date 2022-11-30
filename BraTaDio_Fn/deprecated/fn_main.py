@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from datetime import datetime
+from gui import *
 
 """
 README

@@ -7,32 +7,44 @@ Last Modified: 11/28/2022 6:57 pm
 from tkinter import *
 import sys
 from datetime import time
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
 from datetime import datetime
-import plotly.graph_objs as go
-import plotly.offline as ply
-from ipywidgets import interactive, HBox, VBox
 
 
 '''
 README
 - Please execute 'install_packages.py' BEFORE running this script
+- when done with program, please click 'Abort' button instead of closing window
+    - can cause terminal to freeze sometimes otherwise
 - ensure all sheets are in the 'raw_data' folder
     - OR specify file directory in gui
 - consistency in column placement and naming is required, however columns will be renamed
 - if error occurs, it will be displayed in the terminal
 - if uncaught error occurs, please notify me asap and describe what was done to reproduce
-- specify GUI
+- specify in GUI:
     - file name (with exetension)
-    - file path (if not in predefined data directory)
+    - file path (if not in predefined raw_data directory)
     - indicate if new clean data file should be created
     - if plotting clean data, indicate baseline t0 and tf
     - SUBMIT FILE INFO
     - indicate which channels to plot for raw/clean data
     - indicate which special plot options
     - change scale of time if applicable
+    - change file format if applicable
+
+- For interactive plot:
+    - whichever overtone is to be analyzed in the interactive plot, 
+    ensure that that overtone is selected in the baseline corrected data section as well,
+    as it relies on the cleaned data processing done there
+    - currently only 3rd freqeuncy is available for processing with interative plot
+        - option to select will come later
+    - selected range is displayed in lower portion of figure, and data points written to 'selected_data.txt'
+
+
 
 FUNCTIONS
 - opens 'py' to define information
@@ -49,6 +61,8 @@ Clean Data:
 - option to normalize data by dividing frequency by its respective overtone
 - option to plot change in dissipation vs change in frequency
 - option for multi axis plot with change in frequency and dissipation vs time
+- option for interactive plot that opens figure of selected overtone to further analyze
+    - can select a range of points of plot to zoom in and save to file for later
 
 
 GUI features
@@ -62,10 +76,12 @@ GUI features
     - plot dF and dD together
     - normalize F
     - dD vs dF
+- interactive plot selection option
 - submit button runs data analysis while keeping gui window open
 
 WIP
-- interactive plots
+- for interactive plot, allow specification of which overtone and freq or disp
+- data modeling
 - ERROR CHECKING?
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
@@ -94,66 +110,6 @@ which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_
             'clean': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False}}
-
-
-''' ERROR CHECKING '''
-def error_check():
-    '''Verify File Info'''
-    global file_name
-    global file_path
-    # make sure file name was inputted
-    if (file_name == '' or file_name == 'File name here (W/ EXTENSION)'):
-        print("File name not specified")
-        sys.exit(1)
-    if file_path == "Enter path to file (leave blank if in 'raw data' folder)":
-        file_path = ""
-
-    # verify baseline time entered, if only raw data box checked, no need to base time
-    if will_plot_clean_data and abs_base_t0 == time(0,0,0) and abs_base_tf == time(0,0,0):
-        print("User indicated plot clean data,\ndid not enter baseline time")
-        sys.exit(1)
-
-    # verify data checks
-    print(which_plot)
-    print(f"{abs_base_t0}\n{abs_base_tf}")
-    raw_num_channels_tested = 0
-    clean_num_channels_tested = 0
-    for channel in which_plot['raw'].items():
-        if channel[1] == True:
-            raw_num_channels_tested += 1
-
-    for channel in which_plot['clean'].items():
-        if channel[1] == True:
-            clean_num_channels_tested += 1
-
-    total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
-    print(total_num_channels_tested)
-    # check if any channels were selected to test
-    if total_num_channels_tested == 0:
-        print("User did not select any channels to plot")
-        sys.exit(1)
-
-    # check if clean data was chosen, but no clean channels selected
-    if will_plot_clean_data and clean_num_channels_tested == 0:
-        print("User indicated to plot clean channels,\ndid not indicate which")
-        sys.exit(1)
-
-    # check if raw data was chosen, but no raw data was selected
-    if will_plot_raw_data and raw_num_channels_tested == 0:
-        print("User indicated to plot raw channels,\ndid not indicate which")
-        sys.exit(1)
-
-    # verify options
-    if x_timescale == 'u':
-        print("User indicated to change timescale,\nbut did not specify what scale")
-        sys.exit(1)
-
-    if fig_format == 'u':
-        print("User indicated to change fig format,\nbut did not specify which")
-        sys.exit(1)
-
-    print(will_plot_dF_dD_together)
-    print(x_timescale)
 
 
 '''Function Defintions for UI events'''
@@ -709,6 +665,8 @@ def analyze_data():
             # lower rf curve s.t. baseline is approx at y=0
             data_df[clean_freqs[i]] -= rf_base_avg
             data_df[clean_disps[i]] -= dis_base_avg
+            # shift x to left to start at 0
+            data_df[rel_time_col] -= data_df[rel_time_col].iloc[0]
 
             # choose appropriate divisor for x scale of time
             if x_timescale == 'm':
@@ -724,7 +682,7 @@ def analyze_data():
             # scale disipation by 10^6
             data_df[clean_disps[i]] *= 1000000
             y_dis = data_df[clean_disps[i]]
-
+            
             # PLOTTING
             plt.figure(1, clear=False)
             # don't plot data for channels not selected
@@ -756,8 +714,8 @@ def analyze_data():
             
             print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
-            # cleaned df to overwrite old data
-            if will_overwrite_file:
+            # # put cleaned data back into original df for interactive plot
+            if will_overwrite_file or will_interactive_plot:
                 if i == 0:
                     cleaned_df = data_df[[abs_time_col,rel_time_col]]
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
@@ -765,8 +723,8 @@ def analyze_data():
 
 
         if will_overwrite_file:
-            print(cleaned_df.head())
-            cleaned_df.to_csv(f"raw_data/CLEANED-{file_name}", index=False)
+            print(df.head())
+            df.to_csv(f"raw_data/CLEANED-{file_name}", index=False)
 
         # Titles, lables, etc. for plots
         if will_normalize_F:
@@ -830,28 +788,63 @@ def analyze_data():
             plt.figure(4).savefig(dis_fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     # interactive plot
-    # currently only shows 3rd overtone of frequency
-    # later implement option to choose others or show more
-    '''f = go.FigureWidget([go.Scatter(y=data_df['3rd_freq'], x=data_df[rel_time_col], mode='markers')])
-    scatter = f.data[0]
-    N = len(data_df)
+    if will_interactive_plot:
+        # clear all previous plots
+        plt.close("all")
+        # setup plot objects
+        int_plot = plt.figure()
+        int_ax = int_plot.add_subplot(2,1,1)
+        
+        # grab data
+        x_time = cleaned_df[rel_time_col]
+        y_rf = cleaned_df['3rd_freq']
+        y_dis = cleaned_df['3rd_dis']
+        
+        int_ax.plot(x_time, y_rf, '.')
+        int_ax.set_title("Click and drag to select range")
 
-    def update_axes(xaxis, yaxis):
-        scatter = f.data[0]
-        scatter.x = data_df[xaxis]
-        scatter.y = data_df[yaxis]'''
+        int_ax_zoom = int_plot.add_subplot(2,1,2)
+        zoom_plot, = int_ax_zoom.plot(x_time, y_rf, '.')
+
+        def onselect(xmin, xmax):
+            # min and max indices are where elements should be inserted to maintain order
+            imin, imax = np.searchsorted(x_time, (xmin, xmax))
+            # range will be at most all elems in x, or imax
+            imax = min(len(x_time)-1, imax)
+
+            # cursor x and y for zoomed plot and data range
+            zoomx = x_time[imin:imax]
+            zoomy = y_rf[imin:imax]
+            # update data to newly spec'd range
+            zoom_plot.set_data(zoomx, zoomy)
+            print(zoomx)
+            
+            # set limits of tick marks
+            int_ax_zoom.set_xlim(zoomx.min(), zoomx.max())
+            int_ax_zoom.set_ylim(zoomy.min(), zoomy.max())
+            int_plot.canvas.draw_idle()
+
+            # save data range to file
+            np.savetxt("selected_data.txt", np.c_[zoomx, zoomy])
+
+        # using plt's span selector to select area of top plot
+        span = SpanSelector(int_ax, onselect, 'horizontal', useblit=True,
+                    rectprops=dict(alpha=0.5, facecolor='blue'))
+
+        plt.show()
 
 
-
+    # clear plots and lists for next iteration
     clean_freqs.clear()
     clean_disps.clear()
-    for i in range(6):
+    for i in range(7):
         plt.figure(i, clear=True)
 
     print("*** Plots Generated ***")
 
 
-
+def abort():
+    sys.exit()
 
 def submit():
     err_check()
@@ -1024,7 +1017,7 @@ plot_dD_v_dF_var = IntVar()
 plot_dD_v_dF_check = Checkbutton(col3, text="Plot Δd vs Δf", variable=plot_dD_v_dF_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
 plot_dD_v_dF_check.grid(row=4, column=4)
 interactive_plot_var = IntVar()
-interactive_plot_check = Checkbutton(col3, text="Interactive plot (not avail)", variable=interactive_plot_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
+interactive_plot_check = Checkbutton(col3, text="Interactive plot", variable=interactive_plot_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
 interactive_plot_check.grid(row=5, column=4)
 
 # Options for changing the scale of x axis time
@@ -1060,14 +1053,11 @@ pdf_check.grid(row=0, column=2)
 submit_button = Button(col3, text="Submit", padx=8, pady=6, width=20, command=submit)
 submit_button.grid(row=20, column=4, pady=4)
 
+abort_button = Button(col3, text="Abort", padx=8, pady=6, width=20, command=abort)
+abort_button.grid(row=19, column=4, pady=4)
+
 # conclude UI event loop
 root.mainloop()
-
-''' Grab data from UI temp into variables for data analysis'''
-
-
-# assign file info data
-
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
 #file_name = "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv"

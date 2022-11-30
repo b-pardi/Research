@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from ipywidgets import interactive, HBox, VBox
 
-py.init_notebook_mode()
 
 df = pd.read_csv('https://raw.githubusercontent.com/jonmmease/plotly_ipywidget_notebooks/master/notebooks/data/cars/cars.csv')
 
