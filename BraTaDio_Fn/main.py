@@ -86,6 +86,13 @@ WIP
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
     in case time value not actually in data sheet
+
+- save multiple ranges
+    - if interactive plot selected, open small new window,
+    - new window will show radio buttons to indiciate which range is being selected
+    - input from radio buttons will correlate to which file for which range is being selected
+- raw data in interactive plot corresponding to cleaned data
+- option to interactive plot other frequencies
 '''
 
 
@@ -103,6 +110,8 @@ will_plot_dF_dD_together = False
 will_normalize_F = False
 will_plot_dD_v_dF = False
 will_interactive_plot = False
+submit_pressed = False
+which_range_selecting = 'base'
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},
@@ -476,6 +485,19 @@ def receive_optional_checkboxes():
     else:
         will_interactive_plot = False
 
+def receive_int_plot_range_radios():
+    global which_range_selecting
+    if which_range_var.get() == 1:
+        which_range_selecting = 'base'
+    if which_range_var.get() == 2:
+        which_range_selecting = '1'
+    if which_range_var.get() == 3:
+        which_range_selecting = '2'
+    if which_range_var.get() == 4:
+        which_range_selecting = '3'
+    if which_range_var.get() == 5:
+        which_range_selecting = 'end'
+
 def err_check():
     global file_name
     global file_path
@@ -825,7 +847,7 @@ def analyze_data():
             int_plot.canvas.draw_idle()
 
             # save data range to file
-            np.savetxt("selected_data.txt", np.c_[zoomx, zoomy])
+            np.savetxt(f"selected_ranges/range_{which_range_selecting}.txt", np.c_[zoomx, zoomy])
 
         # using plt's span selector to select area of top plot
         span = SpanSelector(int_ax, onselect, 'horizontal', useblit=True,
@@ -837,8 +859,6 @@ def analyze_data():
     # clear plots and lists for next iteration
     clean_freqs.clear()
     clean_disps.clear()
-    for i in range(7):
-        plt.figure(i, clear=True)
 
     print("*** Plots Generated ***")
 
@@ -848,7 +868,31 @@ def abort():
 
 def submit():
     err_check()
+
+    # only want new window to open once, not every time analysis is run
+    global submit_pressed
+    # open secondary window with range selections for interactive plot
+    if interactive_plot_var.get() == 1 and submit_pressed == False:
+        submit_pressed = True
+        range_select_window = Toplevel(root)
+        range_select_window.title("Select range")
+        range_label = Label(range_select_window, text="Choose which section of graph\nis being selected for file saving:")
+        range_label.grid(row=0, column=0, padx=10, pady=(8,16))
+        
+        # define and place radio buttons for range options
+        base_range_radio = Radiobutton(range_select_window, text="base", variable=which_range_var, value=1, command=receive_int_plot_range_radios)
+        base_range_radio.grid(row=1, column=0, pady=(2,1))
+        first_range_radio = Radiobutton(range_select_window, text="first", variable=which_range_var, value=2, command=receive_int_plot_range_radios)
+        first_range_radio.grid(row=2, column=0, pady=1)
+        second_range_radio = Radiobutton(range_select_window, text="second", variable=which_range_var, value=3, command=receive_int_plot_range_radios)
+        second_range_radio.grid(row=3, column=0, pady=1)
+        third_range_radio = Radiobutton(range_select_window, text="third", variable=which_range_var, value=4, command=receive_int_plot_range_radios)
+        third_range_radio.grid(row=4, column=0, pady=1)
+        end_range_radio = Radiobutton(range_select_window, text="end", variable=which_range_var, value=5, command=receive_int_plot_range_radios)
+        end_range_radio.grid(row=5, column=0, pady=(1,2))
+
     analyze_data()
+
 
 '''Enter event loop for UI'''
 root = Tk()
@@ -1022,7 +1066,8 @@ interactive_plot_check.grid(row=5, column=4)
 
 # Options for changing the scale of x axis time
 scale_time_var = IntVar()
-scale_time_check = Checkbutton(col3, text="Change scale of time? (default (S))", variable=scale_time_var, onvalue=1, offvalue=0, command=receive_scale_radios)
+which_range_var = IntVar()
+scale_time_check = Checkbutton(col3, text="Change scale of time? (default (s))", variable=scale_time_var, onvalue=1, offvalue=0, command=receive_scale_radios)
 scale_time_check.grid(row=7, column=4, pady=(32,0))
 # default to seconds
 # PUT INTO SUBFRAME
