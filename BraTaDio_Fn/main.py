@@ -91,8 +91,11 @@ WIP
     - if interactive plot selected, open small new window,
     - new window will show radio buttons to indiciate which range is being selected
     - input from radio buttons will correlate to which file for which range is being selected
+    - change range selector window to text field to enter num ranges
+    - calculate mean, median, range of each range and put into single file
 - raw data in interactive plot corresponding to cleaned data
 - option to interactive plot other frequencies
+- put columns into separate frames and refactor code to accomodate
 '''
 
 
@@ -485,19 +488,6 @@ def receive_optional_checkboxes():
     else:
         will_interactive_plot = False
 
-def receive_int_plot_range_radios():
-    global which_range_selecting
-    if which_range_var.get() == 1:
-        which_range_selecting = 'base'
-    if which_range_var.get() == 2:
-        which_range_selecting = '1'
-    if which_range_var.get() == 3:
-        which_range_selecting = '2'
-    if which_range_var.get() == 4:
-        which_range_selecting = '3'
-    if which_range_var.get() == 5:
-        which_range_selecting = 'end'
-
 def err_check():
     global file_name
     global file_path
@@ -880,18 +870,23 @@ def submit():
         range_label.grid(row=0, column=0, padx=10, pady=(8,16))
         
         # define and place radio buttons for range options
-        base_range_radio = Radiobutton(range_select_window, text="base", variable=which_range_var, value=1, command=receive_int_plot_range_radios)
-        base_range_radio.grid(row=1, column=0, pady=(2,1))
-        first_range_radio = Radiobutton(range_select_window, text="first", variable=which_range_var, value=2, command=receive_int_plot_range_radios)
-        first_range_radio.grid(row=2, column=0, pady=1)
-        second_range_radio = Radiobutton(range_select_window, text="second", variable=which_range_var, value=3, command=receive_int_plot_range_radios)
-        second_range_radio.grid(row=3, column=0, pady=1)
-        third_range_radio = Radiobutton(range_select_window, text="third", variable=which_range_var, value=4, command=receive_int_plot_range_radios)
-        third_range_radio.grid(row=4, column=0, pady=1)
-        end_range_radio = Radiobutton(range_select_window, text="end", variable=which_range_var, value=5, command=receive_int_plot_range_radios)
-        end_range_radio.grid(row=5, column=0, pady=(1,2))
+        range_num_label = Label(range_select_window, text="Enter which range being selected\n(in order from left to right starting with 1)" )
+        range_num_label.grid(row=2, column=0, pady=(2,4), padx=4)
+        range_num_entry = Entry(range_select_window, width=10, bg='white')
+        range_num_entry.grid(row=3, column=0, pady=(2,4))
+
+        # when interactive plot window opens, grabs number of range from text field
+        def confirm_range():
+            global which_range_selecting
+            which_range_selecting = int(range_num_entry.get())
+                
+
+        # button to submit range selected
+        range_num_submit = Button(range_select_window, text='Confirm Range', padx=4, pady=2, command=confirm_range)
+        range_num_submit.grid(row=4, column=0)
 
     analyze_data()
+
 
 
 '''Enter event loop for UI'''
