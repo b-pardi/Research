@@ -214,7 +214,6 @@ def clear_raw_checks():
     for channel in which_plot['raw']:
         which_plot['raw'][channel] = False
         
-
 def select_all_raw_checks():
     raw_ch1_freq_var.set(1)
     raw_ch1_dis_var.set(1)
@@ -342,8 +341,6 @@ def receive_raw_checkboxes():
         raw_ch5_dis_check.grid_forget()
         select_all_raw_checks_button.grid_forget()
         clear_raw_checks_button.grid_forget()
-        
-
 
 def receive_clean_checkboxes():
     global will_plot_clean_data
@@ -805,20 +802,28 @@ def analyze_data():
         plt.close("all")
         # setup plot objects
         int_plot = plt.figure()
-        int_ax = int_plot.add_subplot(2,1,1)
+        int_plot.set_figwidth(10)
+        int_plot.set_figheight(5)
+        # nrows, ncols, position (like quadrants from l -> r)
+        int_ax1 = int_plot.add_subplot(2,2,1)
+        int_ax2 = int_plot.add_subplot(2,2,2)
         
         # grab data
         x_time = cleaned_df[rel_time_col]
         y_rf = cleaned_df['3rd_freq']
         y_dis = cleaned_df['3rd_dis']
         
-        int_ax.plot(x_time, y_rf, '.')
-        int_ax.set_title("Click and drag to select range")
+        int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
+        int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
+        int_ax1.set_title("Click and drag to select range")
 
-        int_ax_zoom = int_plot.add_subplot(2,1,2)
-        zoom_plot, = int_ax_zoom.plot(x_time, y_rf, '.')
+        int_ax1_zoom = int_plot.add_subplot(2,2,3)
+        int_ax2_zoom = int_plot.add_subplot(2,2,4)
+        zoom_plot1, = int_ax1_zoom.plot(x_time, y_rf, '.', color='green', markersize=1)
+        zoom_plot2, = int_ax2_zoom.plot(x_time, y_dis, '.', color='blue', markersize=1)
 
-        def onselect(xmin, xmax):
+
+        def onselect1(xmin, xmax):
             # min and max indices are where elements should be inserted to maintain order
             imin, imax = np.searchsorted(x_time, (xmin, xmax))
             # range will be at most all elems in x, or imax
@@ -826,22 +831,55 @@ def analyze_data():
 
             # cursor x and y for zoomed plot and data range
             zoomx = x_time[imin:imax]
-            zoomy = y_rf[imin:imax]
+            zoomy1 = y_rf[imin:imax]
+            zoomy2 = y_dis[imin:imax]
+
             # update data to newly spec'd range
-            zoom_plot.set_data(zoomx, zoomy)
+            zoom_plot1.set_data(zoomx, zoomy1)
+            zoom_plot2.set_data(zoomx, zoomy2)
             print(zoomx)
             
             # set limits of tick marks
-            int_ax_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax_zoom.set_ylim(zoomy.min(), zoomy.max())
+            int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
+            int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
+            int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
+            int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
             # save data range to file
-            np.savetxt(f"selected_ranges/range_{which_range_selecting}.txt", np.c_[zoomx, zoomy])
+            np.savetxt(f"selected_ranges/range_{which_range_selecting}_rf.txt", np.c_[zoomx, zoomy1])
+
+        def onselect2(xmin, xmax):
+            # min and max indices are where elements should be inserted to maintain order
+            imin, imax = np.searchsorted(x_time, (xmin, xmax))
+            # range will be at most all elems in x, or imax
+            imax = min(len(x_time)-1, imax)
+
+            # cursor x and y for zoomed plot and data range
+            zoomx = x_time[imin:imax]
+            zoomy2 = y_dis[imin:imax]
+
+            # update data to newly spec'd range
+            zoom_plot2.set_data(zoomx, zoomy2)
+            print(zoomx)
+            
+            # set limits of tick marks
+            int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
+            int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
+            int_plot.canvas.draw_idle()
+
+            # save data range to file
+            np.savetxt(f"selected_ranges/range_{which_range_selecting}_dis.txt", np.c_[zoomx, zoomy2])
+
 
         # using plt's span selector to select area of top plot
-        span = SpanSelector(int_ax, onselect, 'horizontal', useblit=True,
-                    rectprops=dict(alpha=0.5, facecolor='blue'))
+        span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
+                    rectprops=dict(alpha=0.5, facecolor='blue'),
+                    interactive=True, drag_from_anywhere=True)
+
+        span2 = SpanSelector(int_ax2, onselect2, 'horizontal', useblit=True,
+                    rectprops=dict(alpha=0.5, facecolor='blue'),
+                    interactive=True, drag_from_anywhere=True)
 
         plt.show()
 
@@ -927,7 +965,8 @@ err_label = Label(col0, text="Error occured,\nplease see terminal for details", 
 
 file_name_entry = Entry(col0, width=40, bg='white', fg='gray')
 file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
-file_name_entry.insert(0, "File name here (W/ EXTENSION)")
+#file_name_entry.insert(0, "File name here (W/ EXTENSION)")
+file_name_entry.insert(0, "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv")
 file_name_entry.bind("<FocusIn>", handle_fn_focus_in)
 file_name_entry.bind("<FocusOut>", handle_fn_focus_out)
 
@@ -971,6 +1010,14 @@ seconds_label_tf = Label(baseline_frame, text="Sf: ")
 seconds_label_tf.grid(row=1, column=4)
 seconds_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
 seconds_entry_tf.grid(row=1, column=5)
+
+#temp inserts to not have to reenter data every test
+seconds_entry_t0.insert(0, "26")
+minutes_entry_t0.insert(0, "2")
+hours_entry_t0.insert(0, "17")
+seconds_entry_tf.insert(0, "2")
+minutes_entry_tf.insert(0, "11")
+hours_entry_tf.insert(0, "17")
 
 file_data_submit_button = Button(col0, text="Submit file information", padx=8, pady=6, width=20, command=col_names_submit)
 file_data_submit_button.grid(row=10, column=0, pady=(16,4))
