@@ -80,22 +80,31 @@ GUI features
 - submit button runs data analysis while keeping gui window open
 
 WIP
-- for interactive plot, allow specification of which overtone and freq or disp
+- for interactive plot
+    - allow specification of which overtone and freq or disp
+    - calculate mean, median, range of each range and put into single file
 - data modeling
 - ERROR CHECKING?
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
     in case time value not actually in data sheet
+- refactoring (putting into frames etc)
 
 - save multiple ranges
     - if interactive plot selected, open small new window,
     - new window will show radio buttons to indiciate which range is being selected
-    - input from radio buttons will correlate to which file for which range is being selected
-    - change range selector window to text field to enter num ranges
-    - calculate mean, median, range of each range and put into single file
-- raw data in interactive plot corresponding to cleaned data
+    - input from entry box will correlate to which file for which range is being selected
+    
 - option to interactive plot other frequencies
 - put columns into separate frames and refactor code to accomodate
+
+
+MEETING QUESTIONS
+- interactive plot
+    - do we want rf and dis in plot,
+    or have 1 or the other paired with its raw data
+    - do we need all the data from the span selector,
+    or just have it do the calculations and put into file
 '''
 
 
