@@ -43,7 +43,11 @@ README
     - currently only 3rd freqeuncy is available for processing with interative plot
         - option to select will come later
     - selected range is displayed in lower portion of figure, and data points written to 'selected_data.txt'
-
+    - save multiple ranges
+        - if interactive plot selected, open small new window,
+        - new window will show radio buttons to indiciate which range is being selected
+        - input from entry box will correlate to which file for which range is being selected
+    
 
 
 FUNCTIONS
@@ -79,24 +83,25 @@ GUI features
 - interactive plot selection option
 - submit button runs data analysis while keeping gui window open
 
+
 WIP
 - for interactive plot
     - allow specification of which overtone and freq or disp
     - calculate mean, median, range of each range and put into single file
+    - format int plot akin to existing saved plots
 - data modeling
+- small bugs
+    - when submitting after first time,
+    if range select window was closed, will not reopen
+    - when selecting range in freq, it changes range is dis,
+    but not vice versa
 - ERROR CHECKING?
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
     in case time value not actually in data sheet
 - refactoring (putting into frames etc)
-
-- save multiple ranges
-    - if interactive plot selected, open small new window,
-    - new window will show radio buttons to indiciate which range is being selected
-    - input from entry box will correlate to which file for which range is being selected
-    
-- option to interactive plot other frequencies
 - put columns into separate frames and refactor code to accomodate
+    - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
 
 
 MEETING QUESTIONS
@@ -855,8 +860,22 @@ def analyze_data():
             int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
+            # statistical analysis
+            mean_freq_x = np.average(zoomx)
+            std_dev_freq_x = np.std(zoomx)
+            median_freq_x = np.median(zoomx)
+            mean_freq_y = np.average(zoomy1)
+            std_dev_freq_y = np.std(zoomy1)
+            median_freq_y = np.median(zoomy1)
+
             # save data range to file
             np.savetxt(f"selected_ranges/range_{which_range_selecting}_rf.txt", np.c_[zoomx, zoomy1])
+
+            # save statistical data to file
+            with open(f"selected_ranges/stats_{which_range_selecting}_rf.txt", 'w') as stat_file:
+                stat_file.write(f"Time:\nmean: {mean_freq_x}\nstd dev: {std_dev_freq_x}\n\
+median: {median_freq_x}\n\nDissipation:\nmean: {mean_freq_y}\n\
+std dev: {std_dev_freq_y}\nmedian: {median_freq_y}")
 
         def onselect2(xmin, xmax):
             # min and max indices are where elements should be inserted to maintain order
@@ -877,17 +896,30 @@ def analyze_data():
             int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
+            # statistical analysis
+            mean_dis_x = np.average(zoomx)
+            std_dev_dis_x = np.std(zoomx)
+            median_dis_x = np.median(zoomx)
+            mean_dis_y = np.average(zoomy2)
+            std_dev_dis_y = np.std(zoomy2)
+            median_dis_y = np.median(zoomy2)
+
             # save data range to file
             np.savetxt(f"selected_ranges/range_{which_range_selecting}_dis.txt", np.c_[zoomx, zoomy2])
 
+            # save statistical data to file
+            with open(f"selected_ranges/stats_{which_range_selecting}_dis.txt", 'w') as stat_file:
+                stat_file.write(f"Time:\nmean: {mean_dis_x}\nstd dev: {std_dev_dis_x}\n\
+median: {median_dis_x}\n\nDissipation:\nmean: {mean_dis_y}\n\
+std dev: {std_dev_dis_y}\nmedian: {median_dis_y}")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
-                    rectprops=dict(alpha=0.5, facecolor='blue'),
+                    props=dict(alpha=0.5, facecolor='blue'),
                     interactive=True, drag_from_anywhere=True)
 
         span2 = SpanSelector(int_ax2, onselect2, 'horizontal', useblit=True,
-                    rectprops=dict(alpha=0.5, facecolor='blue'),
+                    props=dict(alpha=0.5, facecolor='blue'),
                     interactive=True, drag_from_anywhere=True)
 
         plt.show()
