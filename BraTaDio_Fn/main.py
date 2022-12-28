@@ -95,6 +95,8 @@ WIP
     if range select window was closed, will not reopen
     - when selecting range in freq, it changes range is dis,
     but not vice versa
+    - when resubmitting with int plot, range select does not work upon new plot window
+    - handle error when range selected, but that range not chosen to analyze
 - ERROR CHECKING?
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
@@ -139,6 +141,7 @@ will_plot_dD_v_dF = False
 will_interactive_plot = False
 submit_pressed = False
 which_range_selecting = 'base'
+interactive_plot_overtone = 0
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},
@@ -506,8 +509,10 @@ def receive_optional_checkboxes():
 
     if interactive_plot_var.get() == 1:
         will_interactive_plot = True
+        interactive_plot_opts.grid(row=6, column=4)
     else:
         will_interactive_plot = False
+        interactive_plot_opts.grid_forget()
 
 def err_check():
     global file_name
@@ -822,6 +827,7 @@ def analyze_data():
 
     # interactive plot
     if will_interactive_plot:
+        global interactive_plot_overtone
         # clear all previous plots
         plt.close("all")
         # setup plot objects
@@ -834,8 +840,13 @@ def analyze_data():
         
         # grab data
         x_time = cleaned_df[rel_time_col]
-        y_rf = cleaned_df['3rd_freq']
-        y_dis = cleaned_df['3rd_dis']
+        # overtone entered corresponds to: i = int(x/2) where x is entered overtone
+        # enter 1->0, 3->1, 5->2, 7->3, 9->4
+        # need new list of all freq/dis overtones since clean... only has overtones selecte
+        # i.e. list of all overtones in same forma as clean... for indexing formula
+        print([int(interactive_plot_overtone/2)])
+        y_rf = cleaned_df[clean_freqs[int(interactive_plot_overtone/2)]]
+        y_dis = cleaned_df[clean_disps[int(interactive_plot_overtone/2)]]
         
         int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
         int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
@@ -951,7 +962,8 @@ def submit():
     # only want new window to open once, not every time analysis is run
     global submit_pressed
     # open secondary window with range selections for interactive plot
-    if interactive_plot_var.get() == 1 and submit_pressed == False:
+    if will_interactive_plot == 1 and submit_pressed == False:
+        interactive_plot_overtone = int(interactive_plot_overtone_select.get())
         submit_pressed = True
         range_select_window = Toplevel(root)
         range_select_window.title("Select range")
@@ -1078,7 +1090,7 @@ file_data_clear_button.grid(row=11, column=0, pady=4)
 
 # SECOND COLUMN ENTRIES (define and place checkboxes for raw data)
 plot_raw_data_var = IntVar()
-plot_raw_data_check = Checkbutton(col1, text="Plot raw data?", font=('TkDefaultFont', 12, 'bold'), variable=plot_raw_data_var,onvalue=1, offvalue=2, command=receive_raw_checkboxes)
+plot_raw_data_check = Checkbutton(col1, text="Plot raw data", font=('TkDefaultFont', 12, 'bold'), variable=plot_raw_data_var,onvalue=1, offvalue=2, command=receive_raw_checkboxes)
 plot_raw_data_check.grid(row=0, column=2, pady=(12,8), padx=(16,32))
 which_raw_channels_label = Label(col1, text="Select overtones for full data")
 
@@ -1110,7 +1122,7 @@ select_all_raw_checks_button = Button(col1, text='select all', width=8, command=
 
 # THIRD COLUMN ENTRIES (define and place checkboxes for clean data)
 plot_clean_data_var = IntVar()
-plot_clean_data_check = Checkbutton(col2, text="Plot corrected data?", font=('TkDefaultFont', 12, 'bold'), variable=plot_clean_data_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
+plot_clean_data_check = Checkbutton(col2, text="Plot corrected data", font=('TkDefaultFont', 12, 'bold'), variable=plot_clean_data_var, onvalue=1, offvalue=0, command=receive_clean_checkboxes)
 plot_clean_data_check.grid(row=0, column=3, pady=(12,8), padx=(32,16))
 which_clean_channels_label = Label(col2, text="Select overtones for\nbaseline corrected data")
 
@@ -1156,6 +1168,13 @@ plot_dD_v_dF_check.grid(row=4, column=4)
 interactive_plot_var = IntVar()
 interactive_plot_check = Checkbutton(col3, text="Interactive plot", variable=interactive_plot_var, onvalue=1, offvalue=0, command=receive_optional_checkboxes)
 interactive_plot_check.grid(row=5, column=4)
+
+# options for the int plot
+interactive_plot_opts = Frame(col3)
+interactive_plot_overtone_label = Label(interactive_plot_opts, text="select overtone to analyze:")
+interactive_plot_overtone_label.grid(row=0, column=0)
+interactive_plot_overtone_select = Entry(interactive_plot_opts, width=10)
+interactive_plot_overtone_select.grid(row=1, column=0)
 
 # Options for changing the scale of x axis time
 scale_time_var = IntVar()
