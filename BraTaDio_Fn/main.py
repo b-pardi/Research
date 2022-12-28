@@ -102,6 +102,15 @@ WIP
 - refactoring (putting into frames etc)
 - put columns into separate frames and refactor code to accomodate
     - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
+- statistical data, time range, not mean median etc
+- range selected in interactrive plot, will be used for all overtones in data modeling
+
+- linear regression of overtones
+    - plotting Dd vs n*  Df of each overtone
+        - note: ranges are selected from int plot, and range selected is used for all overtones
+        - also: be consistent with range is selected
+    - error bars in x and y are std dev of mean for each overtone in n*Df and Dd
+    - plotting n * Df ensure n also mults the std dev
 
 
 MEETING QUESTIONS
@@ -110,6 +119,7 @@ MEETING QUESTIONS
     or have 1 or the other paired with its raw data
     - do we need all the data from the span selector,
     or just have it do the calculations and put into file
+
 '''
 
 
