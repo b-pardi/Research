@@ -11,10 +11,25 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 
 '''
+README
+- Please execute 'install_packages.py' BEFORE running this script
+- specify file name below
+- window will open with 2 plots in it
+    - top plot is origin data, click and drag in this plot to select data
+    - data selection should include the entirety of the dip
+        - i.e. the plateaus on either side of the dip should be within the span for proper fit
+    - lower plot will show the selected data zoomed in to fit
+    - will also show the curve fit, and approximate minimum points
+- to account for data that doesn't fit curve properly, second method implemented also to find minimum
+    - take average of lowest 5 values, and then the median index of the occurences of the average value
+
 WIP
-- 
+- plot formatting
+- what to do with data?
 
 '''
+
+FILE_NAME = "fiji_data/PAA intensity profile3.csv"
 
 def gaussian(x, a, b, c, d):
     return a * np.exp(-(x - b) ** 2 / (2 * c ** 2)) + d
@@ -27,17 +42,40 @@ def find_nearest(array, value):
     return array[index], index
 
 # grab data
-df = pd.read_csv("fiji_data/PAA intensity profile2.csv")
+df = pd.read_csv(FILE_NAME)
 xdata = df['Distance_(pixels)'].values
 ydata = df['Gray_Value'].values
 
 # set up plots
 span_plot = plt.figure()
+plt.subplots_adjust(hspace=0.4)
 span_plot.set_figwidth(10)
 span_plot.set_figheight(6)
+ax = span_plot.add_subplot(1,1,1) # the 'big' subplot for shared axis
 span_ax = span_plot.add_subplot(2,1,1) # main plot data
 zoom_ax = span_plot.add_subplot(2,1,2) # zoomed data and fit
-span_ax.set_title("Click and drag to select range")
+
+# formatting and labels
+span_ax.set_title("Pixel Intensity of Hydrogel Pictures\nClick and drag to select range")
+zoom_ax.set_title("\nSelection Data", fontsize=16, fontfamily='Arial')
+plt.sca(span_ax)
+plt.xticks(fontsize=12, fontfamily='Arial')
+plt.yticks(fontsize=12, fontfamily='Arial')
+plt.sca(zoom_ax)
+plt.xticks(fontsize=12, fontfamily='Arial')
+plt.yticks(fontsize=12, fontfamily='Arial')
+
+
+# Turn off axis lines and ticks of the big subplot
+ax.spines['top'].set_color('none')
+ax.spines['bottom'].set_color('none')
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+
+# Set common labels
+ax.set_xlabel("Distance, (pixels)", fontsize=16, fontfamily='Arial')
+ax.set_ylabel("Brightness value\n", fontsize=16, fontfamily='Arial')
 
 # plotting the data
 raw_plot, = span_ax.plot(xdata, ydata, '.', color='blue', markersize=1, label='raw intensity data')
@@ -47,6 +85,11 @@ zoom_plot, = zoom_ax.plot(xdata, ydata, '.', color='green', markersize=2, label=
 # is given the min and max from the span selected, and returns void
 def onselect(xmin, xmax):
     zoom_ax.clear()
+    zoom_ax.set_title("\nSelection Data", fontsize=16, fontfamily='Arial')
+    plt.sca(zoom_ax)
+    plt.xticks(fontsize=12, fontfamily='Arial')
+    plt.yticks(fontsize=12, fontfamily='Arial')
+
     # find indices of data points corresponding to selection
     imin, imax = np.searchsorted(xdata, (xmin, xmax))
     imax = min(len(xdata)-1, imax)
