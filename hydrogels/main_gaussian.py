@@ -146,7 +146,7 @@ def onselect(xmin, xmax):
     
 
 # Add the span selector widget
-span = SpanSelector(span_ax, onselect, 'horizontal', useblit=True, span_stays=True,
-                    rectprops=dict(alpha=0.3, facecolor='gray'))
+span = SpanSelector(span_ax, onselect, 'horizontal', useblit=True, interactive=True,
+                    props=dict(alpha=0.3, facecolor='gray'))
 
 plt.show()

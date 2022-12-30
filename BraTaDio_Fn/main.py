@@ -566,6 +566,10 @@ def err_check():
         print("User indicated to change fig format,\nbut did not specify which")
         sys.exit(1)
 
+    if interactive_plot_overtone == 0:
+        print("User indicated to change fig format,\nbut did not specify which")
+
+
 def analyze_data():
     '''Variable Declarations'''
     abs_time_col = 'Time'
@@ -836,13 +840,19 @@ def analyze_data():
         
         # grab data
         x_time = cleaned_df[rel_time_col]
-        # overtone entered corresponds to: i = int(x/2) where x is entered overtone
-        # enter 1->0, 3->1, 5->2, 7->3, 9->4
-        # need new list of all freq/dis overtones since clean... only has overtones selecte
-        # i.e. list of all overtones in same forma as clean... for indexing formula
-        print([int(interactive_plot_overtone/2)])
-        y_rf = cleaned_df[clean_freqs[int(interactive_plot_overtone/2)]]
-        y_dis = cleaned_df[clean_disps[int(interactive_plot_overtone/2)]]
+        # choose correct user spec'd overtone
+        if interactive_plot_overtone == 1:
+            which_int_plot_overtone = 'fundamental'
+        elif interactive_plot_overtone == 3:
+            which_int_plot_overtone = '3rd'
+        else:
+            which_int_plot_overtone = str(interactive_plot_overtone) + 'th'
+
+        try:
+            y_rf = cleaned_df[f'{which_int_plot_overtone}_freq']
+            y_dis = cleaned_df[f'{which_int_plot_overtone}_dis']
+        except KeyError:
+            print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
         int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
         int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
@@ -953,9 +963,10 @@ def submit():
 
     # only want new window to open once, not every time analysis is run
     global submit_pressed
+    global interactive_plot_overtone
+    interactive_plot_overtone = int(interactive_plot_overtone_select.get())
     # open secondary window with range selections for interactive plot
     if will_interactive_plot == 1 and submit_pressed == False:
-        interactive_plot_overtone = int(interactive_plot_overtone_select.get())
         submit_pressed = True
         range_select_window = Toplevel(root)
         range_select_window.title("Select range")
