@@ -116,11 +116,7 @@ WIP
 
 
 MEETING QUESTIONS
-- interactive plot
-    - do we want rf and dis in plot,
-    or have 1 or the other paired with its raw data
-    - do we need all the data from the span selector,
-    or just have it do the calculations and put into file
+
 
 '''
 
@@ -867,18 +863,14 @@ def analyze_data():
             # cursor x and y for zoomed plot and data range
             zoomx = x_time[imin:imax]
             zoomy1 = y_rf[imin:imax]
-            zoomy2 = y_dis[imin:imax]
 
             # update data to newly spec'd range
             zoom_plot1.set_data(zoomx, zoomy1)
-            zoom_plot2.set_data(zoomx, zoomy2)
             print(zoomx)
             
             # set limits of tick marks
             int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
             int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
-            int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
             # statistical analysis
