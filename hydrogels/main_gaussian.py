@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 12/28/2022, 3:45 pm
-Last Modified: 12/29/2022 2:10 am
+Last Modified: 12/30/2022 9:39 pm
 """
 
 import numpy as np
@@ -13,23 +13,27 @@ from matplotlib.widgets import SpanSelector
 '''
 README
 - Please execute 'install_packages.py' BEFORE running this script
-- specify file name below
+- specify file name and which columns in xlsx sheet are being analyzed below
 - window will open with 2 plots in it
-    - top plot is origin data, click and drag in this plot to select data
+    - top plot is original data, click and drag in this plot to select data
     - data selection should include the entirety of the dip
         - i.e. the plateaus on either side of the dip should be within the span for proper fit
     - lower plot will show the selected data zoomed in to fit
     - will also show the curve fit, and approximate minimum points
 - to account for data that doesn't fit curve properly, second method implemented also to find minimum
     - take average of lowest 5 values, and then the median index of the occurences of the average value
+- user will choose which of these min vals is more appropriate
+- program also grabs the data_source file name (ex. DSC_3029) and if it's width or length measurements
+    - will display img source name in graph title, and terminal
+    - wdith is represented as shades of orange, length as shades of blue
 
 WIP
-- plot formatting
-- what to do with data?
+- none
 
 '''
 
-FILE_NAME = "fiji_data/PAA intensity profile3.csv"
+FILE_NAME = "fiji_data/2022_12_30_example of stiff Poisson ratio_ BP.xlsx" # specify file (with path and extension) to be opened
+COLUMNS = (5,6) # specify which column in the csv file are being analyzed
 
 def gaussian(x, a, b, c, d):
     return a * np.exp(-(x - b) ** 2 / (2 * c ** 2)) + d
@@ -42,9 +46,24 @@ def find_nearest(array, value):
     return array[index], index
 
 # grab data
-df = pd.read_csv(FILE_NAME)
-xdata = df['Distance_(pixels)'].values
-ydata = df['Gray_Value'].values
+#df = pd.read_csv(FILE_NAME)
+xlsx = pd.ExcelFile(FILE_NAME)
+df = pd.read_excel(xlsx, 'Sheet2')
+
+data_source = df.columns.values[COLUMNS[0]-COLUMNS[0]%4]
+strain_direction = df.iloc[0,COLUMNS[0]-1] # determine if longitudinal or lateral strain measurements
+print(f"{data_source} - {strain_direction}")
+
+color = ('','') # assign color values depending on strain direction
+if strain_direction == 'width':
+    # lighter and darker colors for raw and zoomed data
+    color = ('#6495ED','#4169E1') # oranges
+elif strain_direction == 'length':
+    color = ('#FA8128','#C95B0C') # blues
+
+# grab data from sheet into numpy array, while removing na values from end of list
+xdata = df.iloc[2:,COLUMNS[0]-1].dropna().values
+ydata = df.iloc[2:,COLUMNS[1]-1].dropna().values
 
 # set up plots
 span_plot = plt.figure()
@@ -56,7 +75,7 @@ span_ax = span_plot.add_subplot(2,1,1) # main plot data
 zoom_ax = span_plot.add_subplot(2,1,2) # zoomed data and fit
 
 # formatting and labels
-span_ax.set_title("Pixel Intensity of Hydrogel Pictures\nClick and drag to select range")
+span_ax.set_title(f"Pixel Intensity of Hydrogel img: {data_source}\nClick and drag to select range")
 zoom_ax.set_title("\nSelection Data", fontsize=16, fontfamily='Arial')
 plt.sca(span_ax)
 plt.xticks(fontsize=12, fontfamily='Arial')
@@ -74,12 +93,12 @@ ax.spines['right'].set_color('none')
 ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
 
 # Set common labels
-ax.set_xlabel("Distance, (pixels)", fontsize=16, fontfamily='Arial')
+ax.set_xlabel(f"{strain_direction} Distance, (pixels)", fontsize=16, fontfamily='Arial')
 ax.set_ylabel("Brightness value\n", fontsize=16, fontfamily='Arial')
 
 # plotting the data
-raw_plot, = span_ax.plot(xdata, ydata, '.', color='blue', markersize=1, label='raw intensity data')
-zoom_plot, = zoom_ax.plot(xdata, ydata, '.', color='green', markersize=2, label='spanned intensity data')
+raw_plot, = span_ax.plot(xdata, ydata, '.', color=color[0], markersize=1, label='raw intensity data')
+zoom_plot, = zoom_ax.plot(xdata, ydata, '.', color=color[1], markersize=2, label='spanned intensity data')
 
 # function called by span selector when a selection is made
 # is given the min and max from the span selected, and returns void
@@ -99,7 +118,7 @@ def onselect(xmin, xmax):
     yspan = ydata[imin:imax]
 
     # plot the newly specified range
-    zoom_ax.plot(xspan, yspan, '.', color='green', markersize=4, label='spanned intensity data')
+    zoom_ax.plot(xspan, yspan, '.', color=color[1], markersize=4, label='spanned intensity data')
 
     # initial paramaters for gaussian fit
     mean = sum(xspan * yspan) / sum(yspan)
@@ -108,7 +127,7 @@ def onselect(xmin, xmax):
 
     # perform curve fit on specified range
     params, covariance = curve_fit(gaussian, xspan, yspan, p0=p0)
-    print(f"Gauss fit paramaters: {params}")
+    #print(f"Gauss fit paramaters: {params}")
 
     # generate data for a smooth curve for this fit
     # note: xdata is input so we use it also for the fit data
@@ -121,7 +140,7 @@ def onselect(xmin, xmax):
     # grab applicable data from fit
     x0_gauss, x0_ind_gauss = find_nearest(xspan, params[1]) # xpoint in data closest to curves peak
     y0_gauss = yspan[x0_ind_gauss]
-    print(f"Gaussian Fit method: x0 - {x0_gauss}; y0 - {y0_gauss}\n")
+    print(f"*** Gaussian Fit method: x0 - {x0_gauss}; y0 - {y0_gauss} ***")
     
     # alternative method of finding min point, grouping and averaging
     mins = np.partition(yspan, 4)[0:5]
@@ -131,8 +150,8 @@ def onselect(xmin, xmax):
     y0_avg_indices = np.where(yspan==y0_avg)[0]
     y0_avg_ind = int(np.median(y0_avg_indices))
     x0_avg = xspan[y0_avg_ind]
-    print(f"Mins: {mins}; Avg Min: {avg_min_val};\nIndices w/ closest avg min:{y0_avg_indices}; median index: {y0_avg_ind}")
-    print(f"Average Values method: x0 - {x0_avg}; y0 - {y0_avg}\n")
+    #print(f"Mins: {mins}; Avg Min: {avg_min_val};\nIndices w/ closest avg min:{y0_avg_indices}; median index: {y0_avg_ind}")
+    print(f"*** Average Values method: x0 - {x0_avg}; y0 - {y0_avg} ***\n")
 
     # plot the different found min points
     zoom_ax.scatter(x=x0_gauss, y=y0_gauss, c='red', label=f'gaussian minima: {x0_gauss}, {y0_gauss}', zorder=4)
