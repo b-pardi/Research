@@ -14,6 +14,8 @@ from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
 from datetime import datetime
 
+from lin_reg import *
+
 
 '''
 README
@@ -48,25 +50,37 @@ README
         - new window will show radio buttons to indiciate which range is being selected
         - input from entry box will correlate to which file for which range is being selected
     
-
+- For Meta Analysis
+    - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
+    - selections from interactive plot will be exported to a csv file that are then used in the 'lin_reg.py' script
 
 FUNCTIONS
+Basic: 
 - opens 'py' to define information
 - opens defined file and reads it into a dataframe
 - renames columns as dictated below in Variable Declarations section
 - checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
-Clean Data:
-    - find average resonant frequency of baseline, and lowers curve by that amount
-    - cleans data by removing points before baseline, and lowers by aforemention average
 - plots are frequencies and dissipations of each channel specified in py
 - if overwrite file selected, will replace file data with the data it had just cleaned
     - Not advised if not selecting ALL plots
+
+Baseline Corrected Data:
+    - find average resonant frequency of baseline, and lowers curve by that amount
+    - cleans data by removing points before baseline, and lowers by aforemention average
+
+Plot Options:
 - plots raw data individually as specified in gui
 - option to normalize data by dividing frequency by its respective overtone
 - option to plot change in dissipation vs change in frequency
 - option for multi axis plot with change in frequency and dissipation vs time
+
+Interactive Plot:
 - option for interactive plot that opens figure of selected overtone to further analyze
     - can select a range of points of plot to zoom in and save to file for later
+    - interactive plot range will be used to specify statistical data for linear analysis
+
+Analysis:
+- linear regression performed on Dd vs n*Df using selection from interactive plot
 
 
 GUI features
@@ -80,21 +94,18 @@ GUI features
     - plot dF and dD together
     - normalize F
     - dD vs dF
-- interactive plot selection option
+    - interactive plot -> linear analysis
 - submit button runs data analysis while keeping gui window open
 
 
 WIP
 - for interactive plot
-    - allow specification of which overtone and freq or disp
-    - calculate mean, median, range of each range and put into single file
     - format int plot akin to existing saved plots
 - data modeling
+
 - small bugs
     - when submitting after first time,
     if range select window was closed, will not reopen
-    - when selecting range in freq, it changes range is dis,
-    but not vice versa
     - when resubmitting with int plot, range select does not work upon new plot window
     - handle error when range selected, but that range not chosen to analyze
 - ERROR CHECKING?
@@ -108,7 +119,7 @@ WIP
 - range selected in interactrive plot, will be used for all overtones in data modeling
 
 - linear regression of overtones
-    - plotting Dd vs n*  Df of each overtone
+    - plotting Dd vs n*Df of each overtone
         - note: ranges are selected from int plot, and range selected is used for all overtones
         - also: be consistent with range is selected
     - error bars in x and y are std dev of mean for each overtone in n*Df and Dd
@@ -143,8 +154,8 @@ which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_
                     '9th_freq': False, '9th_dis': False},
 
             'clean': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
-                    '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
-                    '9th_freq': False, '9th_dis': False}}
+                    '5th_freq': True, '5th_dis': False, '7th_freq': False, '7th_dis': False,
+                    '9th_freq': False, '9th_dis': True}}
 
 
 '''Function Defintions for UI events'''
@@ -850,7 +861,9 @@ def analyze_data():
 
         try:
             y_rf = cleaned_df[f'{which_int_plot_overtone}_freq']
+            print(y_rf)
             y_dis = cleaned_df[f'{which_int_plot_overtone}_dis']
+            print(y_dis)
         except KeyError:
             print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
@@ -883,22 +896,24 @@ def analyze_data():
             int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
             int_plot.canvas.draw_idle()
 
-            # statistical analysis
-            mean_freq_x = np.average(zoomx)
-            std_dev_freq_x = np.std(zoomx)
-            median_freq_x = np.median(zoomx)
-            mean_freq_y = np.average(zoomy1)
-            std_dev_freq_y = np.std(zoomy1)
-            median_freq_y = np.median(zoomy1)
-
             # save data range to file
             np.savetxt(f"selected_ranges/range_{which_range_selecting}_rf.txt", np.c_[zoomx, zoomy1])
 
             # save statistical data to file
-            with open(f"selected_ranges/stats_{which_range_selecting}_rf.txt", 'w') as stat_file:
-                stat_file.write(f"Time:\nmean: {mean_freq_x}\nstd dev: {std_dev_freq_x}\n\
-median: {median_freq_x}\n\nDissipation:\nmean: {mean_freq_y}\n\
-std dev: {std_dev_freq_y}\nmedian: {median_freq_y}")
+            with open(f"selected_ranges/all_stats_rf.csv", 'w') as stat_file:
+                stat_file.write(f",freq_mean,freq_std_dev,freq_median,range_used\n")
+                # statistical analysis for all desired overtones using range of selection
+                for overtone, val in which_plot['clean'].items():
+                    # if value is true it was selected in gui, and we only want to analyze freqs here
+                    if val and overtone.__contains__('freq'):
+                        y_data = cleaned_df[overtone]
+                        y_sel = y_data[imin:imax]
+                        print(y_sel.head())
+                        mean_y = np.average(y_sel)
+                        std_dev_y = np.std(y_sel)
+                        median_y = np.median(y_sel)
+                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
+            
 
         def onselect2(xmin, xmax):
             # min and max indices are where elements should be inserted to maintain order
@@ -919,22 +934,22 @@ std dev: {std_dev_freq_y}\nmedian: {median_freq_y}")
             int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
-            # statistical analysis
-            mean_dis_x = np.average(zoomx)
-            std_dev_dis_x = np.std(zoomx)
-            median_dis_x = np.median(zoomx)
-            mean_dis_y = np.average(zoomy2)
-            std_dev_dis_y = np.std(zoomy2)
-            median_dis_y = np.median(zoomy2)
-
             # save data range to file
-            np.savetxt(f"selected_ranges/range_{which_range_selecting}_dis.txt", np.c_[zoomx, zoomy2])
+            np.savetxt(f"selected_ranges/range_{which_range_selecting}_dis.txt", np.c_[zoomx, zoomy2]) 
 
             # save statistical data to file
-            with open(f"selected_ranges/stats_{which_range_selecting}_dis.txt", 'w') as stat_file:
-                stat_file.write(f"Time:\nmean: {mean_dis_x}\nstd dev: {std_dev_dis_x}\n\
-median: {median_dis_x}\n\nDissipation:\nmean: {mean_dis_y}\n\
-std dev: {std_dev_dis_y}\nmedian: {median_dis_y}")
+            with open(f"selected_ranges/all_stats_dis.csv", 'w') as stat_file:
+                stat_file.write(f",dis_mean,dis_std_dev,dis_median\n")
+                # statistical analysis for all desired overtones using range of selection
+                for overtone, val in which_plot['clean'].items():
+                    # if value is true it was selected in gui, and we only want to analyze freqs here
+                    if val and overtone.__contains__('dis'):
+                        y_data = cleaned_df[overtone]
+                        y_sel = y_data[imin:imax]
+                        mean_y = np.average(y_sel)
+                        std_dev_y = np.std(y_sel)
+                        median_y = np.median(y_sel)
+                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y}\n")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
@@ -964,7 +979,8 @@ def submit():
     # only want new window to open once, not every time analysis is run
     global submit_pressed
     global interactive_plot_overtone
-    interactive_plot_overtone = int(interactive_plot_overtone_select.get())
+    if will_interactive_plot:
+        interactive_plot_overtone = int(interactive_plot_overtone_select.get())
     # open secondary window with range selections for interactive plot
     if will_interactive_plot == 1 and submit_pressed == False:
         submit_pressed = True
@@ -979,6 +995,10 @@ def submit():
         range_num_entry = Entry(range_select_window, width=10, bg='white')
         range_num_entry.grid(row=3, column=0, pady=(2,4))
 
+        # run meta analysis button
+        run_meta_analysis_button = Button(range_select_window, text="Run meta analysis\nof overtones", padx=6, pady=4, command=linear_regression)
+        run_meta_analysis_button.grid(row=5, column=0, pady=4)
+
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global which_range_selecting
@@ -986,8 +1006,8 @@ def submit():
                 
 
         # button to submit range selected
-        range_num_submit = Button(range_select_window, text='Confirm Range', padx=4, pady=2, command=confirm_range)
-        range_num_submit.grid(row=4, column=0)
+        range_num_submit = Button(range_select_window, text='Confirm Range', padx=10, pady=4, command=confirm_range)
+        range_num_submit.grid(row=4, column=0, pady=4)
 
     analyze_data()
 
