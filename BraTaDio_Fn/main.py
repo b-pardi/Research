@@ -834,19 +834,61 @@ def analyze_data():
             setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
             plt.figure(4).savefig(dis_fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
+    # removing axis lines for plots
+    def remove_axis_lines(ax):
+        ax.spines['top'].set_color('none')
+        ax.spines['bottom'].set_color('none')
+        ax.spines['left'].set_color('none')
+        ax.spines['right'].set_color('none')
+        ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+        
     # interactive plot
     if will_interactive_plot:
         global interactive_plot_overtone
         # clear all previous plots
         plt.close("all")
+
         # setup plot objects
         int_plot = plt.figure()
-        int_plot.set_figwidth(10)
-        int_plot.set_figheight(5)
+        int_plot.set_figwidth(14)
+        int_plot.set_figheight(8)
+        plt.subplots_adjust(hspace=0.4,wspace=0.1)
         # nrows, ncols, position (like quadrants from l -> r)
-        int_ax1 = int_plot.add_subplot(2,2,1)
-        int_ax2 = int_plot.add_subplot(2,2,2)
+        ax = int_plot.add_subplot(1,1,1) # the 'big' subplot for shared axis
+        y_ax1 = int_plot.add_subplot(2,1,1) # shared axis for easy to read titles
+        y_ax2 = int_plot.add_subplot(2,1,2) 
+        int_ax1 = int_plot.add_subplot(2,2,1) # individual subplots actually containing data
+        int_ax2 = int_plot.add_subplot(2,2,3)
+        int_ax1_zoom = int_plot.add_subplot(2,2,2)
+        int_ax2_zoom = int_plot.add_subplot(2,2,4)
         
+        # formatting and labels
+        int_ax1.set_title(f"QCM-D Resonant Frequency - overtone {interactive_plot_overtone}", fontsize=14, fontfamily='Arial')
+        int_ax2.set_title(f"QCM-D Dissipation - overtone {interactive_plot_overtone}", fontsize=16, fontfamily='Arial')
+        int_ax1_zoom.set_title("\nFrequency Selection Data", fontsize=16, fontfamily='Arial')
+        int_ax2_zoom.set_title("\nDissipation Selection Data", fontsize=16, fontfamily='Arial')
+        ax.set_title("Click and drag to select range", fontsize=20, fontfamily='Arial', weight='bold', pad=40)
+        y_ax1.set_ylabel("change in frequency, " + '$\it{nΔt}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
+        y_ax2.set_ylabel("Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=14, fontfamily='Arial', labelpad=5)
+        ax.set_xlabel (determine_xlabel(), fontsize=16, fontfamily='Arial')
+        plt.sca(int_ax1)
+        plt.xticks(fontsize=12, fontfamily='Arial')
+        plt.yticks(fontsize=12, fontfamily='Arial')
+        plt.sca(int_ax2)
+        plt.xticks(fontsize=12, fontfamily='Arial')
+        plt.yticks(fontsize=12, fontfamily='Arial')
+        plt.sca(int_ax1_zoom)
+        plt.xticks(fontsize=12, fontfamily='Arial')
+        plt.yticks(fontsize=12, fontfamily='Arial')
+        plt.sca(int_ax2_zoom)
+        plt.xticks(fontsize=12, fontfamily='Arial')
+        plt.yticks(fontsize=12, fontfamily='Arial')
+
+        # Turn off axis lines and ticks of the big subplots
+        remove_axis_lines(ax)
+        remove_axis_lines(y_ax1)
+        remove_axis_lines(y_ax2)
+
         # grab data
         x_time = cleaned_df[rel_time_col]
         # choose correct user spec'd overtone
@@ -867,13 +909,8 @@ def analyze_data():
         
         int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
         int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
-        int_ax1.set_title("Click and drag to select range")
-
-        int_ax1_zoom = int_plot.add_subplot(2,2,3)
-        int_ax2_zoom = int_plot.add_subplot(2,2,4)
         zoom_plot1, = int_ax1_zoom.plot(x_time, y_rf, '.', color='green', markersize=1)
         zoom_plot2, = int_ax2_zoom.plot(x_time, y_dis, '.', color='blue', markersize=1)
-
 
         def onselect1(xmin, xmax):
             # min and max indices are where elements should be inserted to maintain order
@@ -908,8 +945,6 @@ def analyze_data():
                         #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
-                        print(y_sel.head())
-                        print(f"{y_sel} should= {y_rf}")
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
