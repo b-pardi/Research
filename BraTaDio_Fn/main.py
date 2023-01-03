@@ -147,7 +147,7 @@ will_normalize_F = False
 will_plot_dD_v_dF = False
 will_interactive_plot = False
 submit_pressed = False
-which_range_selecting = 'base'
+which_range_selecting = ''
 interactive_plot_overtone = 0
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
@@ -683,8 +683,6 @@ def analyze_data():
             print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
             data_df = data_df.dropna(axis=0, how='any', inplace=False)
 
-            # find baseline time range
-            baseline_dur = datetime.combine(datetime.min, abs_base_tf) - datetime.combine(datetime.min, abs_base_t0)
             # locate where baseline starts/ends
             base_t0_ind = data_df[data_df[abs_time_col].str.contains(t0_str)].index[0]
             # remove everything before baseline
@@ -906,9 +904,12 @@ def analyze_data():
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
                     if val and overtone.__contains__('freq'):
+                        #y_data = df[overtone][base_t0_ind:]
+                        #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
                         print(y_sel.head())
+                        print(f"{y_sel} should= {y_rf}")
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
@@ -939,17 +940,19 @@ def analyze_data():
 
             # save statistical data to file
             with open(f"selected_ranges/all_stats_dis.csv", 'w') as stat_file:
-                stat_file.write(f",dis_mean,dis_std_dev,dis_median\n")
+                stat_file.write(f",dis_mean,dis_std_dev,dis_median,range_used\n")
                 # statistical analysis for all desired overtones using range of selection
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
                     if val and overtone.__contains__('dis'):
+                        #y_data = df[overtone][base_t0_ind:]
+                        #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y}\n")
+                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
@@ -1003,6 +1006,7 @@ def submit():
         def confirm_range():
             global which_range_selecting
             which_range_selecting = int(range_num_entry.get())
+            print(f"Confirmed range: {which_range_selecting}")
                 
 
         # button to submit range selected
