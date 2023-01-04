@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 9/7/2022, 12:40 pm
-Last Modified: 12/28/2022 6:57 pm
+Last Modified: 1/4/2022, 3:17 pm
 """
 
 from tkinter import *
@@ -22,9 +22,9 @@ README
 - Please execute 'install_packages.py' BEFORE running this script
 - when done with program, please click 'Abort' button instead of closing window
     - can cause terminal to freeze sometimes otherwise
-- ensure all sheets are in the 'raw_data' folder
+- ensure sheets are in the 'raw_data' folder
     - OR specify file directory in gui
-- consistency in column placement and naming is required, however columns will be renamed
+- consistency in data column placement and naming is required, however columns will be renamed
 - if error occurs, it will be displayed in the terminal
 - if uncaught error occurs, please notify me asap and describe what was done to reproduce
 - specify in GUI:
@@ -32,47 +32,50 @@ README
     - file path (if not in predefined raw_data directory)
     - indicate if new clean data file should be created
     - if plotting clean data, indicate baseline t0 and tf
-    - SUBMIT FILE INFO
+    - CLICK SUBMIT FILE INFO
     - indicate which channels to plot for raw/clean data
     - indicate which special plot options
     - change scale of time if applicable
     - change file format if applicable
 
 - For interactive plot:
-    - whichever overtone is to be analyzed in the interactive plot, 
+    - for whichever overtone is to be analyzed in the interactive plot, 
     ensure that that overtone is selected in the baseline corrected data section as well,
     as it relies on the cleaned data processing done there
-    - currently only 3rd freqeuncy is available for processing with interative plot
-        - option to select will come later
-    - selected range is displayed in lower portion of figure, and data points written to 'selected_data.txt'
+    - indicate which overtone will be analyzed
+    - selected range is displayed in lower portion of figure, and data points written to 'range_{range selection}_rf/dis.txt'
     - save multiple ranges
         - if interactive plot selected, open small new window,
-        - new window will show radio buttons to indiciate which range is being selected
+        - new window will show text entry to indiciate which range is being selected
         - input from entry box will correlate to which file for which range is being selected
+    - no matter which overtone is analyzed, the range selected there will apply to ALL overtones for statistical analysis
+    - to run the statistical analysis, click the button in the smaller window where the range was indicated, after selecting a range in the plot
     
-- For Meta Analysis
+- For linear Analysis
     - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
     - selections from interactive plot will be exported to a csv file that are then used in the 'lin_reg.py' script
+    - for accurate modeling, ensure selecting same range of data consistently
 
 FUNCTIONS
 Basic: 
-- opens 'py' to define information
-- opens defined file and reads it into a dataframe
+- opens 'main.py' to define information in a gui and relay that information to script
+- opens defined data file and reads it into a dataframe
 - renames columns as dictated below in Variable Declarations section
 - checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
-- plots are frequencies and dissipations of each channel specified in py
-- if overwrite file selected, will replace file data with the data it had just cleaned
-    - Not advised if not selecting ALL plots
+- plots are frequencies and dissipations of each channel specified in 'main.py'
+- if overwrite file selected, will create a copy of the data file with the baseline corrected points
 
 Baseline Corrected Data:
     - find average resonant frequency of baseline, and lowers curve by that amount
-    - cleans data by removing points before baseline, and lowers by aforemention average
+    - removes points before start of baseline
 
 Plot Options:
 - plots raw data individually as specified in gui
+- option for multi axis plot with change in frequency and dissipation vs time
 - option to normalize data by dividing frequency by its respective overtone
 - option to plot change in dissipation vs change in frequency
-- option for multi axis plot with change in frequency and dissipation vs time
+- option to change scale of x axis (time) to minutes, hours, or remain at seconds
+- option to change saved figure file formats (png (default), tiff, pdf)
 
 Interactive Plot:
 - option for interactive plot that opens figure of selected overtone to further analyze
@@ -80,8 +83,8 @@ Interactive Plot:
     - interactive plot range will be used to specify statistical data for linear analysis
 
 Analysis:
-- linear regression performed on Dd vs n*Df using selection from interactive plot
-
+- linear regression performed on DΓ vs n*Df using selection from interactive plot
+    - see README in 'lin_reg.py' for more details
 
 GUI features
 - file name box (later maybe window to search for file)
@@ -90,6 +93,7 @@ GUI features
         - raw data plots are individual for overtone of each freq/dis
 - abs base time t0, tf
 - input for scale of time (seconds, minutes, hours)
+- change saved figure file format
 - alternate plot options:
     - plot dF and dD together
     - normalize F
@@ -99,10 +103,6 @@ GUI features
 
 
 WIP
-- for interactive plot
-    - format int plot akin to existing saved plots
-- data modeling
-
 - small bugs
     - when submitting after first time,
     if range select window was closed, will not reopen
@@ -113,21 +113,24 @@ WIP
     - when inputting time, check for nearest time value,
     in case time value not actually in data sheet
 - refactoring (putting into frames etc)
-- put columns into separate frames and refactor code to accomodate
-    - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
-- statistical data, time range, not mean median etc
-- range selected in interactrive plot, will be used for all overtones in data modeling
+    - put columns into separate frames and refactor code to accomodate
+        - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
+- range selected in interactive plot, will be used for all overtones in data modeling
 
 - linear regression of overtones
-    - plotting Dd vs n*Df of each overtone
-        - note: ranges are selected from int plot, and range selected is used for all overtones
-        - also: be consistent with range is selected
     - error bars in x and y are std dev of mean for each overtone in n*Df and Dd
     - plotting n * Df ensure n also mults the std dev
+    - CHANGE TO BANDWIDTH SHIFT
+        - fn*Ddn/2
+        - note, it's frequency at that overtone, not delta frequency
+    - format axis to include subscript n
+    - error bars!
 
 
 MEETING QUESTIONS
-
+- is n*Df supposed to remove the normalization?
+- for bandwidth shift, is it the average frequency times the average change in frequency? 
+or is it the frequency that occurs that the given change in dissipation
 
 '''
 
@@ -868,7 +871,7 @@ def analyze_data():
         int_ax1_zoom.set_title("\nFrequency Selection Data", fontsize=16, fontfamily='Arial')
         int_ax2_zoom.set_title("\nDissipation Selection Data", fontsize=16, fontfamily='Arial')
         ax.set_title("Click and drag to select range", fontsize=20, fontfamily='Arial', weight='bold', pad=40)
-        y_ax1.set_ylabel("change in frequency, " + '$\it{nΔt}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
+        y_ax1.set_ylabel("change in frequency, " + '$\it{Δf}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
         y_ax2.set_ylabel("Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=14, fontfamily='Arial', labelpad=5)
         ax.set_xlabel (determine_xlabel(), fontsize=16, fontfamily='Arial')
         plt.sca(int_ax1)
@@ -936,7 +939,7 @@ def analyze_data():
 
             # save statistical data to file
             with open(f"selected_ranges/all_stats_rf.csv", 'w') as stat_file:
-                stat_file.write(f",freq_mean,freq_std_dev,freq_median,range_used\n")
+                stat_file.write(f",freq_mean,freq_std_dev,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used\n")
                 # statistical analysis for all desired overtones using range of selection
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
@@ -945,10 +948,14 @@ def analyze_data():
                         #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
+                        freq_data = df[overtone][base_t0_ind:] # not adjusted freq data for bandwidth shift calc
+                        freq_sel = freq_data[imin:imax]
+                        mean_freq = np.average(freq_sel)
+                        std_dev_freq = np.std(freq_sel)
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
+                        stat_file.write(f"{overtone},{mean_freq},{std_dev_freq},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
             
 
         def onselect2(xmin, xmax):
@@ -975,7 +982,7 @@ def analyze_data():
 
             # save statistical data to file
             with open(f"selected_ranges/all_stats_dis.csv", 'w') as stat_file:
-                stat_file.write(f",dis_mean,dis_std_dev,dis_median,range_used\n")
+                stat_file.write(f",Ddis_mean,Ddis_std_dev,Ddis_median,range_used\n")
                 # statistical analysis for all desired overtones using range of selection
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
