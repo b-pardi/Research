@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 12/28/2022, 3:45 pm
-Last Modified: 12/30/2022 9:39 pm
+Last Modified: 1/4/2022 1:24 pm
 """
 
 import numpy as np
@@ -28,12 +28,12 @@ README
     - wdith is represented as shades of orange, length as shades of blue
 
 IF USING SPYDER
-- 
+- by default, plt will show plots in console box and span selector will not work
+- follow these steps to make selection plots open in new window:
+    Tools > Preferences > IPython console > Graphics > Graphics Backend > Apply & OK
 
 WIP
-- WIDTH cap dist lower
-- pixels -> px
-- Brightness Intensity Value, It(I) (AR U)
+
 
 '''
 
@@ -98,8 +98,8 @@ ax.spines['right'].set_color('none')
 ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
 
 # Set common labels
-ax.set_xlabel(f"{strain_direction} Distance, (pixels)", fontsize=16, fontfamily='Arial')
-ax.set_ylabel("Brightness value\n", fontsize=16, fontfamily='Arial')
+ax.set_xlabel(f"{strain_direction.title()} distance, (px)", fontsize=16, fontfamily='Arial')
+ax.set_ylabel("Brightness Intensity Value, " + "$\it{I}$" + " (AR U)", fontsize=16, fontfamily='Arial', labelpad=15)
 
 # plotting the data
 raw_plot, = span_ax.plot(xdata, ydata, '.', color=color[0], markersize=1, label='raw intensity data')
