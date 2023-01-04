@@ -27,8 +27,13 @@ README
     - will display img source name in graph title, and terminal
     - wdith is represented as shades of orange, length as shades of blue
 
+IF USING SPYDER
+- 
+
 WIP
-- none
+- WIDTH cap dist lower
+- pixels -> px
+- Brightness Intensity Value, It(I) (AR U)
 
 '''
 
