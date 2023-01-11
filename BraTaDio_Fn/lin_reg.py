@@ -25,11 +25,19 @@ README
         - grabs the average Df values and multiplies each by its respective overtone
         - also grabs the x_err, in this case just the std_dev of the mean
     - y axis is the bandwidth shift Γ of each overtone (f*Dd)/2
-        - grabs average frequency and average change in dissipation values from csv
+        - grabs average peak frequency and average change in dissipation values from calibration/theoretical data, and stats csv respectively
             - note, frequency here refers to NOT baseline corrected frequency as it does in the x axis
         - calculates bandwidth defined above
         - propogates error of this calculation
     - plots the values with error bars
+
+NOTES FOR LATER
+- fix mean propogation
+- averaging between files needed for dissipation
+    - works for frequency, except for propogation
+- ensure averages calculated are what is being plotted
+- nothing in main should need work. all data in stats csv files are usable
+
 '''
 
 # pass in 3 dimensional array of data values
@@ -48,6 +56,18 @@ def propogate_mult_err(val, data):
     err = val * np.sqrt( comp )
     return (err)
 
+# pass in an array of mean values,
+# an 2d array of err vals where the ith inner err array correlates to the ith mean value
+# n_vals is how many err vals each mean has
+# n_means is how many means will be propogated (essentially number of frequencies)
+def propogate_mean_err(means, errs, n_means, n_vals):
+    print(means, errs, n_means, n_vals,'\n')
+    comp = 0
+    for i in range(n_means):
+        for j in range(n_vals):
+            temp = ( errs[i][j] - means[i] )
+            print(temp)
+            comp += np.power()
 
 def linear(x, m, b):
     return m * x + b
@@ -61,7 +81,8 @@ def linear_regression():
 
     # grab all unique labels from dataset
     labels = rf_df['range_used'].unique()
-    print(labels)
+    sources = rf_df['data_source'].unique()
+    print(f"*** found labels: {labels}\n\t from sources: {sources}\n")
 
     # grab peak frequency values from either theoretical or calibration file as specified in gui
     with open("calibration_data/peak_frequencies.txt", 'r') as peak_file:
@@ -76,11 +97,31 @@ def linear_regression():
     for label in labels:
         # plot will be mean of bandwidth shift vs overtone * mean of change in frequency
         # grab and calculate x values
-        rf_df_range = rf_df.loc[rf_df['range_used'] == label]
-        mean_delta_freq = rf_df_range['Dfreq_mean'].values
-        n_mean_delta_freq = [Df * (2*i+1) for i, Df in enumerate(mean_delta_freq)] # 2i+1 corresponds to overtone number
-        sigma_n_mean_delta_freq = rf_df_range['Dfreq_std_dev'].values
-        print(f"*** rf for label: {label}:\n\tn*means: {n_mean_delta_freq}\n\tstddev: {sigma_n_mean_delta_freq}\n")
+        rf_df_ranges = rf_df.loc[rf_df['range_used'] == label]
+
+        # group data by range and then source
+        # values get averaged across sources respective to their range
+        # i.e. average( <num from range 'x' source1>, <num from range 'x' source2>, ... )
+        delta_freqs = []
+        sigma_delta_freqs = []
+        for source in sources: # grabs data from 
+            rf_df_range = rf_df_ranges.loc[rf_df_ranges['data_source'] == source]
+            delta_freqs.append(rf_df_range['Dfreq_mean'].values)
+            sigma_delta_freqs.append(rf_df_range['Dfreq_std_dev'].values)
+        
+        # take average described above
+        n_srcs = len(sources) # num sources -> number of ranges used for average
+        mean_delta_freqs = np.zeros(delta_freqs[0].shape)
+        for i in range(n_srcs):
+            mean_delta_freqs += delta_freqs[i]
+
+        mean_delta_freqs /= n_srcs
+        n_mean_delta_freqs = [Df * (2*i+1) for i, Df in enumerate(mean_delta_freqs)] # 2i+1 corresponds to overtone number
+        # propogate error of the mean
+        sigma_n_mean_delta_freqs = propogate_mean_err(mean_delta_freqs, sigma_delta_freqs, n_srcs, len(mean_delta_freqs))
+
+        
+        print(f"*** rf for label: {label}:\n\tn*means: {n_mean_delta_freqs}\n\tstddev: {sigma_n_mean_delta_freqs}\n")
 
         # grab and calculate y values and propogate err
         dis_df_range = dis_df.loc[dis_df['range_used'] == label]
@@ -95,25 +136,25 @@ def linear_regression():
         sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
 
         # print to verify results
-        print(f"\tn_mean_delta_freq: {n_mean_delta_freq}; sigma_n_mean_delta_freq: {sigma_n_mean_delta_freq};\n\
+        print(f"\tn_mean_delta_freq: {n_mean_delta_freqs}; sigma_n_mean_delta_freq: {sigma_n_mean_delta_freqs};\n\
         mean_delta_dis: {mean_delta_dis}; sigma_mean_delta_dis: {sigma_mean_delta_dis};\n\
         mean_freq: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n\
         delta_gamma: {delta_gamma}; sigma_delta_gamma: {sigma_delta_gamma};")
 
         # performing the linear fit
-        params, cov = curve_fit(linear, n_mean_delta_freq, delta_gamma)
+        params, cov = curve_fit(linear, n_mean_delta_freqs, delta_gamma)
         m, b = params
 
         # plot data
         lin_plot = plt.figure()
         plt.subplots_adjust(hspace=0.4)
         ax = lin_plot.add_subplot(1,1,1)
-        ax.plot(n_mean_delta_freq, delta_gamma, 'o', markersize=8, label='data')
-        ax.errorbar(n_mean_delta_freq, delta_gamma, xerr=sigma_n_mean_delta_freq, yerr=sigma_delta_gamma, fmt='.', label='err')
+        ax.plot(n_mean_delta_freqs, delta_gamma, 'o', markersize=8, label='data')
+        ax.errorbar(n_mean_delta_freqs, delta_gamma, xerr=sigma_n_mean_delta_freqs, yerr=sigma_delta_gamma, fmt='.', label='err')
         
         # plot curve fit
-        y_fit = linear(np.asarray(n_mean_delta_freq), m, b)
-        ax.plot(n_mean_delta_freq, y_fit, 'r', label='linear fit')
+        y_fit = linear(np.asarray(n_mean_delta_freqs), m, b)
+        ax.plot(n_mean_delta_freqs, y_fit, 'r', label='linear fit')
 
         # format plot
         plt.sca(ax)

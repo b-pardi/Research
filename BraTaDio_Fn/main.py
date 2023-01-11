@@ -157,6 +157,7 @@ submit_pressed = False # submitting gui data the first time has different implic
 which_range_selecting = '' # which range of the interactive plot is about to be selected
 interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
 will_use_theoretical_vals = False # indicates if using calibration data or theoretical values for peak frequencies
+range_window_flag = False
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},
@@ -219,6 +220,7 @@ def clear_file_data():
     minutes_entry_tf.delete(0, END)
     seconds_entry_tf.delete(0, END)
     file_overwrite_var.set(0)
+    submitted_label.grid_forget()
 
 def handle_fn_focus_in(_):
     if file_name_entry.get() == "File name here (W/ EXTENSION)":
@@ -909,9 +911,7 @@ def analyze_data():
 
         try:
             y_rf = cleaned_df[f'{which_int_plot_overtone}_freq']
-            print(y_rf)
             y_dis = cleaned_df[f'{which_int_plot_overtone}_dis']
-            print(y_dis)
         except KeyError:
             print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
@@ -927,6 +927,9 @@ def analyze_data():
         zoom_plot2, = int_ax2_zoom.plot(x_time, y_dis, '.', color='blue', markersize=1)
 
         def onselect1(xmin, xmax):
+            if which_range_selecting == '':
+                print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
+
             # min and max indices are where elements should be inserted to maintain order
             imin, imax = np.searchsorted(x_time, (xmin, xmax))
             # range will be at most all elems in x, or imax
@@ -938,20 +941,29 @@ def analyze_data():
 
             # update data to newly spec'd range
             zoom_plot1.set_data(zoomx, zoomy1)
-            print(zoomx)
             
             # set limits of tick marks
             int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
             int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
             int_plot.canvas.draw_idle()
 
-            # check if label already exists and remove if it does before writing new data for that range
+            # check if label and file already exists and remove if it does before writing new data for that range
+            # this allows for overwriting of only the currently selected file and frequency,
+            # without having to append all data, or overwrite all data each time
+            save_flag = False
             try: # try to open df from stats csv
-                temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
-                if which_range_selecting in temp_df['range_used'].unique():
-                    temp_df = temp_df.loc[temp_df['range_used'] != which_range_selecting]
-                    print(temp_df.head())
-                    temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E")
+                temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+                if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
+                    temp_df = temp_df.loc[temp_df['range_used'] != '']
+                    save_flag = True
+                if which_range_selecting in temp_df['range_used'].unique()\
+                and file_name in temp_df['data_source'].unique():
+                    to_drop = temp_df.loc[((temp_df['range_used'] == which_range_selecting)\
+                                        & (temp_df['data_source'] == file_name))].index.values
+                    temp_df = temp_df.drop(index=to_drop)
+                    save_flag = True
+                if save_flag:
+                    temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E", index=False)
             except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
                 print("rf stats file empty")
                 with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
@@ -973,6 +985,9 @@ def analyze_data():
             
 
         def onselect2(xmin, xmax):
+            if which_range_selecting == '':
+                print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
+
             # min and max indices are where elements should be inserted to maintain order
             imin, imax = np.searchsorted(x_time, (xmin, xmax))
             # range will be at most all elems in x, or imax
@@ -984,20 +999,29 @@ def analyze_data():
 
             # update data to newly spec'd range
             zoom_plot2.set_data(zoomx, zoomy2)
-            print(zoomx)
             
             # set limits of tick marks
             int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
             int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
-            # check if label already exists and remove if it does before writing new data for that range
+            # check if label and file already exists and remove if it does before writing new data for that range
+            # this allows for overwriting of only the currently selected file and frequency,
+            # without having to append all data, or overwrite all data each time
+            save_flag = False
             try: # try to open df from stats csv
-                temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
-                if which_range_selecting in temp_df['range_used'].unique():
-                    temp_df = temp_df.loc[temp_df['range_used'] != which_range_selecting]
-                    print(temp_df.head())
-                    temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E")
+                temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
+                if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
+                    temp_df = temp_df.loc[temp_df['range_used'] != '']
+                    save_flag = True
+                if which_range_selecting in temp_df['range_used'].unique()\
+                and file_name in temp_df['data_source'].unique():
+                    to_drop = temp_df.loc[((temp_df['range_used'] == which_range_selecting)\
+                                        & (temp_df['data_source'] == file_name))].index.values
+                    temp_df = temp_df.drop(index=to_drop)
+                    save_flag = True
+                if save_flag:
+                    temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E", index=False)
             except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
                 print("dis stats file empty")
                 with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
@@ -1038,6 +1062,11 @@ def analyze_data():
     print("*** Plots Generated ***")
 
 
+def set_window_flag():
+    global range_window_flag
+    print("flag set")
+    range_window_flag = True
+
 def abort():
     sys.exit()
 
@@ -1046,14 +1075,13 @@ def submit():
 
     # only want new window to open once, not every time analysis is run
     global interactive_plot_overtone
-    global submit_pressed
-    if will_interactive_plot:
+    global range_window_flag
+
+    # open secondary window with range selections for interactive plot
+    if will_interactive_plot and not range_window_flag: # only open the window first time submitting
+        range_select_window = Toplevel(root)
+        range_select_window.bind('<Destroy>', set_window_flag)
         interactive_plot_overtone = int(interactive_plot_overtone_select.get())
-        # open secondary window with range selections for interactive plot
-        if not submit_pressed:
-            range_select_window = Toplevel(root) # open window if first time submitting
-            submit_pressed = True
-        
         range_select_window.title("Select range")
         range_label = Label(range_select_window, text="Choose which section of graph\nis being selected for file saving:")
         range_label.grid(row=0, column=0, padx=10, pady=(8,16))
@@ -1091,7 +1119,9 @@ def submit():
         # button to submit range selected
         which_range_submit = Button(range_select_window, text='Confirm Range', padx=10, pady=4, command=confirm_range)
         which_range_submit.grid(row=4, column=0, pady=4)
+        range_window_flag = True
 
+    submitted_label.grid_forget()
     analyze_data()
 
 
@@ -1321,10 +1351,10 @@ abort_button.grid(row=19, column=4, pady=4)
 root.mainloop()
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-#file_name = "sample1.csv"
+#file_name = "sample2.csv"
 #abs_base_t0 = time(16,26,28)
 #abs_base_tf = time(16,36,18)
 
-#file_name = "sample2.csv"
+#file_name = "sample1.csv"
 #abs_base_t0 = time(17,2,26)
 #abs_base_tf = time(17,11,2)
