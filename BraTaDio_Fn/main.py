@@ -6,6 +6,7 @@ Last Modified: 1/4/2022, 3:17 pm
 
 from tkinter import *
 import sys
+import os
 from datetime import time
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
 from datetime import datetime
+import shutil
 
 from lin_reg import *
 
@@ -117,20 +119,22 @@ WIP
         - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
 - range selected in interactive plot, will be used for all overtones in data modeling
 
+- ability to name selected ranges of data selection instead of just numbers
+
 - linear regression of overtones
-    - error bars in x and y are std dev of mean for each overtone in n*Df and Dd
-    - plotting n * Df ensure n also mults the std dev
-    - CHANGE TO BANDWIDTH SHIFT
-        - fn*Ddn/2
-        - note, it's frequency at that overtone, not delta frequency
-    - format axis to include subscript n
-    - error bars!
+    - JF - freq dependentshear film compliance = (slope of fit / (2pi*5) *10^3 )
+        - 5 representing fundamental freq with unit conversion
+    - linear regression will be 4 separate plots for each experiment
+        - each plot is a range selection of the full data (pre wash, pre rinse etc)
+        - take average G prime val of each experiment's range
+            - G prime is calculation done at range for each experiment
+            - in end we will average these G primes from n experiements
+    - plots are of ranges of dataset, but the average of each range across multiple sets
+    - add file name to stats file to indicate which file data came from for later distinguishing of different data sets
+    - also range used data entry in stats file will chhange to strings for  named labels
 
 
 MEETING QUESTIONS
-- is n*Df supposed to remove the normalization?
-- for bandwidth shift, is it the average frequency times the average change in frequency? 
-or is it the frequency that occurs that the given change in dissipation
 
 '''
 
@@ -140,18 +144,19 @@ file_name = ''
 file_path = ''
 will_plot_raw_data = False
 will_plot_clean_data = False
-will_overwrite_file = False
-abs_base_t0 = time(0, 0, 0)
-abs_base_tf = time(0, 0, 0)
-fig_format = 'png'
-x_timescale = 's'
-will_plot_dF_dD_together = False
-will_normalize_F = False
-will_plot_dD_v_dF = False
-will_interactive_plot = False
-submit_pressed = False
-which_range_selecting = ''
-interactive_plot_overtone = 0
+will_overwrite_file = False # if user wants copy of data data saved after processing
+abs_base_t0 = time(0, 0, 0) # beginning of baseline time
+abs_base_tf = time(0, 0, 0) # end of baseline time
+fig_format = 'png' # format to save figures that can be changed in the gui to tiff or pdf
+x_timescale = 's' # change scale of time of x axis of plots from seconds to either minutes or hours
+will_plot_dF_dD_together = False # indicates if user selected multi axis plot of dis and freq
+will_normalize_F = False # indicates if user selected to normalize frequency data
+will_plot_dD_v_dF = False # indicates if user selected to plot change in dis vs change in freq
+will_interactive_plot = False # indicates if user selected interactive plot option
+submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
+which_range_selecting = '' # which range of the interactive plot is about to be selected
+interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
+will_use_theoretical_vals = False # indicates if using calibration data or theoretical values for peak frequencies
 which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                     '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                     '9th_freq': False, '9th_dis': False},
@@ -910,6 +915,12 @@ def analyze_data():
         except KeyError:
             print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
+        # write peak frequencies depending on user indication of using theoretical or calibration vals to file for linear regression calculations
+        if will_use_theoretical_vals: # if not using calibration data, copy theoreticals to txt file
+            shutil.copy("calibration_data/theoretical_vals.txt", "calibration_data/peak_frequencies.txt")
+        else:
+            shutil.copy("calibration_data/calibration_peak_frequencies.txt", "calibration_data/peak_frequencies.txt")
+
         int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
         int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
         zoom_plot1, = int_ax1_zoom.plot(x_time, y_rf, '.', color='green', markersize=1)
@@ -934,28 +945,31 @@ def analyze_data():
             int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
             int_plot.canvas.draw_idle()
 
-            # save data range to file
-            np.savetxt(f"selected_ranges/range_{which_range_selecting}_rf.txt", np.c_[zoomx, zoomy1])
+            # check if label already exists and remove if it does before writing new data for that range
+            try: # try to open df from stats csv
+                temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
+                if which_range_selecting in temp_df['range_used'].unique():
+                    temp_df = temp_df.loc[temp_df['range_used'] != which_range_selecting]
+                    print(temp_df.head())
+                    temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E")
+            except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
+                print("rf stats file empty")
+                with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
+                    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+                    stat_file.write(header)
 
             # save statistical data to file
-            with open(f"selected_ranges/all_stats_rf.csv", 'w') as stat_file:
-                stat_file.write(f",freq_mean,freq_std_dev,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used\n")
+            with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
                 # statistical analysis for all desired overtones using range of selection
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
                     if val and overtone.__contains__('freq'):
-                        #y_data = df[overtone][base_t0_ind:]
-                        #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
-                        freq_data = df[overtone][base_t0_ind:] # not adjusted freq data for bandwidth shift calc
-                        freq_sel = freq_data[imin:imax]
-                        mean_freq = np.average(freq_sel)
-                        std_dev_freq = np.std(freq_sel)
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_freq},{std_dev_freq},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
+                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
             
 
         def onselect2(xmin, xmax):
@@ -977,24 +991,33 @@ def analyze_data():
             int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
             int_plot.canvas.draw_idle()
 
-            # save data range to file
-            np.savetxt(f"selected_ranges/range_{which_range_selecting}_dis.txt", np.c_[zoomx, zoomy2]) 
+            # check if label already exists and remove if it does before writing new data for that range
+            try: # try to open df from stats csv
+                temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+                if which_range_selecting in temp_df['range_used'].unique():
+                    temp_df = temp_df.loc[temp_df['range_used'] != which_range_selecting]
+                    print(temp_df.head())
+                    temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E")
+            except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
+                print("dis stats file empty")
+                with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
+                    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+                    stat_file.write(header)
+
 
             # save statistical data to file
-            with open(f"selected_ranges/all_stats_dis.csv", 'w') as stat_file:
-                stat_file.write(f",Ddis_mean,Ddis_std_dev,Ddis_median,range_used\n")
+            with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
                 # statistical analysis for all desired overtones using range of selection
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
                     if val and overtone.__contains__('dis'):
-                        #y_data = df[overtone][base_t0_ind:]
-                        #y_sel = y_data[imin:imax]
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
-                        mean_y = np.average(y_sel)
-                        std_dev_y = np.std(y_sel)
-                        median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_y},{std_dev_y},{median_y},{which_range_selecting}\n")
+                        y_temp_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
+                        mean_y = np.average(y_temp_sel)
+                        std_dev_y = np.std(y_temp_sel)
+                        median_y = np.median(y_temp_sel)
+                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
@@ -1022,38 +1045,52 @@ def submit():
     err_check()
 
     # only want new window to open once, not every time analysis is run
-    global submit_pressed
     global interactive_plot_overtone
+    global submit_pressed
     if will_interactive_plot:
         interactive_plot_overtone = int(interactive_plot_overtone_select.get())
-    # open secondary window with range selections for interactive plot
-    if will_interactive_plot == 1 and submit_pressed == False:
-        submit_pressed = True
-        range_select_window = Toplevel(root)
+        # open secondary window with range selections for interactive plot
+        if not submit_pressed:
+            range_select_window = Toplevel(root) # open window if first time submitting
+            submit_pressed = True
+        
         range_select_window.title("Select range")
         range_label = Label(range_select_window, text="Choose which section of graph\nis being selected for file saving:")
         range_label.grid(row=0, column=0, padx=10, pady=(8,16))
         
-        # define and place radio buttons for range options
-        range_num_label = Label(range_select_window, text="Enter which range being selected\n(in order from left to right starting with 1)" )
-        range_num_label.grid(row=2, column=0, pady=(2,4), padx=4)
-        range_num_entry = Entry(range_select_window, width=10, bg='white')
-        range_num_entry.grid(row=3, column=0, pady=(2,4))
+        # define and place entry for range options
+        which_range_label = Label(range_select_window, text="Enter which range being selected\n(use identifier of your choosing; i.e. numbers or choice of label)" )
+        which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
+        which_range_entry = Entry(range_select_window, width=10, bg='white')
+        which_range_entry.grid(row=3, column=0, pady=(2,4))
 
-        # run meta analysis button
+        # prompt to use theoretical or calibration values for peak frequency
+        theoretical_or_calibration_frame = Frame(range_select_window)
+        theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
+        theoretical_or_calibration_var = IntVar()
+        theoretical_or_calibration_label = Label(theoretical_or_calibration_frame, text="Use theoretical or calibration peak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
+        theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_radio = Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
+        theoretical_radio.grid(row=6, column=0, pady=(2,4))
+        calibration_radio = Radiobutton(theoretical_or_calibration_frame, text='calibration', variable=theoretical_or_calibration_var, value=0)
+        calibration_radio.grid(row=6, column=1, pady=(2,4))
+
+        # run analysis button
         run_meta_analysis_button = Button(range_select_window, text="Run meta analysis\nof overtones", padx=6, pady=4, command=linear_regression)
-        run_meta_analysis_button.grid(row=5, column=0, pady=4)
+        run_meta_analysis_button.grid(row=7, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global which_range_selecting
-            which_range_selecting = int(range_num_entry.get())
+            global will_use_theoretical_vals
+            which_range_selecting = which_range_entry.get()
+            will_use_theoretical_vals = theoretical_or_calibration_var
+
             print(f"Confirmed range: {which_range_selecting}")
-                
 
         # button to submit range selected
-        range_num_submit = Button(range_select_window, text='Confirm Range', padx=10, pady=4, command=confirm_range)
-        range_num_submit.grid(row=4, column=0, pady=4)
+        which_range_submit = Button(range_select_window, text='Confirm Range', padx=10, pady=4, command=confirm_range)
+        which_range_submit.grid(row=4, column=0, pady=4)
 
     analyze_data()
 
@@ -1098,7 +1135,7 @@ err_label = Label(col0, text="Error occured,\nplease see terminal for details", 
 file_name_entry = Entry(col0, width=40, bg='white', fg='gray')
 file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
 #file_name_entry.insert(0, "File name here (W/ EXTENSION)")
-file_name_entry.insert(0, "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv")
+file_name_entry.insert(0, "sample1.csv")
 file_name_entry.bind("<FocusIn>", handle_fn_focus_in)
 file_name_entry.bind("<FocusOut>", handle_fn_focus_out)
 
@@ -1251,7 +1288,6 @@ which_range_var = IntVar()
 scale_time_check = Checkbutton(col3, text="Change scale of time? (default (s))", variable=scale_time_var, onvalue=1, offvalue=0, command=receive_scale_radios)
 scale_time_check.grid(row=7, column=4, pady=(32,0))
 # default to seconds
-# PUT INTO SUBFRAME
 time_scale_frame = Frame(fr2)
 which_time_scale_var = IntVar()
 seconds_scale_check = Radiobutton(time_scale_frame, text="Seconds", variable=which_time_scale_var, value=1, command=receive_scale_radios)
@@ -1266,7 +1302,6 @@ change_fig_format_var = IntVar()
 change_fig_format_check = Checkbutton(col3, text="Change figure file format? (default .png)", variable=change_fig_format_var, onvalue=1, offvalue=0, command=receive_file_format_radios)
 change_fig_format_check.grid(row=14, column=4, pady=(8,0))
 # default png
-# PUT INTO SUBFRAME
 file_format_frame = Frame(fr3)
 which_file_format_var = IntVar()
 png_check = Radiobutton(file_format_frame, text=".png", variable=which_file_format_var, value=1, command=receive_file_format_radios)
@@ -1286,11 +1321,10 @@ abort_button.grid(row=19, column=4, pady=4)
 root.mainloop()
 
 '''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-#file_name = "10102022_Collagen 2 at 25ug per ml and SF at 37C_n=1 DD.csv"
+#file_name = "sample1.csv"
+#abs_base_t0 = time(16,26,28)
+#abs_base_tf = time(16,36,18)
 
-#file_path = ""
-#clean_num_channels_tested = 10
-#abs_base_t0 = time(8,29,48)
+#file_name = "sample2.csv"
 #abs_base_t0 = time(17,2,26)
-#abs_base_tf = time(9,5,55)
 #abs_base_tf = time(17,11,2)

@@ -38,7 +38,7 @@ WIP
 '''
 
 FILE_NAME = "fiji_data/2022_12_30_example of stiff Poisson ratio_ BP.xlsx" # specify file (with path and extension) to be opened
-COLUMNS = (5,6) # specify which column in the csv file are being analyzed
+COLUMNS = (3,4) # specify which column in the csv file are being analyzed
 
 def gaussian(x, a, b, c, d):
     return a * np.exp(-(x - b) ** 2 / (2 * c ** 2)) + d
