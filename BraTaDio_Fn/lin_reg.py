@@ -31,7 +31,8 @@ README
     - for x and y, values are grouped by ranges, and then data sources
         - values are averaged across multiple experimental data sets, based on the range
         - these averages are also propogated and the error calculated becomes the error bars in the plot
-    - plots the values with error bars
+    - plots the values with error bars and shows equation with slope
+    - NEED FORMULAS FOR Calculates G prime and JF (frequency dependent shear film compliance)
     
 '''
 
@@ -72,7 +73,7 @@ def linear(x, m, b):
     return m * x + b
 
 def linear_regression():
-    print("Performing linear plots...")
+    print("Performing linear analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
     rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
@@ -150,17 +151,20 @@ def linear_regression():
         # performing the linear fit
         params, cov = curve_fit(linear, n_mean_delta_freqs, delta_gamma)
         m, b = params
+        sign = '-' if b < 0 else '+'
 
-        # plot data
+        # setup plot
         lin_plot = plt.figure()
         plt.subplots_adjust(hspace=0.4)
         ax = lin_plot.add_subplot(1,1,1)
-        ax.plot(n_mean_delta_freqs, delta_gamma, 'o', markersize=8, label='data')
-        ax.errorbar(n_mean_delta_freqs, delta_gamma, xerr=sigma_n_mean_delta_freqs, yerr=sigma_delta_gamma, fmt='.', label='err')
+
+        # plot data
+        ax.plot(n_mean_delta_freqs, delta_gamma, 'o', markersize=8, label=f'average values for range: {label}')
+        ax.errorbar(n_mean_delta_freqs, delta_gamma, xerr=sigma_n_mean_delta_freqs, yerr=sigma_delta_gamma, fmt='.', label='error in calculations')
         
         # plot curve fit
         y_fit = linear(np.asarray(n_mean_delta_freqs), m, b)
-        ax.plot(n_mean_delta_freqs, y_fit, 'r', label='linear fit')
+        ax.plot(n_mean_delta_freqs, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}')
 
         # format plot
         plt.sca(ax)
@@ -169,9 +173,10 @@ def linear_regression():
         plt.yticks(fontsize=14, fontfamily='Arial')
         plt.xlabel(r"overtone * change in frequency, $\it{nΔf_n}$ (Hz)", fontsize=16, fontfamily='Arial')
         plt.ylabel(r"Bandwidth Shift, $\mathit{\Gamma}$$_n$", fontsize=16, fontfamily='Arial')
-        plt.title(f"Bandwidth Shift vs Overtone * delta frequency\nfor range: {label}", fontsize=16, fontfamily='Arial')
+        plt.title(f"Bandwidth Shift vs N * Change in Frequency\nfor range: {label}", fontsize=16, fontfamily='Arial')
         
-        lin_plot.tight_layout()
+        # save figure
+        lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
     
 

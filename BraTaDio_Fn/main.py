@@ -48,16 +48,22 @@ README
     - indicate which overtone will be analyzed
     - selected range is displayed in lower portion of figure, and data points written to 'range_{range selection}_rf/dis.txt'
     - save multiple ranges
-        - if interactive plot selected, open small new window,
+        - if interactive plot selected, small new window opens
         - new window will show text entry to indiciate which range is being selected
+        - input and confirm the range BEFORE making selection in the plot window
+        - later analysis will use the range and file src for grouping and averaging data
         - input from entry box will correlate to which file for which range is being selected
+    - when making selection in graph that already has data from that section, will overwrite data from ONLY that section
+        - i.e. if you select data for range 'x' in file 'data1.csv', but a selection for that was already made and data is already there,
+        even if there are other ranges in the file, only data for range 'x' file 'data1.csv' will be overwritten,
+        and data for range 'y' in 'data1.csv' and range 'x' in 'data2.csv' will remain untouched
     - no matter which overtone is analyzed, the range selected there will apply to ALL overtones for statistical analysis
     - to run the statistical analysis, click the button in the smaller window where the range was indicated, after selecting a range in the plot
     
 - For linear Analysis
     - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
-    - selections from interactive plot will be exported to a csv file that are then used in the 'lin_reg.py' script
-    - for accurate modeling, ensure selecting same range of data consistently
+    - selections from interactive plot are calculated and will be exported to a csv file that are then used in the 'lin_reg.py' script
+    - more information of linear regression in 'lin_reg.py'    
 
 FUNCTIONS
 Basic: 
@@ -84,6 +90,8 @@ Interactive Plot:
 - option for interactive plot that opens figure of selected overtone to further analyze
     - can select a range of points of plot to zoom in and save to file for later
     - interactive plot range will be used to specify statistical data for linear analysis
+    - user indicates what range being selected, that range and the file containing current data,
+    are used to group ranges for analysis
 
 Analysis:
 - linear regression performed on DΓ vs n*Df using selection from interactive plot
@@ -109,15 +117,9 @@ WIP
 - small bugs
     - NONE (yet)
 - ERROR CHECKING?
-    - account for error if can't find valid time
-    - when inputting time, check for nearest time value,
-    in case time value not actually in data sheet
 - refactoring (putting into frames etc)
     - put columns into separate frames and refactor code to accomodate
         - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
-- range selected in interactive plot, will be used for all overtones in data modeling
-
-- ability to name selected ranges of data selection instead of just numbers
 
 - linear regression of overtones
     - JF - freq dependentshear film compliance = (slope of fit / (2pi*5) *10^3 )
