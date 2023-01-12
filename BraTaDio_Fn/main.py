@@ -8,6 +8,7 @@ from tkinter import *
 import sys
 import os
 from datetime import time
+import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -106,10 +107,7 @@ GUI features
 
 WIP
 - small bugs
-    - when submitting after first time,
-    if range select window was closed, will not reopen
-    - when resubmitting with int plot, range select does not work upon new plot window
-    - handle error when range selected, but that range not chosen to analyze
+    - NONE (yet)
 - ERROR CHECKING?
     - account for error if can't find valid time
     - when inputting time, check for nearest time value,
@@ -135,7 +133,7 @@ WIP
 
 
 MEETING QUESTIONS
-
+- propogation for mean of means
 '''
 
 
@@ -538,7 +536,7 @@ def err_check():
     '''Verify File Info'''
     # make sure file name was inputted
     if (file_name == '' or file_name == 'File name here (W/ EXTENSION)'):
-        print("File name not specified")
+        print("WARNING: File name not specified")
         sys.exit(1)
 
     if file_path == "Enter path to file (leave blank if in 'raw data' folder)":
@@ -546,7 +544,7 @@ def err_check():
 
     # verify baseline time entered, if only raw data box checked, no need to base time
     if will_plot_clean_data and abs_base_t0 == time(0,0,0) and abs_base_tf == time(0,0,0):
-        print("User indicated plot clean data,\ndid not enter baseline time")
+        print("WARNING: User indicated plot clean data,\ndid not enter baseline time")
         sys.exit(1)
 
     #verify data checks
@@ -565,30 +563,31 @@ def err_check():
     total_num_channels_tested = raw_num_channels_tested + clean_num_channels_tested
     # check if any channels were selected to test
     if total_num_channels_tested == 0:
-        print("User did not select any channels to plot")
+        print("WARNING: User did not select any channels to plot")
         sys.exit(1)
 
     # check if clean data was chosen, but no clean channels selected
     if will_plot_clean_data and clean_num_channels_tested == 0:
-        print("User indicated to plot clean channels,\ndid not indicate which")
+        print("WARNING: User indicated to plot clean channels,\ndid not indicate which")
         sys.exit(1)
 
     # check if raw data was chosen, but no raw data was selected
     if will_plot_raw_data and raw_num_channels_tested == 0:
-        print("User indicated to plot raw channels,\ndid not indicate which")
+        print("WARNING: User indicated to plot raw channels,\ndid not indicate which")
         sys.exit(1)
 
     # verify options
     if x_timescale == 'u':
-        print("User indicated to change timescale,\nbut did not specify what scale")
+        print("WARNING: User indicated to change timescale,\nbut did not specify what scale")
         sys.exit(1)
 
     if fig_format == 'u':
-        print("User indicated to change fig format,\nbut did not specify which")
+        print("WARNING: User indicated to change fig format,\nbut did not specify which")
         sys.exit(1)
 
-    if interactive_plot_overtone == 0:
-        print("User indicated to change fig format,\nbut did not specify which")
+    if interactive_plot_overtone == 0 and will_interactive_plot:
+        print("WARNING: User indicated interactive plot,\nbut did not specify which overtone to analyze")
+        sys.exit(1)
 
 
 def analyze_data():
@@ -662,6 +661,24 @@ def analyze_data():
         if will_save:
             plt.figure(fig_num).savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
+    def find_nearest_time(time, my_df, time_col_name):
+        # locate where baseline starts/ends
+        time_df = my_df[my_df[time_col_name].str.contains(time)]
+
+        # if exact time not in dataframe, find nearest one
+        # convert the last 2 digits (the seconds) into integers and increment by 1, mod by 10
+        # this method will find nearest time since time stamps are never more than 2 seconds apart
+        while(time_df.shape[0] == 0): # iterate until string found in time dataframe
+            ta = time[:7]
+            print(int(time[7:]))
+            tb = (int(time[7:]) + 1) % 10
+            print(ta, tb)
+            time = ta + str(tb)
+            time_df = my_df[my_df[time_col_name].str.contains(time)]
+        base_t0_ind = time_df.index[0]
+
+        return base_t0_ind
+
     '''Cleaning Data and plotting clean data'''
     if will_plot_clean_data:
         clean_freqs, clean_disps = get_channels('clean')
@@ -687,17 +704,20 @@ def analyze_data():
         else:
             clean_iters = len(clean_freqs)
             
+        # remove everything before baseline
+        base_t0_ind = find_nearest_time(t0_str, df, abs_time_col)
+        df = df[base_t0_ind:]
+        print(df)
+        df = df.reset_index(drop=True)
+        # find baseline and grab values from baseline for avg
+        base_tf_ind = find_nearest_time(tf_str, df, abs_time_col)
+        baseline_df = df[:base_tf_ind]
+        
         for i in range(clean_iters):
             # grab data from df and grab only columns we need, then drop nan values
             data_df = df[[abs_time_col,rel_time_col,clean_freqs[i],clean_disps[i]]]
             print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
             data_df = data_df.dropna(axis=0, how='any', inplace=False)
-
-            # locate where baseline starts/ends
-            base_t0_ind = data_df[data_df[abs_time_col].str.contains(t0_str)].index[0]
-            # remove everything before baseline
-            data_df = data_df[base_t0_ind:]
-            data_df = data_df.reset_index(drop=True)
 
             # normalize by overtone
             if will_normalize_F:
@@ -712,9 +732,6 @@ def analyze_data():
                     overtone = 9
                 data_df[clean_freqs[i]] /= overtone
 
-            # find baseline and grab values from baseline for avg
-            base_tf_ind = data_df[data_df[abs_time_col].str.contains(tf_str)].index[0]
-            baseline_df = data_df[:base_tf_ind]
             # compute average of rf and dis
             rf_base_avg = baseline_df[clean_freqs[i]].mean()
             dis_base_avg = baseline_df[clean_disps[i]].mean()

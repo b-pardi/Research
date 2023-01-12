@@ -16,7 +16,6 @@ README
     - see README there for more information
 
 - script begins with various statistical data from 'all_stats_rf/dis.csv'
-- grabs data into data frame and Transposes it for easier readability
 - For peak frequency values needed for calculation, enter values into 'calibration_peak_frequencies.txt'
     - otherwise indicate in GUI to use theoretical values, theoretical values will be used
 
@@ -29,15 +28,11 @@ README
             - note, frequency here refers to NOT baseline corrected frequency as it does in the x axis
         - calculates bandwidth defined above
         - propogates error of this calculation
+    - for x and y, values are grouped by ranges, and then data sources
+        - values are averaged across multiple experimental data sets, based on the range
+        - these averages are also propogated and the error calculated becomes the error bars in the plot
     - plots the values with error bars
-
-NOTES FOR LATER
-- fix mean propogation
-- averaging between files needed for dissipation
-    - works for frequency, except for propogation
-- ensure averages calculated are what is being plotted
-- nothing in main should need work. all data in stats csv files are usable
-
+    
 '''
 
 # pass in 3 dimensional array of data values
@@ -57,17 +52,21 @@ def propogate_mult_err(val, data):
     return (err)
 
 # pass in an array of mean values,
-# an 2d array of err vals where the ith inner err array correlates to the ith mean value
+# 2d array of err vals where the ith inner err array correlates to the ith mean value
 # n_vals is how many err vals each mean has
-# n_means is how many means will be propogated (essentially number of frequencies)
-def propogate_mean_err(means, errs, n_means, n_vals):
-    print(means, errs, n_means, n_vals,'\n')
+# n_means is how many means will be propogated (essentially number of overtones)
+def propogate_mean_err(means, errs, n_vals):
+    n_means = len(means)
     comp = 0
+    sigmas = []
+    # the new error is the square root of the sum of the squares of the errors and divide it by n_vals
     for i in range(n_means):
         for j in range(n_vals):
-            temp = ( errs[i][j] - means[i] )
-            print(temp)
-            comp += np.power()
+            comp += np.power( ( errs[j][i] ), 2 )
+        res = np.sqrt( comp/( n_vals-1 ) )
+        sigmas.append(res)
+
+    return sigmas
 
 def linear(x, m, b):
     return m * x + b
@@ -92,6 +91,7 @@ def linear_regression():
         #freqs = np.asarray([np.asarray(freq_list) for freq_list in freqs])
         calibration_freq = np.asarray([np.average(freq) for freq in freqs])
         sigma_calibration_freq = np.asarray([np.std(freq) for freq in freqs])
+        print(f"*** peak frequencies: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n")
 
     # grab and analyze data for each range and indicated by the label
     for label in labels:
@@ -104,7 +104,7 @@ def linear_regression():
         # i.e. average( <num from range 'x' source1>, <num from range 'x' source2>, ... )
         delta_freqs = []
         sigma_delta_freqs = []
-        for source in sources: # grabs data from 
+        for source in sources: # grabs data grouped by label and further groups into source
             rf_df_range = rf_df_ranges.loc[rf_df_ranges['data_source'] == source]
             delta_freqs.append(rf_df_range['Dfreq_mean'].values)
             sigma_delta_freqs.append(rf_df_range['Dfreq_std_dev'].values)
@@ -117,29 +117,35 @@ def linear_regression():
 
         mean_delta_freqs /= n_srcs
         n_mean_delta_freqs = [Df * (2*i+1) for i, Df in enumerate(mean_delta_freqs)] # 2i+1 corresponds to overtone number
-        # propogate error of the mean
-        sigma_n_mean_delta_freqs = propogate_mean_err(mean_delta_freqs, sigma_delta_freqs, n_srcs, len(mean_delta_freqs))
-
+        sigma_n_mean_delta_freqs = propogate_mean_err(mean_delta_freqs, sigma_delta_freqs, n_srcs)
         
-        print(f"*** rf for label: {label}:\n\tn*means: {n_mean_delta_freqs}\n\tstddev: {sigma_n_mean_delta_freqs}\n")
+        print(f"*** rf for label: {label}\n\tn*means: {n_mean_delta_freqs}\n\tstddev: {sigma_n_mean_delta_freqs}\n")
 
-        # grab and calculate y values and propogate err
-        dis_df_range = dis_df.loc[dis_df['range_used'] == label]
-        mean_delta_dis = dis_df_range['Ddis_mean'].values
-        sigma_mean_delta_dis = dis_df_range['Ddis_std_dev'].values
-        print(f"*** df for label: {label}:\n\tn*means: {mean_delta_dis}\n\tstddev: {sigma_mean_delta_dis}\n")
+        # grab and calculate y values and propogate err (same process as frequency)
+        dis_df_ranges = dis_df.loc[dis_df['range_used'] == label]
+        delta_dis = []
+        sigma_delta_dis = []
+        for source in sources: # grab vals
+            dis_df_range = dis_df_ranges.loc[dis_df_ranges['data_source'] == source]
+            delta_dis.append(dis_df_range['Ddis_mean'].values)
+            sigma_delta_dis.append(dis_df_range['Ddis_std_dev'].values)
+        
+        # avg and propogate vals
+        mean_delta_dis = np.zeros(delta_dis[0].shape)
+        for i in range(n_srcs):
+            mean_delta_dis += delta_dis[i]
+
+        mean_delta_dis /= n_srcs
+        sigma_mean_delta_dis = propogate_mean_err(mean_delta_dis, sigma_delta_dis, n_srcs)
+
+        print(f"*** dis for label: {label}:\n\tn*means: {mean_delta_dis}\n\tstddev: {sigma_mean_delta_dis}\n")
         
         # calculate bandwidth shift and propogate error for this calculation
         data = [[mean_delta_dis, sigma_mean_delta_dis], [calibration_freq, sigma_calibration_freq]]
-        print(data)
         delta_gamma = mean_delta_dis * calibration_freq / 2 # bandwidth shift, Γ
         sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
 
-        # print to verify results
-        print(f"\tn_mean_delta_freq: {n_mean_delta_freqs}; sigma_n_mean_delta_freq: {sigma_n_mean_delta_freqs};\n\
-        mean_delta_dis: {mean_delta_dis}; sigma_mean_delta_dis: {sigma_mean_delta_dis};\n\
-        mean_freq: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n\
-        delta_gamma: {delta_gamma}; sigma_delta_gamma: {sigma_delta_gamma};")
+        print(f"*** for label: {label}: \n\tdelta_gamma: {delta_gamma}; sigma_delta_gamma: {sigma_delta_gamma}\n")
 
         # performing the linear fit
         params, cov = curve_fit(linear, n_mean_delta_freqs, delta_gamma)
@@ -163,10 +169,10 @@ def linear_regression():
         plt.yticks(fontsize=14, fontfamily='Arial')
         plt.xlabel(r"overtone * change in frequency, $\it{nΔf_n}$ (Hz)", fontsize=16, fontfamily='Arial')
         plt.ylabel(r"Bandwidth Shift, $\mathit{\Gamma}$$_n$", fontsize=16, fontfamily='Arial')
-        plt.title("<placeholder title>", fontsize=16, fontfamily='Arial')
+        plt.title(f"Bandwidth Shift vs Overtone * delta frequency\nfor range: {label}", fontsize=16, fontfamily='Arial')
         
         lin_plot.tight_layout()
-        plt.show()
+        plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
     
 
 if __name__ == "__main__":
