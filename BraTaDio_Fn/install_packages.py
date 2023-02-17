@@ -21,9 +21,6 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install',
 'datetime'])
 
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
-'plotly'])
-
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
 'tk'])
 
 

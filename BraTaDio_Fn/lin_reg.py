@@ -9,32 +9,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-'''
-README
-
-- Data for this script is statistical data curated from the raw input data acquired in 'main.py'
-    - see README there for more information
-
-- script begins with various statistical data from 'all_stats_rf/dis.csv'
-- For peak frequency values needed for calculation, enter values into 'calibration_peak_frequencies.txt'
-    - otherwise indicate in GUI to use theoretical values, theoretical values will be used
-
-- LINEAR REGRESSION
-    - x axis is the overtone times its corresponding average change in frequency (n*Df)
-        - grabs the average Df values and multiplies each by its respective overtone
-        - also grabs the x_err, in this case just the std_dev of the mean
-    - y axis is the bandwidth shift Γ of each overtone (f*Dd)/2
-        - grabs average peak frequency and average change in dissipation values from calibration/theoretical data, and stats csv respectively
-            - note, frequency here refers to NOT baseline corrected frequency as it does in the x axis
-        - calculates bandwidth defined above
-        - propogates error of this calculation
-    - for x and y, values are grouped by ranges, and then data sources
-        - values are averaged across multiple experimental data sets, based on the range
-        - these averages are also propogated and the error calculated becomes the error bars in the plot
-    - plots the values with error bars and shows equation with slope
-    - NEED FORMULAS FOR Calculates G prime and JF (frequency dependent shear film compliance)
-    
-'''
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -64,8 +38,10 @@ def propogate_mean_err(means, errs, n_vals):
     for i in range(n_means):
         for j in range(n_vals):
             comp += np.power( ( errs[j][i] ), 2 )
-        res = np.sqrt( comp/( n_vals-1 ) )
-        sigmas.append(res)
+        if n_vals == 1:
+            sigmas.append(np.sqrt(comp))
+        else:
+            sigmas.append(np.sqrt( comp/( n_vals-1 ) ))
 
     return sigmas
 
@@ -143,6 +119,7 @@ def linear_regression():
         
         # calculate bandwidth shift and propogate error for this calculation
         data = [[mean_delta_dis, sigma_mean_delta_dis], [calibration_freq, sigma_calibration_freq]]
+        print(label, data)
         delta_gamma = mean_delta_dis * calibration_freq / 2 # bandwidth shift, Γ
         sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
 
@@ -154,31 +131,51 @@ def linear_regression():
         sign = '-' if b < 0 else '+'
 
         # setup plot
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='Arial')
+        plt.rc('font', family='sans-serif')
+        plt.rc('mathtext', fontset='stix', rm='serif')
+        plt.rc('\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}')
+        plt.rc('\DeclareUnicodeCharacter{0398}{\ensuremath{\Gamma}}')
         lin_plot = plt.figure()
+        plt.clf()
         plt.subplots_adjust(hspace=0.4)
         ax = lin_plot.add_subplot(1,1,1)
+        plt.cla()
 
         # plot data
         ax.plot(n_mean_delta_freqs, delta_gamma, 'o', markersize=8, label=f'average values for range: {label}')
         ax.errorbar(n_mean_delta_freqs, delta_gamma, xerr=sigma_n_mean_delta_freqs, yerr=sigma_delta_gamma, fmt='.', label='error in calculations')
         
-        # plot curve fit
+        # calculate linear fit data
         y_fit = linear(np.asarray(n_mean_delta_freqs), m, b)
-        ax.plot(n_mean_delta_freqs, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}')
+
+        # shear compliance
+        #shear_comp = -(b/(2*np.pi*5*1))*10^-3
+        #print(shear_comp)
+
+        # determine quality of the fit
+        squaredDiffs = np.square(delta_gamma - y_fit)
+        squaredDiffsFromMean = np.square(delta_gamma - np.mean(delta_gamma))
+        rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
+        print(f"R² = {rSquared}")
+
+        # plot curve fit
+        ax.plot(n_mean_delta_freqs, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}\nrsq = {rSquared:.4f}')
 
         # format plot
         plt.sca(ax)
         plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.3)
         plt.xticks(fontsize=14, fontfamily='Arial')
-        plt.yticks(fontsize=14, fontfamily='Arial')
-        plt.xlabel(r"overtone * change in frequency, $\it{nΔf_n}$ (Hz)", fontsize=16, fontfamily='Arial')
-        plt.ylabel(r"Bandwidth Shift, $\mathit{\Gamma}$$_n$", fontsize=16, fontfamily='Arial')
+        plt.yticks(fontsize=14, fontfamily='Arial') 
+        plt.xlabel(r"Overtone * Change in frequency, $\mathit{n\Delta}$$\mathit{f}$$_n$ (Hz)", fontsize=16, fontfamily='Arial')
+        plt.ylabel(r"Bandwidth shift, $\mathit{\Gamma}$$_n$", fontsize=16, fontfamily='Arial')
         plt.title(f"Bandwidth Shift vs N * Change in Frequency\nfor range: {label}", fontsize=16, fontfamily='Arial')
-        
+
         # save figure
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
-    
+        plt.rc('text', usetex=False)
 
 if __name__ == "__main__":
     linear_regression()

@@ -37,6 +37,7 @@ df = pd.read_excel('PAA soft and stiff gels_20221025_AriellSmith.xlsx')
 #d_fn = sns.scatterplot(x = 'Shear Strain in percent_soft gels allowed to polymerize between plates_ test conducted 20221022_sample3 [%]', y = 'Loss Modulus_soft gels_ allowed to polymerize between plate_constant frequency 1 Hz_test conducted 20221022_sample3 [Pa]', data = df, color = 'none', marker = 'o', edgecolor = 'orange', label = 'G\u2032\u2032,  Soft PAH_S3')
 
 ########################### AVERAGE OF ONLY FREQUENCY SWEEP FOR SOFT, INTERMEDIATE,and STIFF########################
+df['Storage Modulus_stiff gels_ allowed to polymerize between plate_ constant strain 1%_test conducted 20221025_average of all stiff PAH samples [Pa]'] /= 1000
 d_fn = sns.scatterplot(x = 'Frequency sweep_0.1-200 rads/s_stiff gels allowed to polymerize between plates_ test conducted 20221025_average of all stiff PAH samples [rad/s]', y = 'Storage Modulus_stiff gels_ allowed to polymerize between plate_ constant strain 1%_test conducted 20221025_average of all stiff PAH samples [Pa]', data = df, color = 'red', marker = 'o', edgecolor = 'red', label = 'G\u2032, Stiff PAH')
 d_fn = sns.scatterplot(x = 'Frequency sweep_0.1-200 rads/s_stiff gels allowed to polymerize between plates_ test conducted 20221025_average of all stiff PAH samples [rad/s]', y = 'Loss Modulus_stiff gels_ allowed to polymerize between plate_ constant strain 1%_test conducted 20221025_average of all stiff PAH samples [Pa]', data = df, color = 'none', marker = 'o', edgecolor = 'red', label = 'G\u2032\u2032, Stiff PAH')
 d_fn.errorbar(x = 'Frequency sweep_0.1-200 rads/s_stiff gels allowed to polymerize between plates_ test conducted 20221025_average of all stiff PAH samples [rad/s]', y = 'Storage Modulus_stiff gels_ allowed to polymerize between plate_ constant strain 1%_test conducted 20221025_average of all stiff PAH samples [Pa]', yerr = 'Storage Modulus_stiff gels_ allowed to polymerize between plate_ constant strain 1%_test conducted 20221025_STDDEV of all stiff PAH samples [Pa]', fmt='none', data = df,label='_hidden',color= 'red')
@@ -135,7 +136,7 @@ plt.ylim(.1, 150000)
 plt.xscale('log')
 plt.yscale('log')
 print(type(d_fn))
-d_fn.figure.tight_layout()
+#d_fn.figure.tight_layout()
 plt.savefig("SMLMVsfrequency.pdf", bbox_inches='tight', format="pdf")
 
 plt.show()
