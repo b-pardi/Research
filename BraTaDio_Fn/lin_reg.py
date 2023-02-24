@@ -120,6 +120,7 @@ def linear_regression():
         # calculate bandwidth shift and propogate error for this calculation
         data = [[mean_delta_dis, sigma_mean_delta_dis], [calibration_freq, sigma_calibration_freq]]
         print(label, data)
+        
         delta_gamma = mean_delta_dis * calibration_freq / 2 # bandwidth shift, Γ
         sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
 

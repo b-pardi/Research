@@ -1,3 +1,9 @@
+"""
+Author: Brandon Pardi
+Created: 2/19/2022, 10:46 am (to organize)
+Last Modified: 2/23/2022, 9:21 pm
+"""
+
 from tkinter import *
 import os
 from datetime import time
@@ -19,8 +25,8 @@ def analyze_data(input):
     '''Variable Declarations'''
     abs_time_col = 'Time'
     rel_time_col = 'Relative_time'
-    freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq']
-    disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis']
+    freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
+    disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
     t0_str = str(input.abs_base_t0).lstrip('0')
     tf_str = str(input.abs_base_tf).lstrip('0')
 
@@ -382,119 +388,119 @@ def analyze_data(input):
         def onselect1(xmin, xmax):
             if input.which_range_selecting == '':
                 print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
+            else:
+                # min and max indices are where elements should be inserted to maintain order
+                imin, imax = np.searchsorted(x_time, (xmin, xmax))
+                # range will be at most all elems in x, or imax
+                imax = min(len(x_time)-1, imax)
 
-            # min and max indices are where elements should be inserted to maintain order
-            imin, imax = np.searchsorted(x_time, (xmin, xmax))
-            # range will be at most all elems in x, or imax
-            imax = min(len(x_time)-1, imax)
+                # cursor x and y for zoomed plot and data range
+                zoomx = x_time[imin:imax]
+                zoomy1 = y_rf[imin:imax]
 
-            # cursor x and y for zoomed plot and data range
-            zoomx = x_time[imin:imax]
-            zoomy1 = y_rf[imin:imax]
+                # update data to newly spec'd range
+                zoom_plot1.set_data(zoomx, zoomy1)
+                
+                # set limits of tick marks
+                int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
+                int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
+                int_plot.canvas.draw_idle()
 
-            # update data to newly spec'd range
-            zoom_plot1.set_data(zoomx, zoomy1)
-            
-            # set limits of tick marks
-            int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
-            int_plot.canvas.draw_idle()
+                # check if label and file already exists and remove if it does before writing new data for that range
+                # this allows for overwriting of only the currently selected file and frequency,
+                # without having to append all data, or overwrite all data each time
+                save_flag = False
+                try: # try to open df from stats csv
+                    temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+                    if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
+                        temp_df = temp_df.loc[temp_df['range_used'] != '']
+                        save_flag = True
+                    if input.which_range_selecting in temp_df['range_used'].unique()\
+                    and input.file_name in temp_df['data_source'].unique():
+                        to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
+                                            & (temp_df['data_source'] == input.file_name))].index.values
+                        temp_df = temp_df.drop(index=to_drop)
+                        save_flag = True
+                    if save_flag:
+                        temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E", index=False)
+                except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
+                    print("rf stats file empty")
+                    with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
+                        header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+                        stat_file.write(header)
 
-            # check if label and file already exists and remove if it does before writing new data for that range
-            # this allows for overwriting of only the currently selected file and frequency,
-            # without having to append all data, or overwrite all data each time
-            save_flag = False
-            try: # try to open df from stats csv
-                temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
-                if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
-                    temp_df = temp_df.loc[temp_df['range_used'] != '']
-                    save_flag = True
-                if input.which_range_selecting in temp_df['range_used'].unique()\
-                and input.file_name in temp_df['data_source'].unique():
-                    to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
-                                        & (temp_df['data_source'] == input.file_name))].index.values
-                    temp_df = temp_df.drop(index=to_drop)
-                    save_flag = True
-                if save_flag:
-                    temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E", index=False)
-            except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
-                print("rf stats file empty")
+                # save statistical data to file
                 with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
-                    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
-                    stat_file.write(header)
-
-            # save statistical data to file
-            with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
-                # statistical analysis for all desired overtones using range of selection
-                for overtone, val in input.which_plot['clean'].items():
-                    # if value is true it was selected in gui, and we only want to analyze freqs here
-                    if val and overtone.__contains__('freq'):
-                        y_data = cleaned_df[overtone]
-                        y_sel = y_data[imin:imax]
-                        mean_y = np.average(y_sel)
-                        std_dev_y = np.std(y_sel)
-                        median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
-            
+                    # statistical analysis for all desired overtones using range of selection
+                    for overtone, val in input.which_plot['clean'].items():
+                        # if value is true it was selected in gui, and we only want to analyze freqs here
+                        if val and overtone.__contains__('freq'):
+                            y_data = cleaned_df[overtone]
+                            y_sel = y_data[imin:imax]
+                            mean_y = np.average(y_sel)
+                            std_dev_y = np.std(y_sel)
+                            median_y = np.median(y_sel)
+                            stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
+                
 
         def onselect2(xmin, xmax):
             if input.which_range_selecting == '':
                 print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
+            else:
+                # min and max indices are where elements should be inserted to maintain order
+                imin, imax = np.searchsorted(x_time, (xmin, xmax))
+                # range will be at most all elems in x, or imax
+                imax = min(len(x_time)-1, imax)
 
-            # min and max indices are where elements should be inserted to maintain order
-            imin, imax = np.searchsorted(x_time, (xmin, xmax))
-            # range will be at most all elems in x, or imax
-            imax = min(len(x_time)-1, imax)
+                # cursor x and y for zoomed plot and data range
+                zoomx = x_time[imin:imax]
+                zoomy2 = y_dis[imin:imax]
 
-            # cursor x and y for zoomed plot and data range
-            zoomx = x_time[imin:imax]
-            zoomy2 = y_dis[imin:imax]
+                # update data to newly spec'd range
+                zoom_plot2.set_data(zoomx, zoomy2)
+                
+                # set limits of tick marks
+                int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
+                int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
+                int_plot.canvas.draw_idle()
 
-            # update data to newly spec'd range
-            zoom_plot2.set_data(zoomx, zoomy2)
-            
-            # set limits of tick marks
-            int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
-            int_plot.canvas.draw_idle()
+                # check if label and file already exists and remove if it does before writing new data for that range
+                # this allows for overwriting of only the currently selected file and frequency,
+                # without having to append all data, or overwrite all data each time
+                save_flag = False
+                try: # try to open df from stats csv
+                    temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
+                    if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
+                        temp_df = temp_df.loc[temp_df['range_used'] != '']
+                        save_flag = True
+                    if input.which_range_selecting in temp_df['range_used'].unique()\
+                    and input.file_name in temp_df['data_source'].unique():
+                        to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
+                                            & (temp_df['data_source'] == input.file_name))].index.values
+                        temp_df = temp_df.drop(index=to_drop)
+                        save_flag = True
+                    if save_flag:
+                        temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E", index=False)
+                except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
+                    print("dis stats file empty")
+                    with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
+                        header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+                        stat_file.write(header)
 
-            # check if label and file already exists and remove if it does before writing new data for that range
-            # this allows for overwriting of only the currently selected file and frequency,
-            # without having to append all data, or overwrite all data each time
-            save_flag = False
-            try: # try to open df from stats csv
-                temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
-                if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
-                    temp_df = temp_df.loc[temp_df['range_used'] != '']
-                    save_flag = True
-                if input.which_range_selecting in temp_df['range_used'].unique()\
-                and input.file_name in temp_df['data_source'].unique():
-                    to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
-                                        & (temp_df['data_source'] == input.file_name))].index.values
-                    temp_df = temp_df.drop(index=to_drop)
-                    save_flag = True
-                if save_flag:
-                    temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E", index=False)
-            except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
-                print("dis stats file empty")
+
+                # save statistical data to file
                 with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
-                    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
-                    stat_file.write(header)
-
-
-            # save statistical data to file
-            with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
-                # statistical analysis for all desired overtones using range of selection
-                for overtone, val in input.which_plot['clean'].items():
-                    # if value is true it was selected in gui, and we only want to analyze freqs here
-                    if val and overtone.__contains__('dis'):
-                        y_data = cleaned_df[overtone]
-                        y_sel = y_data[imin:imax]
-                        y_temp_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
-                        mean_y = np.average(y_temp_sel)
-                        std_dev_y = np.std(y_temp_sel)
-                        median_y = np.median(y_temp_sel)
-                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
+                    # statistical analysis for all desired overtones using range of selection
+                    for overtone, val in input.which_plot['clean'].items():
+                        # if value is true it was selected in gui, and we only want to analyze freqs here
+                        if val and overtone.__contains__('dis'):
+                            y_data = cleaned_df[overtone]
+                            y_sel = y_data[imin:imax]
+                            y_temp_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
+                            mean_y = np.average(y_temp_sel)
+                            std_dev_y = np.std(y_temp_sel)
+                            median_y = np.median(y_temp_sel)
+                            stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,

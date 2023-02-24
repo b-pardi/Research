@@ -132,15 +132,6 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-WIP
-- refactoring (putting into frames etc)
-    - put columns into separate frames and refactor code to accomodate
-        - i.e. remove all grid forgets and replace them with grid_forgets of that frame to simplify and scale
-
-- linear regression of overtones
-    - JF - freq dependentshear film compliance = (slope of fit / (2pi*5) *10^3 )
-        - 5 representing fundamental freq with unit conversion
-
 - link 2 span selectors together to ensure same data points are taken from frequency and dissipation
 
 - !!! git functionality to convert other data formats to that of bratadio
@@ -149,10 +140,6 @@ WIP
     - add option to indicate if abs or rel time and adjust for rel time
     - write separate script to convert data to bratadio format for each option, and then save as copy to use for the analysis
 
-- !!! adjust code to account for up to 13th overtone
-    - add more checkboxes in main window
-    - ask in first col for largest ov working with
-    - refactor analysis code (which_plots) to work for higher ov
 
 MEETING QUESTIONS
-- mirrored selections from rf to dis so selection is same
+- na
