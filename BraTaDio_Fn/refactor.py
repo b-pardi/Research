@@ -174,7 +174,7 @@ class App(tk.Tk):
         self.col5 = Col5 # interactive plot options
 
         # define and pack frames
-        for f in {Col1, Col2, Col3, Col4, Col5}:
+        for f in [Col1, Col2, Col3, Col4, Col5]:
             frame = f(self, container)
             self.frames[f] = frame
             print(f)
@@ -187,6 +187,8 @@ class App(tk.Tk):
             if frame.is_visible:
                 print(frame)
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
+            else:
+                frame.grid_forget()
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
@@ -590,6 +592,7 @@ class Col4(tk.Frame):
             self.parent.repack_frames()
             self.interactive_plot_opts.grid(row=6, column=4)
         else:
+            print("ELSE")
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.frames[Col5].is_visible = False
@@ -599,49 +602,12 @@ class Col4(tk.Frame):
     def submit(self):
         err_check()
         clear_figures()
-
-        # only want new window to open once, not every time analysis is run
         global input
-
-        # open secondary window with range selections for interactive plot
-        if input.will_interactive_plot:
-            input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
-            
-            # define and place entry for range options
-            which_range_label = tk.Label(range_select_window, text="Enter which range being selected\n(use identifier of your choosing; i.e. numbers or choice of label)" )
-            which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
-            which_range_entry = tk.Entry(range_select_window, width=10, bg='white')
-            which_range_entry.grid(row=3, column=0, pady=(2,4))
-
-            # prompt to use theoretical or calibration values for peak frequency
-            theoretical_or_calibration_frame = tk.Frame(range_select_window)
-            theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
-            theoretical_or_calibration_var = tk.IntVar()
-            theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or calibration peak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
-            theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
-            theoretical_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
-            theoretical_radio.grid(row=6, column=0, pady=(2,4))
-            calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='calibration', variable=theoretical_or_calibration_var, value=0)
-            calibration_radio.grid(row=6, column=1, pady=(2,4))
-
-            # run analysis button
-            run_meta_analysis_button = tk.Button(range_select_window, text="Run meta analysis\nof overtones", padx=6, pady=4, command=linear_regression)
-            run_meta_analysis_button.grid(row=7, column=0, pady=4)
-
-            # when interactive plot window opens, grabs number of range from text field
-            def confirm_range():
-                global input
-                input.which_range_selecting = which_range_entry.get()
-                input.will_use_theoretical_vals = theoretical_or_calibration_var
-
-                print(f"Confirmed range: {input.which_range_selecting}")
-
-            # button to submit range selected
-            which_range_submit = tk.Button(range_select_window, text='Confirm Range', padx=10, pady=4, command=confirm_range)
-            which_range_submit.grid(row=4, column=0, pady=4)
-            input.range_frame_flag = True
+        col5 = self.parent.frames[Col5]
+        input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
         analyze_data(input)
+
 
 
 class Col5(tk.Frame):
@@ -649,8 +615,45 @@ class Col5(tk.Frame):
         super().__init__(container)
         self.col_position = 4
         self.is_visible = input.range_frame_flag
+        self.parent = parent
+        col4 = self.parent.frames[Col4]
         range_label = tk.Label(self, text="Choose which section of graph\nis being selected for file saving:")
         range_label.grid(row=0, column=0, padx=10, pady=(8,16))
+        # open secondary window with range selections for interactive plot
+        
+        # define and place entry for range options
+        which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing; i.e. numbers or choice of label)" )
+        which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
+        which_range_entry = tk.Entry(self, width=10, bg='white')
+        which_range_entry.grid(row=3, column=0, pady=(2,4))
+
+        # prompt to use theoretical or calibration values for peak frequency
+        theoretical_or_calibration_frame = tk.Frame(self)
+        theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
+        theoretical_or_calibration_var = tk.IntVar()
+        theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or calibration peak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
+        theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
+        theoretical_radio.grid(row=6, column=0, pady=(2,4))
+        calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='calibration', variable=theoretical_or_calibration_var, value=0)
+        calibration_radio.grid(row=6, column=1, pady=(2,4))
+
+        # run analysis button
+        run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4, command=linear_regression)
+        run_meta_analysis_button.grid(row=7, column=0, pady=4)
+
+        # when interactive plot window opens, grabs number of range from text field
+        def confirm_range():
+            global input
+            input.which_range_selecting = which_range_entry.get()
+            input.will_use_theoretical_vals = theoretical_or_calibration_var
+
+            print(f"Confirmed range: {input.which_range_selecting}")
+
+        # button to submit range selected
+        which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=confirm_range)
+        which_range_submit.grid(row=4, column=0, pady=4)
+        input.range_frame_flag = True
 
 
 menu = App()
