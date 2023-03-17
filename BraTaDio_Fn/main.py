@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
 Created: 9/7/2022, 1:53 pm
-Last Modified: 2/23/2022, 9:21 pm
+Last Modified: 3/8/2022, 9:16 pm
 """
 
 import tkinter as tk
@@ -11,6 +11,7 @@ from datetime import time
 import inspect
 
 from analyze import analyze_data, clear_figures
+from format_file import format_raw_data
 from lin_reg import *
 
 '''
@@ -29,6 +30,8 @@ class Input:
         self.will_overwrite_file = False # if user wants copy of data data saved after processing
         self.abs_base_t0 = time(0, 0, 0) # beginning of baseline time
         self.abs_base_tf = time(0, 0, 0) # end of baseline time
+        self.rel_t0 = 0
+        self.rel_tf = 0
         self.fig_format = 'png' # format to save figures that can be changed in the gui to tiff or pdf
         self.x_timescale = 's' # change scale of time of x axis of plots from seconds to either minutes or hours
         self.will_plot_dF_dD_together = False # indicates if user selected multi axis plot of dis and freq
@@ -40,6 +43,10 @@ class Input:
         self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
         self.will_use_theoretical_vals = False # indicates if using calibration data or theoretical values for peak frequencies
         self.range_frame_flag = False
+        self.first_run = True
+        self.latex_installed = False
+        self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
+        self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                             '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
                             '9th_freq': False, '9th_dis': False, '11th_freq': False, '11th_dis': False,
@@ -99,7 +106,7 @@ def err_check():
         input.file_path = ""
 
     # verify baseline time entered, if only raw data box checked, no need to base time
-    if input.will_plot_clean_data and input.abs_base_t0 == time(0,0,0) and input.abs_base_tf == time(0,0,0):
+    if (not input.is_relative_time and input.will_plot_clean_data) and input.abs_base_t0 == time(0,0,0) and input.abs_base_tf == time(0,0,0):
         print("WARNING: User indicated plot clean data,\ndid not enter baseline time")
         sys.exit(1)
 
@@ -156,9 +163,11 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__() # initialize parent class for the child
 
-        self.title = 'BraTaDio QCMd Expert'
+        self.title('BraTaDio - Quartz Crystal Microbalance Analysis Tool')
         self.iconphoto(False, tk.PhotoImage(file="res/m3b_comp.png"))
-        
+        #self.configure(bg=DARKEST)
+        #self.tk_setPalette(background=DARKEST, foreground=WHITE)
+
         # defining containers
         container = tk.Frame(self)
         container.pack(side='top', fill='both', expand=True)
@@ -190,6 +199,7 @@ class App(tk.Tk):
             else:
                 frame.grid_forget()
 
+
 class Col1(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
@@ -198,61 +208,24 @@ class Col1(tk.Frame):
         file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
         file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
         
-        self.file_name_entry = tk.Entry(self, width=40, bg='white', fg='gray')
+        self.file_name_entry = tk.Entry(self, width=40)
         self.file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
         #self.file_name_entry.insert(0, "File name here (W/ EXTENSION)")
-        self.file_name_entry.insert(0, "sample2.csv")
+        self.file_name_entry.insert(0, "qcmi_sample.txt")
         self.file_name_entry.bind("<FocusIn>", self.handle_fn_focus_in)
         self.file_name_entry.bind("<FocusOut>", self.handle_fn_focus_out)
 
-        self.file_path_entry = tk.Entry(self, width=40, bg='white', fg='gray')
+        self.file_path_entry = tk.Entry(self, width=40)
         self.file_path_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
         self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")
         self.file_path_entry.bind("<FocusIn>", self.handle_fp_focus_in)
         self.file_path_entry.bind("<FocusOut>", self.handle_fp_focus_out)
 
-        self.file_overwrite_var = tk.IntVar()
-        self.file_overwrite_check = tk.Checkbutton(self, text='New file with processed data?', variable=self.file_overwrite_var, onvalue=1, offvalue=0, pady=10)
-        self.file_overwrite_check.grid(row=5, column=0)
-
-        self.baseline_frame = tk.Frame(self)
-        self.baseline_time_label = tk.Label(self, text="Enter absolute baseline time")
-        self.baseline_time_label.grid(row=6, column=0)
-
-        self.baseline_frame.grid(row=7, column=0, columnspan=1)
-        self.hours_label_t0 = tk.Label(self.baseline_frame, text="H0: ")
-        self.hours_label_t0.grid(row=0, column=0)
-        self.hours_entry_t0 = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.hours_entry_t0.grid(row=0, column=1)
-        self.minutes_label_t0 = tk.Label(self.baseline_frame, text="M0: ")
-        self.minutes_label_t0.grid(row=0, column=2)
-        self.minutes_entry_t0 = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.minutes_entry_t0.grid(row=0, column=3)
-        self.seconds_label_t0 = tk.Label(self.baseline_frame, text="S0: ")
-        self.seconds_label_t0.grid(row=0, column=4)
-        self.seconds_entry_t0 = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.seconds_entry_t0.grid(row=0, column=5)
-
-        self.hours_label_tf = tk.Label(self.baseline_frame, text="Hf: ")
-        self.hours_label_tf.grid(row=1, column=0)
-        self.hours_entry_tf = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.hours_entry_tf.grid(row=1, column=1)
-        self.minutes_label_tf = tk.Label(self.baseline_frame, text="Mf: ")
-        self.minutes_label_tf.grid(row=1, column=2)
-        self.minutes_entry_tf = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.minutes_entry_tf.grid(row=1, column=3)
-        self.seconds_label_tf = tk.Label(self.baseline_frame, text="Sf: ")
-        self.seconds_label_tf.grid(row=1, column=4)
-        self.seconds_entry_tf = tk.Entry(self.baseline_frame, width=5, bg='white', fg='gray')
-        self.seconds_entry_tf.grid(row=1, column=5)
-
-        #temp inserts to not have to reenter data every test
-        self.seconds_entry_t0.insert(0, "28")
-        self.minutes_entry_t0.insert(0, "26")
-        self.hours_entry_t0.insert(0, "16")
-        self.seconds_entry_tf.insert(0, "18")
-        self.minutes_entry_tf.insert(0, "36")
-        self.hours_entry_tf.insert(0, "16")
+        self.file_src_frame = srcFileFrame(self)
+        self.file_src_frame.grid(row=4, column=0, pady=(16,8))
+        self.rel_time_input = relTimeInputFrame(self)
+        self.abs_time_input = absTimeInputFrame(self)
+        self.abs_time_input.grid(row=6, column=0)
 
         self.cleared_label = tk.Label(self, text="Cleared!")
         self.submitted_label = tk.Label(self, text="Submitted!")
@@ -285,38 +258,28 @@ class Col1(tk.Frame):
             self.file_path_entry.config(fg='gray')
             self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")    
 
+    def blit_time_input_frame(self, is_relative_time):
+        if is_relative_time:
+            self.abs_time_input.grid_forget()
+            self.rel_time_input.grid(row=6, column=0)
+        else:
+            self.rel_time_input.grid_forget()
+            self.abs_time_input.grid(row=6, column=0)
+
     def col_names_submit(self):
         global input
+        input.first_run = True
         input.file_name = self.file_name_entry.get()
         input.file_path = self.file_path_entry.get()
-        if self.file_overwrite_var.get() == 1:
-            input.will_overwrite_file = True
+        
+        input.file_src_type = self.file_src_frame.file_src_type
+        if input.is_relative_time:
+            input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
         else:
-            input.will_overwrite_file = False
-
-        h0 = self.hours_entry_t0.get()
-        m0 = self.minutes_entry_t0.get()
-        s0 = self.seconds_entry_t0.get()
-        hf = self.hours_entry_tf.get()
-        mf = self.minutes_entry_tf.get()
-        sf = self.seconds_entry_tf.get()
-        if(h0 == '' and m0 == '' and s0 == ''):
-            h0 = 0
-            m0 = 0
-            s0 = 0
-        if(hf == '' and mf == '' and sf == ''):
-            hf = 0
-            mf = 0
-            sf = 0
-        try:
-            input.abs_base_t0 = time(int(h0),int(m0),int(s0))
-            input.abs_base_tf = time(int(hf),int(mf),int(sf))
-        except ValueError as exc:
-            self.err_label.grid(row=20, column=0)
-            print(f"Please enter integer values for time: {exc}")
+            input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
+        
         self.submitted_label.grid(row=13, column=0)
         self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
-
 
     def clear_file_data(self):
         global input
@@ -325,18 +288,112 @@ class Col1(tk.Frame):
         self.cleared_label.grid(row=12, column=0)
         self.file_name_entry.delete(0, tk.END)
         self.file_path_entry.delete(0, tk.END)
+        self.abs_time_input.clear()
+        self.rel_time_input.clear()
+        self.submitted_label.grid_forget()
+
+class srcFileFrame(tk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+        self.container = container
+        self.file_src_types = ['QCM-d', 'QCM-i', 'Qsense']
+        self.file_src_type = ''
+        file_src_label = tk.Label(self, text="What is the source of the data file?")
+        file_src_label.grid(row=0, column=0, columnspan=3, pady=(0,4), padx=6)
+        self.file_src_var = tk.IntVar(value=5) # set value to one not in radios, so none selected by default
+        self.opt1_radio = tk.Radiobutton(self, text="QCM-D", variable=self.file_src_var, value=0, command=self.handle_radios)
+        self.opt1_radio.grid(row=1, column=0)
+        self.opt2_radio = tk.Radiobutton(self, text="QCM-I ", variable=self.file_src_var, value=1, command=self.handle_radios)
+        self.opt2_radio.grid(row=1, column=1)
+        self.opt3_radio = tk.Radiobutton(self, text="QSense ", variable=self.file_src_var, value=2, command=self.handle_radios)
+        self.opt3_radio.grid(row=1, column=2)
+
+    def handle_radios(self):
+        self.file_src_type = self.file_src_types[self.file_src_var.get()]
+        if self.file_src_type == 'QCM-d':
+            input.is_relative_time = False
+        elif self.file_src_type == 'QCM-i' or self.file_src_type == 'Qsense':
+            input.is_relative_time = True
+        self.container.blit_time_input_frame(input.is_relative_time)
+
+
+class absTimeInputFrame(tk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+        baseline_time_label = tk.Label(self, text="Enter absolute baseline time")
+        baseline_time_label.grid(row=0, column=0, columnspan=6)
+        self.hours_label_t0 = tk.Label(self, text="H0: ")
+        self.hours_label_t0.grid(row=1, column=0)
+        self.hours_entry_t0 = tk.Entry(self, width=5)
+        self.hours_entry_t0.grid(row=1, column=1)
+        self.minutes_label_t0 = tk.Label(self, text="M0: ")
+        self.minutes_label_t0.grid(row=1, column=2)
+        self.minutes_entry_t0 = tk.Entry(self, width=5)
+        self.minutes_entry_t0.grid(row=1, column=3)
+        self.seconds_label_t0 = tk.Label(self, text="S0: ")
+        self.seconds_label_t0.grid(row=1, column=4)
+        self.seconds_entry_t0 = tk.Entry(self, width=5)
+        self.seconds_entry_t0.grid(row=1, column=5)
+
+        self.hours_label_tf = tk.Label(self, text="Hf: ")
+        self.hours_label_tf.grid(row=2, column=0)
+        self.hours_entry_tf = tk.Entry(self, width=5)
+        self.hours_entry_tf.grid(row=2, column=1)
+        self.minutes_label_tf = tk.Label(self, text="Mf: ")
+        self.minutes_label_tf.grid(row=2, column=2)
+        self.minutes_entry_tf = tk.Entry(self, width=5)
+        self.minutes_entry_tf.grid(row=2, column=3)
+        self.seconds_label_tf = tk.Label(self, text="Sf: ")
+        self.seconds_label_tf.grid(row=2, column=4)
+        self.seconds_entry_tf = tk.Entry(self, width=5)
+        self.seconds_entry_tf.grid(row=2, column=5)
+
+    def get_abs_time(self):
+        h0 = self.hours_entry_t0.get()
+        m0 = self.minutes_entry_t0.get()
+        s0 = self.seconds_entry_t0.get()
+        hf = self.hours_entry_tf.get()
+        mf = self.minutes_entry_tf.get()
+        sf = self.seconds_entry_tf.get()
+
+        try:
+            return (time(int(h0),int(m0),int(s0)), time(int(hf),int(mf),int(sf)))
+        except ValueError as exc:
+            print(f"Please enter integer values for time: {exc}")
+
+    def clear(self):
         self.hours_entry_t0.delete(0, tk.END)
         self.minutes_entry_t0.delete(0, tk.END)
         self.seconds_entry_t0.delete(0, tk.END)
         self.hours_entry_tf.delete(0, tk.END)
         self.minutes_entry_tf.delete(0, tk.END)
         self.seconds_entry_tf.delete(0, tk.END)
-        self.file_overwrite_var.set(0)
-        self.submitted_label.grid_forget()
 
-class Time_Input(tk.Frame):
-    def __init__(self, parent, container):
+class relTimeInputFrame(tk.Frame):
+    def __init__(self, container):
         super().__init__(container)
+        baseline_time_label = tk.Label(self, text="Enter relative baseline time")
+        baseline_time_label.grid(row=0, column=0, columnspan=2)
+        self.t0_label = tk.Label(self, text="t0 (s): ")
+        self.t0_label.grid(row=1, column=0)
+        self.t0_entry = tk.Entry(self, width=5)
+        self.t0_entry.grid(row=1, column=1)
+        self.tf_label = tk.Label(self, text="tf (s): ")
+        self.tf_label.grid(row=2, column=0)
+        self.tf_entry = tk.Entry(self, width=5)
+        self.tf_entry.grid(row=2, column=1)
+
+    def get_rel_time(self):
+        try:
+            t0 = self.t0_entry.get()
+            tf = self.tf_entry.get()
+        except Exception as exc:
+            print(f"ERROR: please enter valid relative time input in seconds\n{exc}")
+        return t0, tf
+
+    def clear(self):
+        self.t0_entry.delete(0, tk.END)
+        self.tf_entry.delete(0, tk.END)
 
 class CheckBox:
     def __init__(self, intvar, checkbutton, key):
@@ -477,6 +534,7 @@ class Col4(tk.Frame):
         self.is_visible = True
         self.parent = parent
         self.container = container
+        self.first_run = True
         self.plot_options_label = tk.Label(self, text="Options for plots", font=('TkDefaultFont', 12, 'bold'))
         self.plot_options_label.grid(row=0, column=4, pady=(14,16), padx=(0,6))
 
@@ -600,13 +658,17 @@ class Col4(tk.Frame):
             self.interactive_plot_opts.grid_forget()
 
     def submit(self):
-        err_check()
-        clear_figures()
         global input
+        err_check()
+        if input.first_run:
+            format_raw_data(input.file_src_type, input.file_name, input.file_path)
+        clear_figures()
         col5 = self.parent.frames[Col5]
-        input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
+        if col5.is_visible:
+            input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
         analyze_data(input)
+        input.first_run = False
 
 
 
@@ -616,32 +678,32 @@ class Col5(tk.Frame):
         self.col_position = 4
         self.is_visible = input.range_frame_flag
         self.parent = parent
-        col4 = self.parent.frames[Col4]
         header_label = tk.Label(self, text="Interactive Plot Details", font=('TkDefaultFont', 12, 'bold'))
         header_label.grid(row=0, column=0, pady=(14,16), padx=(0,6))
-        range_label = tk.Label(self, text="Choose which section of graph\nis being selected for file saving:")
-        range_label.grid(row=1, column=0, padx=10, pady=(8,16))
+        range_label = tk.Label(self, text="NOTE: Visit this section AFTER Submitting")
+        range_label.grid(row=1, column=0, padx=10, pady=(0,8))
         # open secondary window with range selections for interactive plot
         
         # define and place entry for range options
         which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
         which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
-        which_range_entry = tk.Entry(self, width=10, bg='white')
+        which_range_entry = tk.Entry(self, width=10)
         which_range_entry.grid(row=3, column=0, pady=(2,4))
 
         # prompt to use theoretical or calibration values for peak frequency
         theoretical_or_calibration_frame = tk.Frame(self)
         theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
         theoretical_or_calibration_var = tk.IntVar()
-        theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or calibration\npeak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
+        theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or measured\npeak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
         theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
         theoretical_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
         theoretical_radio.grid(row=6, column=0, pady=(2,4))
-        calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='calibration', variable=theoretical_or_calibration_var, value=0)
+        calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='measured', variable=theoretical_or_calibration_var, value=0)
         calibration_radio.grid(row=6, column=1, pady=(2,4))
 
         # run analysis button
-        run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4, command=linear_regression)
+        run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4,
+                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
         run_meta_analysis_button.grid(row=7, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field

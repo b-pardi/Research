@@ -19,9 +19,9 @@ def open_df_from_file(fn, fp):
         elif ext == '.txt':
             df = pd.read_csv(f"{fp}/{fn+ext}", sep='\t')
         elif ext == '.xls':
-            df = pd.read_excel(f"{fp}/{fn}", engine='xlrd')
+            df = pd.read_excel(f"{fp}/{fn+ext}", engine='xlrd')
         elif ext =='.xlsx':
-            df = pd.read_excel(f"{fp}/{fn}", engine='openpyxl')
+            df = pd.read_excel(f"{fp}/{fn+ext}", engine='openpyxl')
         else:
             print("invalid file format or path, please use either .csv, .xls, .xlsx, or .txt (with tab delimiter)")
             sys.exit(-1)
@@ -35,7 +35,8 @@ def open_df_from_file(fn, fp):
 # and converts to singular format usable by analysis script for consistency
 def format_QCMd(df):
     if 'Frequency_0' in df.columns:
-        df.rename(columns={'Frequency_0':freqs[0],'Dissipation_0':disps[0],
+        df.rename(columns={'Time':'abs_time', 'Relative_time':'Time',
+        'Frequency_0':freqs[0],'Dissipation_0':disps[0],
         'Frequency_1':freqs[1], 'Dissipation_1':disps[1],
         'Frequency_2':freqs[2], 'Dissipation_2':disps[2],
         'Frequency_3':freqs[3], 'Dissipation_3':disps[3],
@@ -72,7 +73,7 @@ def format_Qsense(df):
     print("Qsense selected")
     df = df.iloc[:, :-2]
 
-    if 'Frequency_0' in df.columns:
+    if 'F_1:1' in df.columns:
         df.rename(columns={'Time_1':'Time',
         'F_1:1':freqs[0], 'D_1:1':disps[0],
         'F_1:3':freqs[1], 'D_1:3':disps[1],

@@ -1,7 +1,7 @@
 """
 Author: Brandon Pardi
-Created: 2/19/2022, 10:46 am (to organize)
-Last Modified: 2/23/2022, 9:21 pm
+Created: 2/19/2022, 10:46 am (result of refactor)
+Last Modified: 3/11/2022, 9:21 pm
 """
 
 from tkinter import *
@@ -21,10 +21,75 @@ def clear_figures():
         plt.figure(i)
         plt.clf()
 
+# check if label and file already exists and remove if it does before writing new data for that range
+# this allows for overwriting of only the currently selected file and frequency,
+# without having to append all data, or overwrite all data each time
+def prepare_stats_file(freq_or_dis, which_range, src_fn, stats_fn):
+    save_flag = False # flag determines if file will need to be saved or not after opening df
+    try: # try to open df from stats csv
+        temp_df = pd.read_csv(f"selected_ranges/{stats_fn}")
+        if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
+            temp_df = temp_df.loc[temp_df['range_used'] != '']
+            save_flag = True
+        if which_range in temp_df['range_used'].unique()\
+        and src_fn in temp_df['data_source'].unique():
+            to_drop = temp_df.loc[((temp_df['range_used'] == which_range)\
+                                & (temp_df['data_source'] == src_fn))].index.values
+            temp_df = temp_df.drop(index=to_drop)
+            save_flag = True
+        if save_flag:
+            temp_df.to_csv(f"selected_ranges/{stats_fn}", float_format="%.16E", index=False)
+    except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
+        print("stats file empty")
+        with open(f"selected_ranges/{stats_fn}", 'a') as stat_file:
+            if freq_or_dis == 'dis':
+                header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+            elif freq_or_dis == 'freq':
+                header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+            stat_file.write(header)
+
+def range_statistics(df, imin, imax, overtone_sel, which_range, fn):
+    which_overtones = []
+    for ov in overtone_sel:
+        if ov[1]:
+            which_overtones.append(ov[0])
+        
+    dis_stat_file = open(f"selected_ranges/all_stats_dis.csv", 'a')
+    rf_stat_file = open(f"selected_ranges/all_stats_rf.csv", 'a')
+    # statistical analysis for all desired overtones using range of selection
+    for overtone in overtone_sel:
+        ov = overtone[0] # label of current overtone
+        if overtone[1]: # if current overtone selected for plotting
+            y_data = df[ov]
+            y_sel = y_data[imin:imax]
+            if ov.__contains__('dis'):
+                y_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
+            mean_y = np.average(y_sel)
+            std_dev_y = np.std(y_sel)
+            median_y = np.median(y_sel)
+        
+            if ov.__contains__('freq'):
+                rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
+
+            elif ov.__contains__('dis'):
+                dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
+        
+        else:
+            print(f"TEST********\n{overtone_sel}\n{ov}\n\nTEST*********")
+            if ov.__contains__('freq'):
+                rf_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
+
+            elif ov.__contains__('dis'):
+                dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
+        
+    dis_stat_file.close()
+    rf_stat_file.close()
+
 def analyze_data(input):
     '''Variable Declarations'''
-    abs_time_col = 'Time'
-    rel_time_col = 'Relative_time'
+    time_col = 'Time' # relative time
+    abs_time_col = 'abs_time' # for qcmd with abs and rel time
+
     freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
     disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
     t0_str = str(input.abs_base_t0).lstrip('0')
@@ -36,26 +101,15 @@ def analyze_data(input):
 
 
     # grab singular file and create dataframe from it
-    if input.file_path == "":
-        df = pd.read_csv(f"raw_data/{input.file_name}")
-    else:
-        df = pd.read_csv(f"{input.file_path}/{input.file_name}")
-    df = df.dropna()
-
-    '''Rename Columns'''
-    # check if an original column name is in df
-    # if it is, all columns must be renamed
-    if 'Frequency_0' in df.columns:
-        df.rename(columns={'Frequency_0':freqs[0],'Dissipation_0':disps[0],
-        'Frequency_1':freqs[1], 'Dissipation_1':disps[1],
-        'Frequency_2':freqs[2], 'Dissipation_2':disps[2],
-        'Frequency_3':freqs[3], 'Dissipation_3':disps[3],
-        'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
-        df.to_csv(f"raw_data/{input.file_name}", index=False)
+    input.file_name, _ = os.path.splitext(input.file_name)
+    df = pd.read_csv(f"raw_data/Formatted-{input.file_name}.csv")
+    #df = df.dropna()
 
     # assign colors to overtones
-    color_map_freq = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green', '7th_freq':'red', '9th_freq':'purple'}
-    color_map_dis = {'fundamental_dis':'blue', '3rd_dis':'orange', '5th_dis':'green', '7th_dis':'red', '9th_dis':'purple'}
+    color_map_freq = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green',
+                      '7th_freq':'red', '9th_freq':'purple', '11th_freq':'aqua', '13th_freq':'pink'}
+    color_map_dis = {'fundamental_dis':'blue', '3rd_dis':'orange', '5th_dis':'green',
+                     '7th_dis':'red', '9th_dis':'purple', '11th_dis':'aqua', '13th_dis':'pink'}
 
     # function fills list of channels selected to be clean plot from gui
     def get_channels(scrub_level):
@@ -96,19 +150,24 @@ def analyze_data(input):
     def find_nearest_time(time, my_df, time_col_name):
         # locate where baseline starts/ends
         print(time, my_df, time_col_name)
-        time_df = my_df[my_df[time_col_name].str.contains(time)]
+        if input.is_relative_time:
+            time_df = my_df.iloc[(my_df[time_col_name] - int(time)).abs().argsort()[:1]]
+            base_t0_ind = time_df.index[0]
 
-        # if exact time not in dataframe, find nearest one
-        # convert the last 2 digits (the seconds) into integers and increment by 1, mod by 10
-        # this method will find nearest time since time stamps are never more than 2 seconds apart
-        while(time_df.shape[0] == 0): # iterate until string found in time dataframe
-            ta = time[:7]
-            print(int(time[7:]))
-            tb = (int(time[7:]) + 1) % 10
-            print(ta, tb)
-            time = ta + str(tb)
+        else:
             time_df = my_df[my_df[time_col_name].str.contains(time)]
-        base_t0_ind = time_df.index[0]
+
+            # if exact time not in dataframe, find nearest one
+            # convert the last 2 digits (the seconds) into integers and increment by 1, mod by 10
+            # this method will find nearest time since time stamps are never more than 2 seconds apart
+            while(time_df.shape[0] == 0): # iterate until string found in time dataframe
+                ta = time[:7]
+                print(int(time[7:]))
+                tb = (int(time[7:]) + 1) % 10
+                print(ta, tb)
+                time = ta + str(tb)
+                time_df = my_df[my_df[time_col_name].str.contains(time)]
+            base_t0_ind = time_df.index[0]
 
         return base_t0_ind
 
@@ -138,19 +197,27 @@ def analyze_data(input):
             clean_iters = len(clean_freqs)
             
         # remove everything before baseline
-        base_t0_ind = find_nearest_time(t0_str, df, abs_time_col) # baseline correction
+        if input.is_relative_time: 
+            base_t0_ind = find_nearest_time(input.rel_t0, df, time_col) # baseline correction
+        else:
+            base_t0_ind = find_nearest_time(t0_str, df, abs_time_col) # baseline correction
         df = df[base_t0_ind:] # baseline correction
         print(df)
         df = df.reset_index(drop=True)
         # find baseline and grab values from baseline for avg
-        base_tf_ind = find_nearest_time(tf_str, df, abs_time_col) # baseline correction
+        if input.is_relative_time: 
+            base_tf_ind = find_nearest_time(input.rel_tf, df, time_col) # baseline correction
+        else:
+            base_tf_ind = find_nearest_time(tf_str, df, abs_time_col) # baseline correction
         baseline_df = df[:base_tf_ind]
         
         for i in range(clean_iters):
             # grab data from df and grab only columns we need, then drop nan values
-            data_df = df[[abs_time_col,rel_time_col,clean_freqs[i],clean_disps[i]]]
+            data_df = df[[time_col,clean_freqs[i],clean_disps[i]]]
+            
             print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
             data_df = data_df.dropna(axis=0, how='any', inplace=False)
+            print(data_df)
 
             # normalize by overtone
             if input.will_normalize_F:
@@ -173,8 +240,9 @@ def analyze_data(input):
             data_df[clean_freqs[i]] -= rf_base_avg # baseline correction
             data_df[clean_disps[i]] -= dis_base_avg # baseline correction
             # shift x to left to start at 0
-            data_df[rel_time_col] -= data_df[rel_time_col].iloc[0] # baseline correction
 
+            data_df[time_col] -= data_df[time_col].iloc[0] # baseline correction
+                
             # choose appropriate divisor for x scale of time
             if input.x_timescale == 'm':
                 divisor = 60
@@ -182,8 +250,8 @@ def analyze_data(input):
                 divisor = 3600
             else:
                 divisor = 1
-            data_df[rel_time_col] /= divisor # baseline correction
-            x_time = data_df[rel_time_col]
+            data_df[time_col] /= divisor # baseline correction
+            x_time = data_df[time_col]
             y_rf = data_df[clean_freqs[i]]
             # scale disipation by 10^6
             data_df[clean_disps[i]] *= 1000000 # baseline correction
@@ -223,7 +291,7 @@ def analyze_data(input):
             # put cleaned data back into original df for interactive plot
             if input.will_overwrite_file or input.will_interactive_plot:
                 if i == 0:
-                    cleaned_df = data_df[[abs_time_col,rel_time_col]]
+                    cleaned_df = data_df[[time_col]]
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
@@ -277,9 +345,9 @@ def analyze_data(input):
         raw_freqs, raw_disps = get_channels('raw')
         # gather and plot raw frequency data
         for i in range(len(raw_freqs)):
-            rf_data_df = df[[abs_time_col,rel_time_col,raw_freqs[i]]]
+            rf_data_df = df[[time_col,raw_freqs[i]]]
             rf_data_df = rf_data_df.dropna(axis=0, how='any', inplace=False)
-            x_time = rf_data_df[rel_time_col] / time_scale_divisor
+            x_time = rf_data_df[time_col] / time_scale_divisor
             y_rf = rf_data_df[raw_freqs[i]]
             plt.figure(3, clear=True)
             plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=color_map_freq[clean_freqs[i]])
@@ -289,9 +357,9 @@ def analyze_data(input):
 
         # gather and plot raw dissipation data
         for i in range(len(raw_disps)):
-            dis_data_df = df[[abs_time_col,rel_time_col,raw_disps[i]]]
+            dis_data_df = df[[time_col,raw_disps[i]]]
             dis_data_df = dis_data_df.dropna(axis=0, how='any', inplace=False)
-            x_time = dis_data_df[rel_time_col] / time_scale_divisor
+            x_time = dis_data_df[time_col] / time_scale_divisor
             y_dis = dis_data_df[raw_disps[i]]
             plt.figure(4, clear=True)
             plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=color_map_dis[clean_disps[i]])
@@ -359,7 +427,7 @@ def analyze_data(input):
         remove_axis_lines(y_ax2)
 
         # grab data
-        x_time = cleaned_df[rel_time_col]
+        x_time = cleaned_df[time_col]
         # choose correct user spec'd overtone
         if input.interactive_plot_overtone == 1:
             which_int_plot_overtone = 'fundamental'
@@ -374,21 +442,20 @@ def analyze_data(input):
         except KeyError:
             print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
-        # write peak frequencies depending on user indication of using theoretical or calibration vals to file for linear regression calculations
-        if input.will_use_theoretical_vals: # if not using calibration data, copy theoreticals to txt file
-            shutil.copy("calibration_data/theoretical_vals.txt", "calibration_data/peak_frequencies.txt")
-        else:
-            shutil.copy("calibration_data/calibration_peak_frequencies.txt", "calibration_data/peak_frequencies.txt")
-
         int_ax1.plot(x_time, y_rf, '.', color='green', markersize=1)
         int_ax2.plot(x_time, y_dis, '.', color='blue', markersize=1)
         zoom_plot1, = int_ax1_zoom.plot(x_time, y_rf, '.', color='green', markersize=1)
         zoom_plot2, = int_ax2_zoom.plot(x_time, y_dis, '.', color='blue', markersize=1)
 
-        def onselect1(xmin, xmax):
+        def onselect(xmin, xmax):
             if input.which_range_selecting == '':
                 print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
             else:
+                # adjust other span to match the moved span
+                for span in spans:
+                    if span.active:
+                        span.extents = (xmin, xmax)
+
                 # min and max indices are where elements should be inserted to maintain order
                 imin, imax = np.searchsorted(x_time, (xmin, xmax))
                 # range will be at most all elems in x, or imax
@@ -397,120 +464,40 @@ def analyze_data(input):
                 # cursor x and y for zoomed plot and data range
                 zoomx = x_time[imin:imax]
                 zoomy1 = y_rf[imin:imax]
+                zoomy2 = y_dis[imin:imax]
 
                 # update data to newly spec'd range
                 zoom_plot1.set_data(zoomx, zoomy1)
+                zoom_plot2.set_data(zoomx, zoomy2)
                 
                 # set limits of tick marks
                 int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
                 int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
-                int_plot.canvas.draw_idle()
-
-                # check if label and file already exists and remove if it does before writing new data for that range
-                # this allows for overwriting of only the currently selected file and frequency,
-                # without having to append all data, or overwrite all data each time
-                save_flag = False
-                try: # try to open df from stats csv
-                    temp_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
-                    if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
-                        temp_df = temp_df.loc[temp_df['range_used'] != '']
-                        save_flag = True
-                    if input.which_range_selecting in temp_df['range_used'].unique()\
-                    and input.file_name in temp_df['data_source'].unique():
-                        to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
-                                            & (temp_df['data_source'] == input.file_name))].index.values
-                        temp_df = temp_df.drop(index=to_drop)
-                        save_flag = True
-                    if save_flag:
-                        temp_df.to_csv("selected_ranges/all_stats_rf.csv", float_format="%.16E", index=False)
-                except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
-                    print("rf stats file empty")
-                    with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
-                        header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
-                        stat_file.write(header)
-
-                # save statistical data to file
-                with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
-                    # statistical analysis for all desired overtones using range of selection
-                    for overtone, val in input.which_plot['clean'].items():
-                        # if value is true it was selected in gui, and we only want to analyze freqs here
-                        if val and overtone.__contains__('freq'):
-                            y_data = cleaned_df[overtone]
-                            y_sel = y_data[imin:imax]
-                            mean_y = np.average(y_sel)
-                            std_dev_y = np.std(y_sel)
-                            median_y = np.median(y_sel)
-                            stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
-                
-
-        def onselect2(xmin, xmax):
-            if input.which_range_selecting == '':
-                print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
-            else:
-                # min and max indices are where elements should be inserted to maintain order
-                imin, imax = np.searchsorted(x_time, (xmin, xmax))
-                # range will be at most all elems in x, or imax
-                imax = min(len(x_time)-1, imax)
-
-                # cursor x and y for zoomed plot and data range
-                zoomx = x_time[imin:imax]
-                zoomy2 = y_dis[imin:imax]
-
-                # update data to newly spec'd range
-                zoom_plot2.set_data(zoomx, zoomy2)
-                
-                # set limits of tick marks
                 int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
                 int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
                 int_plot.canvas.draw_idle()
 
-                # check if label and file already exists and remove if it does before writing new data for that range
-                # this allows for overwriting of only the currently selected file and frequency,
-                # without having to append all data, or overwrite all data each time
-                save_flag = False
-                try: # try to open df from stats csv
-                    temp_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
-                    if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
-                        temp_df = temp_df.loc[temp_df['range_used'] != '']
-                        save_flag = True
-                    if input.which_range_selecting in temp_df['range_used'].unique()\
-                    and input.file_name in temp_df['data_source'].unique():
-                        to_drop = temp_df.loc[((temp_df['range_used'] == input.which_range_selecting)\
-                                            & (temp_df['data_source'] == input.file_name))].index.values
-                        temp_df = temp_df.drop(index=to_drop)
-                        save_flag = True
-                    if save_flag:
-                        temp_df.to_csv("selected_ranges/all_stats_dis.csv", float_format="%.16E", index=False)
-                except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
-                    print("dis stats file empty")
-                    with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
-                        header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
-                        stat_file.write(header)
-
-
-                # save statistical data to file
-                with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
-                    # statistical analysis for all desired overtones using range of selection
-                    for overtone, val in input.which_plot['clean'].items():
-                        # if value is true it was selected in gui, and we only want to analyze freqs here
-                        if val and overtone.__contains__('dis'):
-                            y_data = cleaned_df[overtone]
-                            y_sel = y_data[imin:imax]
-                            y_temp_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
-                            mean_y = np.average(y_temp_sel)
-                            std_dev_y = np.std(y_temp_sel)
-                            median_y = np.median(y_temp_sel)
-                            stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{input.which_range_selecting},{input.file_name}\n")
+                # prep and save statistical data to file
+                stats_out_fn = 'all_stats_rf.csv'
+                prepare_stats_file('freq', input.which_range_selecting, input.file_name, stats_out_fn)
+                stats_out_fn = 'all_stats_dis.csv'
+                prepare_stats_file('dis', input.which_range_selecting, input.file_name, stats_out_fn)
+                range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(), input.which_range_selecting, input.file_name)
+            
 
         # using plt's span selector to select area of top plot
-        span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
+        span1 = SpanSelector(int_ax1, onselect, 'horizontal', useblit=True,
                     props=dict(alpha=0.5, facecolor='blue'),
                     interactive=True, drag_from_anywhere=True)
-
-        span2 = SpanSelector(int_ax2, onselect2, 'horizontal', useblit=True,
+        
+        span2 = SpanSelector(int_ax2, onselect, 'horizontal', useblit=True,
                     props=dict(alpha=0.5, facecolor='blue'),
                     interactive=True, drag_from_anywhere=True)
+        
+        spans = [span1, span2]
 
+
+        #int_plot.canvas.toolbar.push_current()
         plt.show()
 
 
@@ -521,4 +508,4 @@ def analyze_data(input):
 
 
 if __name__ == '__main__':
-    analyze_data(input)
+    analyze_data()

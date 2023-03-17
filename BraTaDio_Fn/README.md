@@ -84,6 +84,7 @@ Plot Options:
 - option to change saved figure file formats (png (default), tiff, pdf)
 
 Interactive Plot:
+- SPECIFY AND CONFIRM RANGE BEFORE MAKING SELECTION
 - option for interactive plot that opens figure of selected overtone to further analyze
     - can select a range of points of plot to zoom in and save to file for later
     - interactive plot range will be used to specify statistical data for linear analysis
@@ -99,7 +100,7 @@ Interactive Plot:
 - Data for this script is statistical data curated from the raw input data acquired in 'main.py'
     - see README there for more information
 
-- For italicized variables to work, please install a LaTex distribution (like MikTex)
+- For italicized variables to work, please install a LaTex distribution (like https://www.tug.org/texlive/acquire-netinstall.html)
 
 - script begins with various statistical data from 'all_stats_rf/dis.csv'
 - For peak frequency values needed for calculation, enter values into 'calibration_peak_frequencies.txt'
@@ -122,7 +123,7 @@ Interactive Plot:
 
     - for bandwidth calculation, only use fundamental overtone peak frequency for all overtones
 
-ATTENTION:
+# ATTENTION:
 If you wish to have greek letters italicized, latex is required to be installed on your system
 if it is not, please comment out the 2 lines below
 
@@ -132,14 +133,122 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- link 2 span selectors together to ensure same data points are taken from frequency and dissipation
+- add option in col 5 to indicate if user has latex installed. if yes, linear regression model will remain as is with italicized capital greek letters, if not, disable rc params and user std matplotlib chars
 
-- !!! git functionality to convert other data formats to that of bratadio
-    - see qsense.xls in raw_data
-    - add option in first col gui to bring up list of format options like qsense or original qcmd (since bratadio makes slight column changes)
-    - add option to indicate if abs or rel time and adjust for rel time
-    - write separate script to convert data to bratadio format for each option, and then save as copy to use for the analysis
+- get calibration data for peak frequencies for linear regression (currently just using theoretical)
 
 
-MEETING QUESTIONS
-- na
+### CHANGE LOG
+
+3/15-3/16
+- linear regression now works with variable number of overtones being used, however needs verification with manually analyzed data
+- fixed linear reg bug where freqs that are not being analyed and have 0 values were still being plotted
+- major refactoring, putting most of linear regression function into separate functions
+- added back end functionality to have different labels dependend on if user indicates if latex is installed
+- modified propogation function to account for varying amts of overtone data (accounted for 0 entries)
+
+
+3/11
+- bug fix: 11th and 13th overtones were not working
+- flushed out file conversion from qcmd, qcmi, qsense, to bratadio
+- coupled span selectors in interactive plot
+- refactor: put code from onselect to prepare the saving of statistical data, and the saving/formatting of the data into functions that get called from onselect
+- optimize: rather than converting the file format every time submitted, first_run flag added to indicated if file needs conversion or not
+- bug fix: when submitting from gui after the first time, would crash unable to open the csv from file
+- added this changelog
+
+3/8
+- added gui options for different data file formats (qcmd, qcmi, qsense)
+- added functionality for new data file formats
+
+2/23
+- formatting col5 to make more clean
+- bug fix: added overtones
+- bug fix: column 5 showing up
+- more refactoring in favor of OOP for gui
+
+2/16
+- major refactoring-restructuring
+
+1/12
+- linear regression plot formatting changes
+- linear reg model now averages across mult data sets for each range, added find nearest time
+
+1/11
+- can save stats ranges across diff files, avg across them needs work
+- int plot saves mult ranges, lin reg uses mult ranges
+
+1/4
+- file restructuring
+- format changes, updated readme
+- adjusted for bandwidth shift, updated readme
+
+1/2
+- formatted interactive plot
+- plotting statistical data of each frequency
+- adjust stat data calcs to include all freqs based off int plot range
+
+12/30
+- updated for different format input data
+- bug fix int plot overtone selection
+- bug fix, selecting rf would alter selection for disp in int plot
+
+12/29
+- plot formatting
+
+12/28
+- functionality of selecting range to plot
+
+12/16
+- added statistical analysis to int plot ranges
+- added functionality to save from multiple files in statistical calculations
+
+12/14
+- added rf and dis to plot selector
+
+12/8
+- changed range selector to text entry
+
+11/30
+- added functionality to select-save mult ranges for statistical analysis from interactive plot
+
+12/29
+- file structure adjusted
+- gui runs async from data, added interactive plot
+
+11/29
+- refactor so dont need to close gui to run analysis
+
+10/27
+- gui and plotting format changes
+- small format changes to ind and qcmd
+
+10/12 
+- fixed x time scale bug
+
+10/3
+- multi axis plot for dD and dF added
+
+10/1
+- added option to plot dD vs dF
+- bug fix on which channel plotted, raw data plotting
+- func for plotting (refactor)
+- overwrite clean data now works
+- clean plt - only plots channels selected (not all)
+- function to get channels (refactor)
+
+9/30
+- add alt opt to gui
+- begun error checking function
+- system for deleting channels
+- ui dev progress
+
+9/28
+- updated plot formatting
+
+9/27
+- improved backend com,
+- backend linked to front. can plot all clean data
+
+9/24
+- changed gui labels
