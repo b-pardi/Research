@@ -21,9 +21,6 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install',
 'datetime'])
 
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
-'plotly'])
-
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
 'tk'])
 
 
@@ -31,4 +28,4 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install',
 # xlrd library deprecated support for xlsx files, so using older version
 # alternatively could use openpyxl and put "engine='openpyxl'" arg into each read_excel call
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
-'xlrd==1.2.0'])
+'xlrd==2.0.1'])
