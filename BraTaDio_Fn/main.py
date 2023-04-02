@@ -910,8 +910,8 @@ def analyze_data():
             which_int_plot_overtone = str(interactive_plot_overtone) + 'th'
 
         try:
-            y_rf = cleaned_df[f'{which_int_plot_overtone}_freq']
-            y_dis = cleaned_df[f'{which_int_plot_overtone}_dis']
+            y_rf = cleaned_df['Time',f'{which_int_plot_overtone}_freq']
+            y_dis = cleaned_df['Time',f'{which_int_plot_overtone}_dis']
         except KeyError:
             print("frequency inputted to analyze in interactive plot, was not checked for processing in 'baseline corrected data'")
         
@@ -967,7 +967,7 @@ def analyze_data():
             except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
                 print("rf stats file empty")
                 with open(f"selected_ranges/all_stats_rf.csv", 'a') as stat_file:
-                    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+                    header = f"overtone,freq_range,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
                     stat_file.write(header)
 
             # save statistical data to file
@@ -976,12 +976,17 @@ def analyze_data():
                 for overtone, val in which_plot['clean'].items():
                     # if value is true it was selected in gui, and we only want to analyze freqs here
                     if val and overtone.__contains__('freq'):
+                        print(cleaned_df)
                         y_data = cleaned_df[overtone]
                         y_sel = y_data[imin:imax]
+                        x0 = cleaned_df['Time'].iloc[imin]
+                        xf = cleaned_df['Time'].iloc[imax]
+                        print(x0,xf)
+                        print(type(x0))
                         mean_y = np.average(y_sel)
                         std_dev_y = np.std(y_sel)
                         median_y = np.median(y_sel)
-                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
+                        stat_file.write(f"{overtone},{x0}-{xf},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
             
 
         def onselect2(xmin, xmax):
@@ -1025,7 +1030,7 @@ def analyze_data():
             except pd.errors.EmptyDataError: # if first time running, dataframe will be empty
                 print("dis stats file empty")
                 with open(f"selected_ranges/all_stats_dis.csv", 'a') as stat_file:
-                    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+                    header = f"overtone,dis_range,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
                     stat_file.write(header)
 
 
@@ -1039,9 +1044,11 @@ def analyze_data():
                         y_sel = y_data[imin:imax]
                         y_temp_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
                         mean_y = np.average(y_temp_sel)
+                        x0 = cleaned_df['Time'].iloc[imin]
+                        xf = cleaned_df['Time'].iloc[imax]
                         std_dev_y = np.std(y_temp_sel)
                         median_y = np.median(y_temp_sel)
-                        stat_file.write(f"{overtone},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
+                        stat_file.write(f"{overtone},{x0}:{xf},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range_selecting},{file_name}\n")
 
         # using plt's span selector to select area of top plot
         span1 = SpanSelector(int_ax1, onselect1, 'horizontal', useblit=True,
@@ -1165,7 +1172,7 @@ err_label = Label(col0, text="Error occured,\nplease see terminal for details", 
 file_name_entry = Entry(col0, width=40, bg='white', fg='gray')
 file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
 #file_name_entry.insert(0, "File name here (W/ EXTENSION)")
-file_name_entry.insert(0, "sample1.csv")
+file_name_entry.insert(0, "sample3.csv")
 file_name_entry.bind("<FocusIn>", handle_fn_focus_in)
 file_name_entry.bind("<FocusOut>", handle_fn_focus_out)
 
@@ -1211,12 +1218,12 @@ seconds_entry_tf = Entry(baseline_frame, width=5, bg='white', fg='gray')
 seconds_entry_tf.grid(row=1, column=5)
 
 #temp inserts to not have to reenter data every test
-seconds_entry_t0.insert(0, "26")
-minutes_entry_t0.insert(0, "2")
-hours_entry_t0.insert(0, "17")
-seconds_entry_tf.insert(0, "2")
-minutes_entry_tf.insert(0, "11")
-hours_entry_tf.insert(0, "17")
+seconds_entry_t0.insert(0, "57")
+minutes_entry_t0.insert(0, "42")
+hours_entry_t0.insert(0, "11")
+seconds_entry_tf.insert(0, "57")
+minutes_entry_tf.insert(0, "00")
+hours_entry_tf.insert(0, "12")
 
 file_data_submit_button = Button(col0, text="Submit file information", padx=8, pady=6, width=20, command=col_names_submit)
 file_data_submit_button.grid(row=10, column=0, pady=(16,4))
