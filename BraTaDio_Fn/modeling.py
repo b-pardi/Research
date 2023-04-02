@@ -259,6 +259,9 @@ def linear_regression(user_input):
         plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
         plt.rc('text', usetex=False)
 
+def sauerbray():
+    pass
+
 if __name__ == "__main__":
     which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                             '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,

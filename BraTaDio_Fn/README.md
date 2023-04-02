@@ -140,6 +140,10 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+4/2
+- added options for sauerbray modeling
+- added to statistics analysis functions to handle sauerbray range data
+
 3/15-3/16
 - linear regression now works with variable number of overtones being used, however needs verification with manually analyzed data
 - fixed linear reg bug where freqs that are not being analyed and have 0 values were still being plotted

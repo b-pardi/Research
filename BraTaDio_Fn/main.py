@@ -8,11 +8,10 @@ import tkinter as tk
 import sys
 import os
 from datetime import time
-import inspect
 
 from analyze import analyze_data, clear_figures
 from format_file import format_raw_data
-from lin_reg import *
+from modeling import linear_regression, sauerbray
 
 '''
 WIP
@@ -41,7 +40,8 @@ class Input:
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
         self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
-        self.will_use_theoretical_vals = False # indicates if using calibration data or theoretical values for peak frequencies
+        self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression
+        self.will_use_theoretical_sauerbray_vals = True # indicates if using calibration data or theoretical values for Sauerbray modeling
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
@@ -691,26 +691,40 @@ class Col5(tk.Frame):
         which_range_entry.grid(row=3, column=0, pady=(2,4))
 
         # prompt to use theoretical or calibration values for peak frequency
-        theoretical_or_calibration_frame = tk.Frame(self)
-        theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
-        theoretical_or_calibration_var = tk.IntVar()
-        theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or measured\npeak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
-        theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
-        theoretical_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
-        theoretical_radio.grid(row=6, column=0, pady=(2,4))
-        calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='measured', variable=theoretical_or_calibration_var, value=0)
-        calibration_radio.grid(row=6, column=1, pady=(2,4))
+        theoretical_or_calibration_peak_freq_frame = tk.Frame(self)
+        theoretical_or_calibration_peak_freq_frame.grid(row=6, column=0, columnspan=1)
+        theoretical_or_calibration_peak_freq_var = tk.IntVar()
+        theoretical_or_calibration_peak_freq_label = tk.Label(theoretical_or_calibration_peak_freq_frame,
+                                                text="Use theoretical or calibration\npeak frequency values for calculations\n(note: values defined in 'calibration_data' folder")
+        theoretical_or_calibration_peak_freq_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_peak_freq_radio = tk.Radiobutton(theoretical_or_calibration_peak_freq_frame, text='theoretical', variable=theoretical_or_calibration_peak_freq_var, value=1)
+        theoretical_peak_freq_radio.grid(row=1, column=0, pady=(2,4))
+        calibration_peak_freq_radio = tk.Radiobutton(theoretical_or_calibration_peak_freq_frame, text='calibration', variable=theoretical_or_calibration_peak_freq_var, value=0)
+        calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
+
+        # prompt to use theoretical or experimental values for sauerbray modeling
+        theoretical_or_calibration_sauerbray_frame = tk.Frame(self)
+        theoretical_or_calibration_sauerbray_frame.grid(row=7, column=0, columnspan=1, pady=8)
+        theoretical_or_calibration_sauerbray_var = tk.IntVar()
+        theoretical_or_calibration_sauerbray_label = tk.Label(theoretical_or_calibration_sauerbray_frame,
+                                        text="Use theoretical or experimental\nresonant frequency values for Sauerbray model")
+        theoretical_or_calibration_sauerbray_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='theoretical', variable=theoretical_or_calibration_sauerbray_var, value=1)
+        theoretical_sauerbray_radio.grid(row=1, column=0, pady=(2,4))
+        calibration_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='experimental', variable=theoretical_or_calibration_sauerbray_var, value=0)
+        calibration_sauerbray_radio.grid(row=1, column=1, pady=(2,4))
 
         # run analysis button
         run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4,
-                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
-        run_meta_analysis_button.grid(row=7, column=0, pady=4)
+                                             command=lambda: sauerbray((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
+        run_meta_analysis_button.grid(row=8, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global input
             input.which_range_selecting = which_range_entry.get()
-            input.will_use_theoretical_vals = theoretical_or_calibration_var
+            input.will_use_theoretical_peak_freq_vals = theoretical_or_calibration_peak_freq_var
+            input.will_use_theoretical_sauerbray_vals = theoretical_or_calibration_sauerbray_var
 
             print(f"Confirmed range: {input.which_range_selecting}")
 
