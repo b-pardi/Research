@@ -257,11 +257,32 @@ def linear_regression(user_input):
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
+        print("Linear Regression Complete")
         plt.rc('text', usetex=False)
 
-def sauerbray():
-    pass
+def sauerbray(user_input):
+    which_plot, use_theoretical_vals, latex_installed = user_input
+    print("Modeling Sauerbray function...")
+    df = pd.read_csv("selected_ranges/sauerbray_ranges.csv", index_col=0)
+    labels = df['range_used'].unique()
+    
+    for label in labels:
+        df_range = df.loc[df['range_used'] == label]
+        print(df_range.head())
+        if use_theoretical_vals:
+            C = 17.7
+        else:
+            C = 0 # will later contain experimental value
 
+        '''n = int(df_range['overtone'].unique())
+        Df = df_range['freq'].values
+        time = df_range['time'].values
+
+        Dm = -1 * C * (Df/n)
+        print(Dm)
+        plot_data(time, Dm, None, None, label, latex_installed)
+        
+'''
 if __name__ == "__main__":
     which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                             '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
@@ -274,3 +295,4 @@ if __name__ == "__main__":
                             '13th_freq': False, '13th_dis': False}}
     
     linear_regression((which_plot['clean'], True, False))
+    #sauerbray((which_plot['clean'], True, False))

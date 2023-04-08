@@ -140,6 +140,10 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+4/6
+- adjusted range_statistics() so sauerbray ranges saved to csv file
+- begun sauerbray function
+
 4/2
 - added options for sauerbray modeling
 - added to statistics analysis functions to handle sauerbray range data

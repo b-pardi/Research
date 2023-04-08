@@ -45,6 +45,7 @@ class Input:
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
+        self.will_use_theoretical_vals = True
         self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
         self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
@@ -714,10 +715,15 @@ class Col5(tk.Frame):
         calibration_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='experimental', variable=theoretical_or_calibration_sauerbray_var, value=0)
         calibration_sauerbray_radio.grid(row=1, column=1, pady=(2,4))
 
-        # run analysis button
-        run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4,
+        # run linear regression button
+        run_linear_analysis_button = tk.Button(self, text="Run linear analysis\nof overtones", padx=6, pady=4, width=20,
+                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed)))
+        run_linear_analysis_button.grid(row=8, column=0, pady=4)
+
+        # run sauerbray button
+        run_sauerbray_analysis_button = tk.Button(self, text="Run Sauerbray analysis\nof overtones", padx=6, pady=4, width=20,
                                              command=lambda: sauerbray((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
-        run_meta_analysis_button.grid(row=8, column=0, pady=4)
+        run_sauerbray_analysis_button.grid(row=9, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
