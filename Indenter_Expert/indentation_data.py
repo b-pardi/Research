@@ -13,50 +13,13 @@ from pathlib import Path
 import os
 import sys
 
-"""
-README
-- Please execute 'install_packages.py' BEFORE running this script
-- Check the input variables section and make sure all user defined inputs are correct
-- make sure the data is in a folder entitled 'indentation_data', and that the script is in the same file path level as the folder
-    OR use the global path outlined in the input variables section
-- script will name individual plots the same name as its corresponding sheet, followed by '-plot'
-- var curve_time can be adjusted depending on the data set for the x length of the curve for tau values
-- if program running slow, lower var DPI to ~80
-- var names; df(s) short for dataframe(s), fvt_df: force vs time data frame, fvd_df: force vs displacement df
-    sd: squared distance,
-- tau, youngs mod, and their rsq vals for each sheet are printed AND recorded in the legend of its respective plot,
-- those values are also appended to 'taus-youngs.csv' for later swarmplot use
-
-TASKS
-- grabs all sheets from 'indentation_data' folder and converts them to dataframes
-- for taus, scrubs data to left of curve start (highest y values), and after <CURVE_TIME> to the right of curve start
-    also removes points below the force value at tf
-- for youngs mod values, removes everything after the max force point,
-    as well as finds the std dev of the first <youngs_pts_to_avg> data points,
-    and removes everything less than 3 times that value
-- currently generates individual plots for each sheet, and one figure with each data set plotted and color coded
-- box and whisker plots for E and tau will be generated in 'taus-youngs.py' when enough aggregate data is collected
-- fits curve for each individual plot along with getting R^2 values
-- writes tau and youngs mod values to 'taus-youngs.csv' for use with 'taus-youngs.py'
-
-WIP
-- plot format
-
-PLOT FORMATTING
-- axis title, Arial size 16
-- number size 14
-- legend Arial size 16
-- x indentation force, F(sub)i ; F is in italics
-- make scale for numbers consistent across the board
-"""
-
 ### INPUT VARIABLES ##
 
 # data path for where data xls sheets are kept
 # use this data path for data outside the main folder the script is in
 #data_path = Path("your absolute path")
 # use this one if keeping sheets in the directory with the script
-data_path = Path.joinpath(Path.cwd(), "indentation_data_noisy")
+data_path = Path.joinpath(Path.cwd(), "indentation_data")
 
 # indicate what category of data for later swarm plots
 # 0: soft, 1: stiff, 2: soft viscoelastic, 3: stiff viscoelastic
@@ -66,7 +29,12 @@ data_category = 1
 will_remove_plots = True
 
 # If unable to find column index, check the skiprows value here!
-rows_skipped = 0
+rows_skipped = 7
+
+# Column names of data being grabbed from spreadsheet (may vary depending on exerimental device)
+time_col_name = 'time(seconds)'
+z_stage_col_name = 'z-stage (um)'
+force_col_name = 'Fn (uN)'
 
 # TIME PARAMETER FOR LENGTH OF CURVE, data this long after curve start will be removed
 curve_time = 60
@@ -149,15 +117,22 @@ except ValueError as ve:
 for df in dfs:
     # only need time and force columns for tau,
     # and z displacement and force columns for youngs
-    fvt_df = df[['time(seconds)', 'Fn (uN)']]
-    fvd_df = df[['z-stage (um)', 'Fn (uN)']]
+    try:
+        fvt_df = df[[time_col_name, force_col_name]]
+        fvd_df = df[[z_stage_col_name, force_col_name]]
+    except KeyError as KE:
+        print("\n** Unable to locate column keys. Check if either:\n",
+              "1. Names of columns were entered correctly in user variables section\n",
+              "2. Column keys are not at the top and skiprows variable needs to be specified\n",
+              f"err: {KE}")
+        sys.exit(1)
 
     '''GENERAL CLEANING'''
 
     # some entries contained 'na' for time so they will be removed
     fvt_df = fvt_df.dropna(axis=0, how='any', inplace=False)
     fvd_df = fvd_df.dropna(axis=0, how='any', inplace=False)
-    temp_df = fvt_df[fvt_df['time(seconds)'].apply(lambda x: isinstance(x, str))]
+    temp_df = fvt_df[fvt_df[time_col_name].apply(lambda x: isinstance(x, str))]
     if (temp_df.size > 0):
         fvt_df = fvt_df.drop(fvt_df.index[temp_df.index])
 
@@ -167,7 +142,7 @@ for df in dfs:
 
     # account for units being micro
     pd.options.mode.chained_assignment = None
-    fvt_df.loc[:,'Fn (uN)'] /= 1000000
+    fvt_df.loc[:,force_col_name] /= 1000000
     pd.options.mode.chained_assignment = 'warn'
 
 
@@ -176,16 +151,16 @@ for df in dfs:
     # find the start of the curve for taus (point of greatest force)
     # use average of some largest y values to reduce chance of outliars,
     # and prevent curve from starting at incorrect place
-    max_force_mean = fvt_df['Fn (uN)'].nlargest(num_max_pts_to_avg).mean()
-    max_force = fvt_df.iloc[(fvt_df['Fn (uN)'] - max_force_mean).abs().argsort()[0],:]['Fn (uN)']
-    max_force_ind = fvt_df[fvt_df['Fn (uN)'] == max_force].index
+    max_force_mean = fvt_df[force_col_name].nlargest(num_max_pts_to_avg).mean()
+    max_force = fvt_df.iloc[(fvt_df[force_col_name] - max_force_mean).abs().argsort()[0],:][force_col_name]
+    max_force_ind = fvt_df[fvt_df[force_col_name] == max_force].index
 
     # find 60 seconds after max force point (tf)
-    t0 = fvt_df.loc[fvt_df['Fn (uN)'] >= max_force-force_margin, 'time(seconds)'].values[0]
+    t0 = fvt_df.loc[fvt_df[force_col_name] >= max_force-force_margin, time_col_name].values[0]
     tf = t0 + curve_time
 
     # find the force at tf
-    tf_df = fvt_df['time(seconds)'].between(tf-time_margin, tf+time_margin)
+    tf_df = fvt_df[time_col_name].between(tf-time_margin, tf+time_margin)
     tf_df = tf_df[tf_df]
     tf_ind = tf_df.index[0]
     f_tf = fvt_df['Fn (uN)'].loc[tf_ind]
@@ -193,11 +168,11 @@ for df in dfs:
     # only need values to the right of max force point,
     # and left of 60 seconds after max force point
     fvt_df = fvt_df[max_force_ind[0]:]
-    fvt_df = fvt_df.drop(fvt_df[fvt_df['time(seconds)'] > tf].index)
+    fvt_df = fvt_df.drop(fvt_df[fvt_df[time_col_name] > tf].index)
     # remove values that fall too far below force value at end of curve 
-    fvt_df = fvt_df.drop(fvt_df[fvt_df['Fn (uN)'] < f_tf - force_margin].index)
+    fvt_df = fvt_df.drop(fvt_df[fvt_df[force_col_name] < f_tf - force_margin].index)
     fvt_df = fvt_df.reset_index(drop=True)
-    fvt_df['time(seconds)'] -= fvt_df['time(seconds)'].min()
+    fvt_df[time_col_name] -= fvt_df[time_col_name].min()
 
 
     '''YOUNGS MODULUS CLEANING'''
@@ -205,11 +180,11 @@ for df in dfs:
     # only need everything up til the max force point
     fvd_df = fvd_df[:max_force_ind[0]+1]
     # find std dev and keep everything more than 3 times it
-    std_dev = fvd_df['Fn (uN)'].iloc[:youngs_pts_to_avg].std()
+    std_dev = fvd_df[force_col_name].iloc[:youngs_pts_to_avg].std()
     counter = 0
     subi = 0
     while(counter < 10):
-        cur = fvd_df.iloc[subi]['Fn (uN)']
+        cur = fvd_df.iloc[subi][force_col_name]
         #print(cur)
         if cur >= 3 * std_dev:
             counter += 1
@@ -219,14 +194,14 @@ for df in dfs:
     
     fvd_df = fvd_df[subi - 8:]
     fvd_df = fvd_df.reset_index(drop=True)
-    fvd_df['z-stage (um)'] -= fvd_df['z-stage (um)'].min()
-    fvd_df['Fn (uN)'] -= fvd_df['Fn (uN)'].min()
+    fvd_df[z_stage_col_name] -= fvd_df[z_stage_col_name].min()
+    fvd_df[force_col_name] -= fvd_df[force_col_name].min()
 
     # put data df columns into lists
-    xdata_tau = fvt_df['time(seconds)'].values
-    xdata_E = fvd_df['z-stage (um)'].values
-    ydata_tau = fvt_df['Fn (uN)'].values
-    ydata_E = fvd_df['Fn (uN)'].values
+    xdata_tau = fvt_df[time_col_name].values
+    xdata_E = fvd_df[z_stage_col_name].values
+    ydata_tau = fvt_df[force_col_name].values
+    ydata_E = fvd_df[force_col_name].values
 
     '''CURVE FITS'''
 

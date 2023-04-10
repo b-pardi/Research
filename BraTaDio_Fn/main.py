@@ -8,11 +8,10 @@ import tkinter as tk
 import sys
 import os
 from datetime import time
-import inspect
 
 from analyze import analyze_data, clear_figures
 from format_file import format_raw_data
-from lin_reg import *
+from modeling import *
 
 '''
 WIP
@@ -41,10 +40,11 @@ class Input:
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
         self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
-        self.will_use_theoretical_vals = False # indicates if using calibration data or theoretical values for peak frequencies
+        self.will_use_theoretical_lin_reg_vals = True # indicates if using calibration data or theoretical values for peak frequencies
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
+        self.will_use_theoretical_sauerbray_vals = True
         self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
         self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
@@ -693,24 +693,37 @@ class Col5(tk.Frame):
         # prompt to use theoretical or calibration values for peak frequency
         theoretical_or_calibration_frame = tk.Frame(self)
         theoretical_or_calibration_frame.grid(row=5, column=0, columnspan=1)
-        theoretical_or_calibration_var = tk.IntVar()
-        theoretical_or_calibration_label = tk.Label(theoretical_or_calibration_frame, text="Use theoretical or measured\npeak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
-        theoretical_or_calibration_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
-        theoretical_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_var, value=1)
-        theoretical_radio.grid(row=6, column=0, pady=(2,4))
-        calibration_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='measured', variable=theoretical_or_calibration_var, value=0)
-        calibration_radio.grid(row=6, column=1, pady=(2,4))
+        theoretical_or_calibration_lin_reg_var = tk.IntVar()
+        theoretical_or_calibration_lin_reg_label = tk.Label(theoretical_or_calibration_frame, text="Linear Regression:\nUse theoretical or measured\npeak frequency values for calculations?\n(note: values defined in 'calibration_data' folder")
+        theoretical_or_calibration_lin_reg_label.grid(row=5, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_lin_reg_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_calibration_lin_reg_var, value=1)
+        theoretical_lin_reg_radio.grid(row=6, column=0, pady=(2,4))
+        calibration_lin_reg_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='measured', variable=theoretical_or_calibration_lin_reg_var, value=0)
+        calibration_lin_reg_radio.grid(row=6, column=1, pady=(2,4))
 
-        # run analysis button
-        run_meta_analysis_button = tk.Button(self, text="Run meta analysis\nof overtones", padx=6, pady=4,
-                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
-        run_meta_analysis_button.grid(row=7, column=0, pady=4)
+        run_linear_regression = tk.Button(self, text="Run Linear Regression\nof overtones", padx=6, pady=4, width=20,
+                                        command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_lin_reg_vals, input.latex_installed)))
+        run_linear_regression.grid(row=7, column=0, pady=4)
+
+        # prompt user for theoretical or experimental values to calculate C
+        theoretical_or_experimental_sauerbray_var = tk.IntVar()
+        theoretical_or_experimental_lin_reg_label = tk.Label(theoretical_or_calibration_frame, text="Sauerbray Modeling:\nUse theoretical or measured\npeak frequency values for calculations?")
+        theoretical_or_experimental_lin_reg_label.grid(row=8, column=0, pady=(8,4), columnspan=2, padx=6)
+        theoretical_lin_reg_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='theoretical', variable=theoretical_or_experimental_sauerbray_var, value=1)
+        theoretical_lin_reg_radio.grid(row=9, column=0, pady=(2,4))
+        experimental_lin_reg_radio = tk.Radiobutton(theoretical_or_calibration_frame, text='measured', variable=theoretical_or_experimental_sauerbray_var, value=0)
+        experimental_lin_reg_radio.grid(row=9, column=1, pady=(2,4))        
+
+        run_sauerbray_modeling = tk.Button(self, text="Run Sauerbray\nmodeling", padx=6, pady=4, width=20,
+                                        command=lambda: sauerbray((input.which_plot['clean'], input.will_use_theoretical_sauerbray_vals)))
+        run_sauerbray_modeling.grid(row=11, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global input
             input.which_range_selecting = which_range_entry.get()
-            input.will_use_theoretical_vals = theoretical_or_calibration_var
+            input.will_use_theoretical_lin_reg_vals = theoretical_or_calibration_lin_reg_var
+            input.will_use_theoretical_sauerbray_vals = theoretical_or_experimental_sauerbray_var
 
             print(f"Confirmed range: {input.which_range_selecting}")
 
@@ -722,14 +735,3 @@ class Col5(tk.Frame):
 
 menu = App()
 menu.mainloop()
-
-
-
-'''TEMP ASSIGNMENTS to not have to enter into gui every time while debugging'''
-#file_name = "sample2.csv"
-#abs_base_t0 = time(16,26,28)
-#abs_base_tf = time(16,36,18)
-
-#file_name = "sample1.csv"
-#abs_base_t0 = time(17,2,26)
-#abs_base_tf = time(17,11,2)

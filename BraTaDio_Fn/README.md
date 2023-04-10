@@ -123,7 +123,7 @@ Interactive Plot:
 
     - for bandwidth calculation, only use fundamental overtone peak frequency for all overtones
 
-# ATTENTION:
+## ATTENTION:
 If you wish to have greek letters italicized, latex is required to be installed on your system
 if it is not, please comment out the 2 lines below
 
@@ -133,12 +133,30 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- opt to plot temp as f(time)
+    - will also need adjustments to data formatting section
+
+- Sauerbray film thickness modeling
+    - Dm = -C*Df/n
+    - will look similar to Df vs time (transposed)
+    - option to do whole range of data or use selections
+    - essentialy take every Df point (either in range or whole data set) and plug it into eqn above, then plot it vs time
+    - C = Vq * Pq / 2F0^2   ->   theoretically is 17.7 for a 5MHz crystal
+    - option to use peak frequency value or theoretical value for C
+
+
 - add option in col 5 to indicate if user has latex installed. if yes, linear regression model will remain as is with italicized capital greek letters, if not, disable rc params and user std matplotlib chars
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
 
+- fix normalization bug
 
 ### CHANGE LOG
+
+3/27
+- added to gui option to model Sauerbray eqn
+- now all Df and time data from selected ranges for Suaerbray modeling
+- error checking for if selected range files exist, creates them if not
 
 3/15-3/16
 - linear regression now works with variable number of overtones being used, however needs verification with manually analyzed data
