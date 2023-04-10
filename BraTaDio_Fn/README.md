@@ -153,10 +153,13 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
-3/27
-- added to gui option to model Sauerbray eqn
-- now all Df and time data from selected ranges for Suaerbray modeling
-- error checking for if selected range files exist, creates them if not
+4/6
+- adjusted range_statistics() so sauerbray ranges saved to csv file
+- begun sauerbray function
+
+4/2
+- added options for sauerbray modeling
+- added to statistics analysis functions to handle sauerbray range data
 
 3/15-3/16
 - linear regression now works with variable number of overtones being used, however needs verification with manually analyzed data
