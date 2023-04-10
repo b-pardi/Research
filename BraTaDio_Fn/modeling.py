@@ -144,7 +144,7 @@ def remove_zero_elements(data_arr, err_arr):
 
     return data_arr, err_arr
 
-def setup_plot(use_tex):
+def setup_plot(use_tex=False):
     if use_tex:
         plt.rc('text', usetex=True)
         plt.rc('font', family='Arial')
@@ -159,11 +159,18 @@ def setup_plot(use_tex):
     plt.cla()
     return lin_plot, ax
 
-def plot_data(x, y, xerr, yerr, label, use_tex):
+def plot_data(x, y, xerr, yerr, label, use_tex=False, labels=[]):
     fig, ax = setup_plot(use_tex)
-    print(f"\n\n***X {x};\n***Y {y}\n")
-    ax.plot(x, y, 'o', markersize=8, label=label)
-    ax.errorbar(x, y, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
+    
+    # plotting modeled data slightly different than range data
+    if xerr != None or yerr != None:
+        ax.plot(x, y, 'o', markersize=8, label=label)
+        ax.errorbar(x, y, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
+
+    else:
+        for i in range(len(y)):
+            print(x, y)
+            ax.plot(x[i], y[i], markersize=1, label=labels[i])
 
     return fig, ax
 
@@ -263,26 +270,60 @@ def linear_regression(user_input):
 def sauerbray(user_input):
     which_plot, use_theoretical_vals, latex_installed = user_input
     print("Modeling Sauerbray function...")
-    df = pd.read_csv("selected_ranges/sauerbray_ranges.csv", index_col=0)
+    df = pd.read_csv("selected_ranges/sauerbray_ranges.csv")
     labels = df['range_used'].unique()
+    print(f"LABELS: {labels}")
     
     for label in labels:
         df_range = df.loc[df['range_used'] == label]
-        print(df_range.head())
-        if use_theoretical_vals:
-            C = 17.7
-        else:
-            C = 0 # will later contain experimental value
+        overtones = df['overtone'].unique()
+        print(f"OVERTONES: {overtones}")
+        # 2D arrays with values for each overtone
+        num_rows = df_range.loc[df_range['overtone'] == overtones[0]].shape[0]
+        num_cols = len(overtones)
+        print(num_cols)
+        Dms = np.empty((num_cols-1,num_rows), dtype=float)
+        times = np.empty((num_cols-1,num_rows), dtype=float)
 
-        '''n = int(df_range['overtone'].unique())
-        Df = df_range['freq'].values
-        time = df_range['time'].values
+        for ov in overtones:
+            df_ov_range = df_range.loc[df_range['overtone'] == ov]
+            print(df_ov_range)
+            if use_theoretical_vals:
+                C = 17.7
+            else:
+                C = 0 # will later contain experimental value
 
-        Dm = -1 * C * (Df/n)
-        print(Dm)
-        plot_data(time, Dm, None, None, label, latex_installed)
+            # n = 1 for fundamental, for rest of overtones we pull the first char being the number
+            if ov == 'fundamental_freq':
+                n = 1
+            else:
+                n = int(ov[0])
+
+            print(n)
+
+            Df = df_ov_range['freq'].values
+            time = df_ov_range['time'].values
+            #print(Df, time)
+            Dm = -1 * C * (Df/n)
+
+        Dms = np.vstack([Dms, Dm])
+        times = np.vstack([times, time])
+            
+        # plot and save
+        x_label = 'x'
+        y_label = 'y'
+        title = 'temp title'
+        print(Dms.shape)
+        print(times.shape)
+        sauerbray_plot, ax = plot_data(times, Dms, None, None, label, False, overtones)
+        format_plot(ax, x_label, y_label, title)
+        sauerbray_plot.tight_layout()
+        plt.savefig(f"qcmd-plots/Sauerbray_label-{label}", bbox_inches='tight', dpi=200)
+        print("Sauerbray Analysis Complete")
+        plt.rc('text', usetex=False)
+
         
-'''
+
 if __name__ == "__main__":
     which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                             '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,
@@ -294,5 +335,5 @@ if __name__ == "__main__":
                             '9th_freq': True, '9th_dis': True, '11th_freq': True, '11th_dis': True,
                             '13th_freq': False, '13th_dis': False}}
     
-    linear_regression((which_plot['clean'], True, False))
-    #sauerbray((which_plot['clean'], True, False))
+    #linear_regression((which_plot['clean'], True, False))
+    sauerbray((which_plot['clean'], True, False))

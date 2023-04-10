@@ -28,12 +28,13 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
     save_flag = False # flag determines if file will need to be saved or not after opening df
     try: # try to open df from stats csv
         try:
-            temp_df = pd.read_csv(f"selected_ranges/{data_fn}")
-        except FileNotFoundError:
+            temp_df = pd.read_csv(f"selected_ranges/{stats_fn}")
+        except FileNotFoundError as e:
+            print(f"err 1: {e}")
             print("Creating modeling file...")
-            with open(f"selected_ranges/{data_fn}", 'w') as creating_new_modeling_file: 
-                creating_new_modeling_file.write(header)
-            temp_df = pd.read_csv(f"selected_ranges/{data_fn}")
+            with open(f"selected_ranges/{stats_fn}", 'w') as creating_new_modeling_file: 
+                creating_new_modeling_file.write('')
+            temp_df = pd.read_csv(f"selected_ranges/{stats_fn}")
         if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
             temp_df = temp_df.loc[temp_df['range_used'] != '']
             save_flag = True
@@ -45,14 +46,15 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
             save_flag = True
         if save_flag:
             temp_df.to_csv(f"selected_ranges/{stats_fn}", float_format="%.16E", index=False)
-    except (FileNotFoundError, pd.errors.EmptyDataError):
+    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
+        print(f"err 2: {e}")
         print("making new stats file...")
         os.chdir('selected_ranges')
         with open(stats_fn, 'w') as new_file:
             new_file.write(header)
         os.chdir('../')
 
-def range_statistics(df, imin, imax, time_col, overtone_sel, which_range, fn):
+def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
     which_overtones = []
     for ov in overtone_sel:
         if ov[1]:
@@ -70,8 +72,6 @@ def range_statistics(df, imin, imax, time_col, overtone_sel, which_range, fn):
             y_sel = y_data[imin:imax]
             if ov.__contains__('dis'):
                 y_sel = y_sel / 1000000 # unit conversion since multiplied up by 10^6 earlier in code
-            if ov.__contains__('freq'): # want freq vals for sauerbray modeling
-                sauerbray_df.append(y_sel)
             mean_y = np.average(y_sel)
             std_dev_y = np.std(y_sel)
             median_y = np.median(y_sel)
@@ -79,44 +79,6 @@ def range_statistics(df, imin, imax, time_col, overtone_sel, which_range, fn):
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
 
-            elif ov.__contains__('dis'):
-                dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
-        
-        else:
-            print(f"TEST********\n{overtone_sel}\n{ov}\n\nTEST*********")
-            if ov.__contains__('freq'):
-                rf_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
-
-            elif ov.__contains__('dis'):
-                dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
-    
-    sauerbray_df.to_csv(f"selected_ranges/sauerbray_ranges.csv", mode='a', index=False, header=False)
-
-    dis_stat_file.close()
-    rf_stat_file.close()
-
-def write_sauerbray_data(df, imin, imax, overtone_sel, which_range, fn):
-    which_overtones = []
-    for ov in overtone_sel:
-        if ov[1]:
-            which_overtones.append(ov[0])
-        
-    range_file = open(f"selected_ranges/sauerbray_ranges.csv", 'a')
-    # statistical analysis for all desired overtones using range of selection
-    for overtone in overtone_sel:
-        ov = overtone[0] # label of current overtone
-        if overtone[1]: # if current overtone selected for plotting
-            if ov.__contains__('dis'): # only one freq
-                continue
-            y_data = df[ov]
-            y_sel = y_data[imin:imax]
-            
-            mean_y = np.average(y_sel)
-            std_dev_y = np.std(y_sel)
-            median_y = np.median(y_sel)
-        
-            if ov.__contains__('freq'):
-                rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
                 # range data for Sauerbray
                 temp_df = pd.DataFrame()
                 temp_df['freq'] = y_data
@@ -131,17 +93,18 @@ def write_sauerbray_data(df, imin, imax, overtone_sel, which_range, fn):
                 dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
         
         else:
-            print(f"TEST********\n{overtone_sel}\n{ov}\n\nTEST*********")
+            print(f"\n{ov} not selected\n")
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
 
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
-
-    range_df.to_csv(f"selected_ranges/sauerbray_ranges.csv", mode='a', index=False)
-
+    
+    range_df.to_csv(f"selected_ranges/sauerbray_ranges.csv", mode='a', index=False, header=None)
+    
     dis_stat_file.close()
     rf_stat_file.close()
+
 
 def analyze_data(input):
     '''Variable Declarations'''
@@ -536,10 +499,6 @@ def analyze_data(input):
                 int_plot.canvas.draw_idle()
 
                 # prep and save data to file
-                range_out_fn = 'sauerbray_ranges.csv'
-                header = f"overtone,Dfreq,Time,range_used,data_source\n"
-                prepare_modeling_files(header, input.which_range_selecting, input.file_name, range_out_fn)
-            
                 stats_out_fn = 'all_stats_rf.csv'
                 header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
@@ -549,10 +508,11 @@ def analyze_data(input):
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
                 
                 range_selection_out_fn = 'sauerbray_ranges.csv'
-                header = f"overtone,freq,time,range_used,data_source\n"
+                header = f"freq,time,overtone,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, range_selection_out_fn)
                 
-                range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(), input.which_range_selecting, input.file_name)
+                range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(),
+                                 input.which_range_selecting, input.file_name, header)
             
 
         # using plt's span selector to select area of top plot

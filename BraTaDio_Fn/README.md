@@ -153,6 +153,11 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+4/9
+- added option to empty range selection files to clear previous experiment data
+- fixed sauerbray ranges writing header twice
+- sauerbray analysis function progress, can read in and iterate over data as well as plot, however bug introduces 0 arrays so needs fix
+
 4/6
 - adjusted range_statistics() so sauerbray ranges saved to csv file
 - begun sauerbray function

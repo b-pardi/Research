@@ -591,8 +591,11 @@ class Col4(tk.Frame):
         self.submit_button = tk.Button(self, text="Submit", padx=8, pady=6, width=20, command=self.submit)
         self.submit_button.grid(row=20, column=4, pady=4)
 
+        self.clear_range_data_button = tk.Button(self, text="Clear Saved Range Data", padx=8, pady=6, width=20, command=self.clear_range_data)
+        self.clear_range_data_button.grid(row=21, column=4, pady=4)
+
         self.abort_button = tk.Button(self, text="Abort", padx=8, pady=6, width=20, command=abort)
-        self.abort_button.grid(row=19, column=4, pady=4)
+        self.abort_button.grid(row=22, column=4, pady=4)
 
     def receive_scale_radios(self):
         global input
@@ -671,6 +674,13 @@ class Col4(tk.Frame):
         analyze_data(input)
         input.first_run = False
 
+    def clear_range_data(self):
+        rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
+        dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
+        sauerbray_ranges = open("selected_ranges/sauerbray_ranges.csv", 'w')
+        files = [rf_stats, dis_stats, sauerbray_ranges]
+        for file in files:
+            file.write('')
 
 
 class Col5(tk.Frame):
