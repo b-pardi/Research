@@ -16,10 +16,85 @@ import shutil
 
 from modeling import linear_regression, sauerbray
 
+''' ANALYSIS VARIABLES '''
+class Analysis:
+    def __init__(self):
+        self.time_col = 'Time' # relative time
+        self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
+
+        self.freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
+        self.disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
+
+        # assign colors to overtones
+        self.color_map_freq = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green',
+                            '7th_freq':'red', '9th_freq':'purple', '11th_freq':'aqua', '13th_freq':'pink'}
+        self.color_map_dis = {'fundamental_dis':'blue', '3rd_dis':'orange', '5th_dis':'green',
+                            '7th_dis':'red', '9th_dis':'purple', '11th_dis':'aqua', '13th_dis':'pink'}
+
+        # Some plot labels
+        self.dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+        self.rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
+
 def clear_figures():
     for i in range(6):
         plt.figure(i)
         plt.clf()
+
+''' UTILITY FUNCTIONS '''
+# function fills list of channels selected to be clean plot from gui
+def get_channels(channels):
+    freq_list = []
+    disp_list = []
+        
+    for channel in channels:
+        # dict entry for that channel is true then append to list
+        if channel[1] == True:
+            # check if channel looking at is a frequency or dissipation and append approppriately
+            if channel[0].__contains__('freq'):
+                freq_list.append(channel[0])
+            elif channel[0].__contains__('dis'):
+                disp_list.append(channel[0])
+
+    return (freq_list, disp_list)
+
+def determine_xlabel(x_timescale):
+    if x_timescale == 's':
+        return "Time, " + '$\it{Δt}$' + " (s)"
+    elif x_timescale == 'm':
+        return "Time, " + '$\it{Δt}$' + " (min)"
+    else:
+        return "Time, " + '$\it{Δt}$' + " (hr)"
+
+def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, fig_format, will_save=False):
+    plt.figure(fig_num, clear=False)
+    plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+    plt.xticks(fontsize=14, fontfamily='Arial')
+    plt.yticks(fontsize=14, fontfamily='Arial')
+    plt.xlabel(fig_x, fontsize=16, fontfamily='Arial')
+    plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
+    plt.title(fig_title, fontsize=16, fontfamily='Arial')
+    if will_save:
+        plt.figure(fig_num).savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+
+def find_nearest_time(time, my_df, time_col_name, is_relative_time):
+    # locate where baseline starts/ends
+    if is_relative_time:
+        time_df = my_df.iloc[(my_df[time_col_name] - int(time)).abs().argsort()[:1]]
+        base_t0_ind = time_df.index[0]
+    else:
+        time_df = my_df[my_df[time_col_name].str.contains(time)]
+
+        # if exact time not in dataframe, find nearest one
+        # convert the last 2 digits (the seconds) into integers and increment by 1, mod by 10
+        # this method will find nearest time since time stamps are never more than 2 seconds apart
+        while(time_df.shape[0] == 0): # iterate until string found in time dataframe
+            ta = time[:7]
+            tb = (int(time[7:]) + 1) % 10
+            time = ta + str(tb)
+            time_df = my_df[my_df[time_col_name].str.contains(time)]
+        base_t0_ind = time_df.index[0]
+
+    return base_t0_ind
 
 # check if label and file already exists and remove if it does before writing new data for that range
 # this allows for overwriting of only the currently selected file and frequency,
@@ -107,94 +182,17 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
 
 
 def analyze_data(input):
-    '''Variable Declarations'''
-    time_col = 'Time' # relative time
-    abs_time_col = 'abs_time' # for qcmd with abs and rel time
-
-    freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
-    disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
+    analysis = Analysis()
     t0_str = str(input.abs_base_t0).lstrip('0')
     tf_str = str(input.abs_base_tf).lstrip('0')
-
-    # Some plot labels
-    dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
-    rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
-
-
     # grab singular file and create dataframe from it
     input.file_name, _ = os.path.splitext(input.file_name)
     df = pd.read_csv(f"raw_data/Formatted-{input.file_name}.csv")
     #df = df.dropna()
 
-    # assign colors to overtones
-    color_map_freq = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green',
-                      '7th_freq':'red', '9th_freq':'purple', '11th_freq':'aqua', '13th_freq':'pink'}
-    color_map_dis = {'fundamental_dis':'blue', '3rd_dis':'orange', '5th_dis':'green',
-                     '7th_dis':'red', '9th_dis':'purple', '11th_dis':'aqua', '13th_dis':'pink'}
-
-    # function fills list of channels selected to be clean plot from gui
-    def get_channels(scrub_level):
-        freq_list = []
-        disp_list = []
-            
-        for channel in input.which_plot[scrub_level].items():
-            # dict entry for that channel is true then append to list
-            if channel[1] == True:
-                # check if channel looking at is a frequency or dissipation and append approppriately
-                if channel[0].__contains__('freq'):
-                    freq_list.append(channel[0])
-                elif channel[0].__contains__('dis'):
-                    disp_list.append(channel[0])
-
-        return (freq_list, disp_list)
-
-    def determine_xlabel():
-        if input.x_timescale == 's':
-            return "Time, " + '$\it{Δt}$' + " (s)"
-        elif input.x_timescale == 'm':
-            return "Time, " + '$\it{Δt}$' + " (min)"
-        else:
-            return "Time, " + '$\it{Δt}$' + " (hr)"
-
-
-    def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, will_save=False):
-        plt.figure(fig_num, clear=False)
-        plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
-        plt.xticks(fontsize=14, fontfamily='Arial')
-        plt.yticks(fontsize=14, fontfamily='Arial')
-        plt.xlabel(fig_x, fontsize=16, fontfamily='Arial')
-        plt.ylabel(fig_y, fontsize=16, fontfamily='Arial')
-        plt.title(fig_title, fontsize=16, fontfamily='Arial')
-        if will_save:
-            plt.figure(fig_num).savefig(fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
-
-    def find_nearest_time(time, my_df, time_col_name):
-        # locate where baseline starts/ends
-        print(time, my_df, time_col_name)
-        if input.is_relative_time:
-            time_df = my_df.iloc[(my_df[time_col_name] - int(time)).abs().argsort()[:1]]
-            base_t0_ind = time_df.index[0]
-
-        else:
-            time_df = my_df[my_df[time_col_name].str.contains(time)]
-
-            # if exact time not in dataframe, find nearest one
-            # convert the last 2 digits (the seconds) into integers and increment by 1, mod by 10
-            # this method will find nearest time since time stamps are never more than 2 seconds apart
-            while(time_df.shape[0] == 0): # iterate until string found in time dataframe
-                ta = time[:7]
-                print(int(time[7:]))
-                tb = (int(time[7:]) + 1) % 10
-                print(ta, tb)
-                time = ta + str(tb)
-                time_df = my_df[my_df[time_col_name].str.contains(time)]
-            base_t0_ind = time_df.index[0]
-
-        return base_t0_ind
-
     '''Cleaning Data and plotting clean data'''
     if input.will_plot_clean_data:
-        clean_freqs, clean_disps = get_channels('clean')
+        clean_freqs, clean_disps = get_channels(input.which_plot['clean'].items())
         clean_iters = 0
         freq_plot_cap = len(clean_freqs)
         disp_plot_cap = len(clean_disps)
@@ -206,35 +204,34 @@ def analyze_data(input):
             clean_iters = len(clean_freqs)
             disp_plot_cap = len(clean_disps)
             for i in range(diff, clean_iters):
-                clean_disps.append(disps[i])
+                clean_disps.append(analysis.disps[i])
         # diff neg -> more disp channels than freq
         elif diff < 0:
             clean_iters = len(clean_disps)
             freq_plot_cap = len(clean_freqs)
             for i in range(abs(diff), clean_iters):
-                clean_freqs.append(freqs[i])
+                clean_freqs.append(analysis.freqs[i])
         # if length same, then iterations is length of either
         else:
             clean_iters = len(clean_freqs)
             
         # remove everything before baseline
         if input.is_relative_time: 
-            base_t0_ind = find_nearest_time(input.rel_t0, df, time_col) # baseline correction
+            base_t0_ind = find_nearest_time(input.rel_t0, df, analysis.time_col, input.is_relative_time) # baseline correction
         else:
-            base_t0_ind = find_nearest_time(t0_str, df, abs_time_col) # baseline correction
+            base_t0_ind = find_nearest_time(t0_str, df, analysis.abs_time_col, input.is_relative_time) # baseline correction
         df = df[base_t0_ind:] # baseline correction
-        print(df)
         df = df.reset_index(drop=True)
         # find baseline and grab values from baseline for avg
         if input.is_relative_time: 
-            base_tf_ind = find_nearest_time(input.rel_tf, df, time_col) # baseline correction
+            base_tf_ind = find_nearest_time(input.rel_tf, df, analysis.time_col, input.is_relative_time) # baseline correction
         else:
-            base_tf_ind = find_nearest_time(tf_str, df, abs_time_col) # baseline correction
+            base_tf_ind = find_nearest_time(tf_str, df, analysis.abs_time_col, input.is_relative_time) # baseline correction
         baseline_df = df[:base_tf_ind]
         
         for i in range(clean_iters):
             # grab data from df and grab only columns we need, then drop nan values
-            data_df = df[[time_col,clean_freqs[i],clean_disps[i]]]
+            data_df = df[[analysis.time_col,clean_freqs[i],clean_disps[i]]]
             
             print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
             data_df = data_df.dropna(axis=0, how='any', inplace=False)
@@ -252,6 +249,7 @@ def analyze_data(input):
                 if clean_freqs[i].__contains__("9"):
                     overtone = 9
                 data_df[clean_freqs[i]] /= overtone
+                baseline_df[clean_freqs[i]] /= overtone
 
             # compute average of rf and dis
             rf_base_avg = baseline_df[clean_freqs[i]].mean() # baseline correction
@@ -262,7 +260,7 @@ def analyze_data(input):
             data_df[clean_disps[i]] -= dis_base_avg # baseline correction
             # shift x to left to start at 0
 
-            data_df[time_col] -= data_df[time_col].iloc[0] # baseline correction
+            data_df[analysis.time_col] -= data_df[analysis.time_col].iloc[0] # baseline correction
                 
             # choose appropriate divisor for x scale of time
             if input.x_timescale == 'm':
@@ -271,9 +269,12 @@ def analyze_data(input):
                 divisor = 3600
             else:
                 divisor = 1
-            data_df[time_col] /= divisor # baseline correction
-            x_time = data_df[time_col]
+            data_df[analysis.time_col] /= divisor # baseline correction
+            print(clean_freqs[i])
+            print(data_df[clean_freqs[i]])
+            x_time = data_df[analysis.time_col]
             y_rf = data_df[clean_freqs[i]]
+            print(y_rf)
             # scale disipation by 10^6
             data_df[clean_disps[i]] *= 1000000 # baseline correction
             y_dis = data_df[clean_disps[i]]
@@ -282,10 +283,10 @@ def analyze_data(input):
             plt.figure(1, clear=False)
             # don't plot data for channels not selected
             if i < freq_plot_cap:
-                plt.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color=color_map_freq[clean_freqs[i]])
+                plt.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color=analysis.color_map_freq[clean_freqs[i]])
             plt.figure(2, clear=False)
             if i < disp_plot_cap:
-                plt.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color=color_map_dis[clean_disps[i]])
+                plt.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color=analysis.color_map_dis[clean_disps[i]])
 
             # plotting change in disp vs change in freq
             if input.will_plot_dD_v_dF:
@@ -295,30 +296,29 @@ def analyze_data(input):
             # multi axis plot for change in freq and change in dis vs time
             if input.will_plot_dF_dD_together:
                 fig, ax1 = plt.subplots()
-                ax1.set_xlabel(determine_xlabel(), fontsize=16, fontfamily='Arial')
-                ax1.set_ylabel(rf_fig_y, fontsize=16, fontfamily='Arial')
+                ax1.set_xlabel(determine_xlabel(input.x_timescale), fontsize=16, fontfamily='Arial')
+                ax1.set_ylabel(analysis.rf_fig_y, fontsize=16, fontfamily='Arial')
                 ax2 = ax1.twinx()
-                ax2.set_ylabel(dis_fig_y,fontsize=16, fontfamily='Arial')
+                ax2.set_ylabel(analysis.dis_fig_y,fontsize=16, fontfamily='Arial')
                 ax1.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color='green')
                 ax2.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color='blue')
                 fig.legend(loc='upper center', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
                 plt.xticks(fontsize=14, fontfamily='Arial')
                 plt.yticks(fontsize=14, fontfamily='Arial')
                 plt.title("", fontsize=16, fontfamily='Arial')
-                plt.savefig(f"qcmd-plots/freq_dis_V_time_{freqs[i][:3]}", bbox_inches='tight', transparent=True, dpi=400)
+                plt.savefig(f"qcmd-plots/freq_dis_V_time_{analysis.freqs[i][:3]}", bbox_inches='tight', transparent=True, dpi=400)
             
             print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
             # put cleaned data back into original df for interactive plot
             if input.will_overwrite_file or input.will_interactive_plot:
                 if i == 0:
-                    cleaned_df = data_df[[time_col]]
+                    cleaned_df = data_df[[analysis.time_col]]
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
 
         if input.will_overwrite_file:
-            print(df.head())
             df.to_csv(f"raw_data/CLEANED-{input.file_name}", index=False)
 
         # Titles, lables, etc. for plots
@@ -328,7 +328,7 @@ def analyze_data(input):
         else:
             rf_fig_title = "QCM-D Resonant Frequency"
             rf_fn = f"qcmd-plots/resonant-freq-plot"
-        rf_fig_x = determine_xlabel()
+        rf_fig_x = determine_xlabel(input.x_timescale)
 
         dis_fig_title = "QCM-D Dissipation"
         dis_fig_x = rf_fig_x
@@ -337,23 +337,23 @@ def analyze_data(input):
         # fig 1: clean freq plot
         # fig 2: clean disp plot
         # fig 5: dD v dF
-        setup_plot(1, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn, True)
-        setup_plot(2, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn, True)
+        setup_plot(1, rf_fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format, True)
+        setup_plot(2, dis_fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn, input.fig_format, True)
         if input.will_plot_dD_v_dF:
             dVf_fn = f"qcmd-plots/disp_V_freq-plot"
             dVf_title = "Dissipiation against Frequency"
-            setup_plot(5, rf_fig_y, dis_fig_y, dis_fig_title, dVf_fn, True)
+            setup_plot(5, analysis.rf_fig_y, analysis.dis_fig_y, dis_fig_title, dVf_fn, input.fig_format, True)
 
 
     # Gathering raw data for individual plots
     if input.will_plot_raw_data:
         # plot definitions
         rf_fig_title = "RAW QCM-D Resonant Frequency"
-        rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
-        rf_fig_x = determine_xlabel()
+        analysis.rf_fig_y = "Change in frequency, " + '$\it{Δf}$' + " (Hz)"
+        rf_fig_x = determine_xlabel(input.x_timescale)
 
         dis_fig_title = "RAW QCM-D Dissipation"
-        dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
+        analysis.dis_fig_y = "Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")"
         dis_fig_x = rf_fig_x
 
         # choose appropriate divisor for x scale of time
@@ -363,29 +363,29 @@ def analyze_data(input):
         elif input.x_timescale == 'h':
             time_scale_divisor = 3600
 
-        raw_freqs, raw_disps = get_channels('raw')
+        raw_freqs, raw_disps = get_channels(input.which_plot['raw'].items())
         # gather and plot raw frequency data
         for i in range(len(raw_freqs)):
-            rf_data_df = df[[time_col,raw_freqs[i]]]
+            rf_data_df = df[[analysis.time_col,raw_freqs[i]]]
             rf_data_df = rf_data_df.dropna(axis=0, how='any', inplace=False)
-            x_time = rf_data_df[time_col] / time_scale_divisor
+            x_time = rf_data_df[analysis.time_col] / time_scale_divisor
             y_rf = rf_data_df[raw_freqs[i]]
             plt.figure(3, clear=True)
-            plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=color_map_freq[clean_freqs[i]])
+            plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=analysis.color_map_freq[clean_freqs[i]])
             rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}"
-            setup_plot(3, rf_fig_x, rf_fig_y, rf_fig_title, rf_fn)
+            setup_plot(3, rf_fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format)
             plt.figure(3).savefig(rf_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
         # gather and plot raw dissipation data
         for i in range(len(raw_disps)):
-            dis_data_df = df[[time_col,raw_disps[i]]]
+            dis_data_df = df[[analysis.time_col,raw_disps[i]]]
             dis_data_df = dis_data_df.dropna(axis=0, how='any', inplace=False)
-            x_time = dis_data_df[time_col] / time_scale_divisor
+            x_time = dis_data_df[analysis.time_col] / time_scale_divisor
             y_dis = dis_data_df[raw_disps[i]]
             plt.figure(4, clear=True)
-            plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=color_map_dis[clean_disps[i]])
+            plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=analysis.color_map_dis[clean_disps[i]])
             dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}"
-            setup_plot(4, dis_fig_x, dis_fig_y, dis_fig_title, dis_fn)
+            setup_plot(4, dis_fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn,  input.fig_format)
             plt.figure(4).savefig(dis_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     # removing axis lines for plots
@@ -428,7 +428,7 @@ def analyze_data(input):
         ax.set_title("Click and drag to select range", fontsize=20, fontfamily='Arial', weight='bold', pad=40)
         y_ax1.set_ylabel("change in frequency, " + '$\it{Δf}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
         y_ax2.set_ylabel("Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=14, fontfamily='Arial', labelpad=5)
-        ax.set_xlabel (determine_xlabel(), fontsize=16, fontfamily='Arial')
+        ax.set_xlabel (determine_xlabel(input.x_timescale), fontsize=16, fontfamily='Arial')
         plt.sca(int_ax1)
         plt.xticks(fontsize=12, fontfamily='Arial')
         plt.yticks(fontsize=12, fontfamily='Arial')
@@ -448,7 +448,7 @@ def analyze_data(input):
         remove_axis_lines(y_ax2)
 
         # grab data
-        x_time = cleaned_df[time_col]
+        x_time = cleaned_df[analysis.time_col]
         # choose correct user spec'd overtone
         if input.interactive_plot_overtone == 1:
             which_int_plot_overtone = 'fundamental'

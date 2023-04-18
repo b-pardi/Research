@@ -1,4 +1,0 @@
-A strip of molecules DGS-NTA, and DOPC are placed onto a glass slide.
-A microtubule is above a supported libid bilayer (SLB), with Kinesin attached in some locations
-These layers are all on top of a Hydration layer that separates the SLB from the glass slide
-The Kinesin is comprised of an His tag and NTA molecules

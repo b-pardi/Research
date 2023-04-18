@@ -137,21 +137,25 @@ if it is not, please comment out the 2 lines below
     - will also need adjustments to data formatting section
 
 - Sauerbray film thickness modeling
-    - Dm = -C*Df/n
-    - will look similar to Df vs time (transposed)
-    - option to do whole range of data or use selections
-    - essentialy take every Df point (either in range or whole data set) and plug it into eqn above, then plot it vs time
-    - C = Vq * Pq / 2F0^2   ->   theoretically is 17.7 for a 5MHz crystal
     - option to use peak frequency value or theoretical value for C
-
+        - C = Vq * Pq / 2F0^2   ->   theoretically is 17.7 for a 5MHz crystal
 
 - add option in col 5 to indicate if user has latex installed. if yes, linear regression model will remain as is with italicized capital greek letters, if not, disable rc params and user std matplotlib chars
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
 
-- fix normalization bug
+- fix bug when plotting only freq or dis
+
+- apply color map used in analyze.py to sauerbray eqn plots
 
 ### CHANGE LOG
+
+4/17
+- refactored code to clean up analyze.py, moving nested functions outside of analyze() and shortening it. more refactoring of the like needed
+- fixed normalization bug, needed to divide baseline df by overtone as well
+
+4/10
+- fixed sauerbray eqn plots. Now will plot all overtones selected with all ranges having selections
 
 4/9
 - added option to empty range selection files to clear previous experiment data

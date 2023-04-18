@@ -159,18 +159,16 @@ def setup_plot(use_tex=False):
     plt.cla()
     return lin_plot, ax
 
-def plot_data(x, y, xerr, yerr, label, use_tex=False, labels=[]):
+def plot_data(xdata, ydata, xerr, yerr, label, use_tex=False):
     fig, ax = setup_plot(use_tex)
     
     # plotting modeled data slightly different than range data
     if xerr != None or yerr != None:
-        ax.plot(x, y, 'o', markersize=8, label=label)
-        ax.errorbar(x, y, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
+        ax.plot(xdata, ydata, 'o', markersize=8, label=label)
+        ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
 
     else:
-        for i in range(len(y)):
-            print(x, y)
-            ax.plot(x[i], y[i], markersize=1, label=labels[i])
+        ax.plot(xdata, ydata, markersize=1)
 
     return fig, ax
 
@@ -281,15 +279,13 @@ def sauerbray(user_input):
         # 2D arrays with values for each overtone
         num_rows = df_range.loc[df_range['overtone'] == overtones[0]].shape[0]
         num_cols = len(overtones)
-        print(num_cols)
         Dms = np.empty((num_cols-1,num_rows), dtype=float)
         times = np.empty((num_cols-1,num_rows), dtype=float)
 
         for ov in overtones:
             df_ov_range = df_range.loc[df_range['overtone'] == ov]
-            print(df_ov_range)
             if use_theoretical_vals:
-                C = 17.7
+                C = 17.7e-9
             else:
                 C = 0 # will later contain experimental value
 
@@ -303,26 +299,23 @@ def sauerbray(user_input):
 
             Df = df_ov_range['freq'].values
             time = df_ov_range['time'].values
-            #print(Df, time)
             Dm = -1 * C * (Df/n)
 
-        Dms = np.vstack([Dms, Dm])
-        times = np.vstack([times, time])
-            
-        # plot and save
-        x_label = 'x'
-        y_label = 'y'
-        title = 'temp title'
-        print(Dms.shape)
-        print(times.shape)
-        sauerbray_plot, ax = plot_data(times, Dms, None, None, label, False, overtones)
-        format_plot(ax, x_label, y_label, title)
-        sauerbray_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/Sauerbray_label-{label}", bbox_inches='tight', dpi=200)
-        print("Sauerbray Analysis Complete")
-        plt.rc('text', usetex=False)
 
-        
+            
+            # plot and save
+            x_label = 'x'
+            y_label = 'y'
+            title = f"Sauerbray eqn for range: {label}, overtone: {ov}"
+            plot_label = "Sauerbray eqn"
+            sauerbray_plot, ax = plot_data(time, Dm, None, None, plot_label, False)
+            format_plot(ax, x_label, y_label, title)
+            sauerbray_plot.tight_layout()
+            plt.savefig(f"qcmd-plots/Sauerbray_label-ov_{label}-{ov}", bbox_inches='tight', dpi=200)
+    print("Sauerbray Analysis Complete")
+    plt.rc('text', usetex=False)
+
+    
 
 if __name__ == "__main__":
     which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
