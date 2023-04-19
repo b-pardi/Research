@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+from analyze import determine_xlabel
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -52,6 +53,11 @@ def propogate_mean_err(means, errs, n_vals):
 
 def linear(x, m, b):
     return m * x + b
+
+def _get_color_map():
+    color_map = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green',
+                    '7th_freq':'red', '9th_freq':'purple', '11th_freq':'aqua', '13th_freq':'pink'}
+    return color_map
 
 def get_overtones_selected(which_plot):
     overtones = []
@@ -152,14 +158,14 @@ def setup_plot(use_tex=False):
         plt.rc('mathtext', fontset='stix', rm='serif')
         plt.rc('\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}')
         plt.rc('\DeclareUnicodeCharacter{0398}{\ensuremath{\Gamma}}')
-    lin_plot = plt.figure()
+    plot = plt.figure()
     plt.clf()
     plt.subplots_adjust(hspace=0.4)
-    ax = lin_plot.add_subplot(1,1,1)
+    ax = plot.add_subplot(1,1,1)
     plt.cla()
-    return lin_plot, ax
+    return plot, ax
 
-def plot_data(xdata, ydata, xerr, yerr, label, use_tex=False):
+def plot_data(xdata, ydata, xerr, yerr, label, use_tex=False, color=''):
     fig, ax = setup_plot(use_tex)
     
     # plotting modeled data slightly different than range data
@@ -168,7 +174,7 @@ def plot_data(xdata, ydata, xerr, yerr, label, use_tex=False):
         ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
 
     else:
-        ax.plot(xdata, ydata, markersize=1)
+        ax.plot(xdata, ydata, markersize=1, label=label, color=color)
 
     return fig, ax
 
@@ -266,49 +272,38 @@ def linear_regression(user_input):
         plt.rc('text', usetex=False)
 
 def sauerbray(user_input):
-    which_plot, use_theoretical_vals, latex_installed = user_input
+    use_theoretical_vals, df_normalized, x_timescale = user_input
     print("Modeling Sauerbray function...")
     df = pd.read_csv("selected_ranges/sauerbray_ranges.csv")
     labels = df['range_used'].unique()
     print(f"LABELS: {labels}")
-    
+    color_map = _get_color_map()
+
     for label in labels:
         df_range = df.loc[df['range_used'] == label]
         overtones = df['overtone'].unique()
         print(f"OVERTONES: {overtones}")
-        # 2D arrays with values for each overtone
-        num_rows = df_range.loc[df_range['overtone'] == overtones[0]].shape[0]
-        num_cols = len(overtones)
-        Dms = np.empty((num_cols-1,num_rows), dtype=float)
-        times = np.empty((num_cols-1,num_rows), dtype=float)
 
         for ov in overtones:
             df_ov_range = df_range.loc[df_range['overtone'] == ov]
             if use_theoretical_vals:
-                C = 17.7e-9
+                C = 17.7
             else:
                 C = 0 # will later contain experimental value
 
             # n = 1 for fundamental, for rest of overtones we pull the first char being the number
-            if ov == 'fundamental_freq':
-                n = 1
-            else:
-                n = int(ov[0])
-
-            print(n)
+            n = 1 if ov == 'fundamental_freq' else int(ov[0])
 
             Df = df_ov_range['freq'].values
             time = df_ov_range['time'].values
-            Dm = -1 * C * (Df/n)
+            Dm = -C *  Df if df_normalized else -C * (Df/n)
 
-
-            
             # plot and save
-            x_label = 'x'
-            y_label = 'y'
+            x_label = determine_xlabel(x_timescale)
+            y_label = 'Sauerbray mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
             title = f"Sauerbray eqn for range: {label}, overtone: {ov}"
             plot_label = "Sauerbray eqn"
-            sauerbray_plot, ax = plot_data(time, Dm, None, None, plot_label, False)
+            sauerbray_plot, ax = plot_data(time, Dm, None, None, plot_label, False, color_map[ov])
             format_plot(ax, x_label, y_label, title)
             sauerbray_plot.tight_layout()
             plt.savefig(f"qcmd-plots/Sauerbray_label-ov_{label}-{ov}", bbox_inches='tight', dpi=200)

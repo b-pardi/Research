@@ -1,12 +1,12 @@
 ### MAIN README
 - Please execute 'install_packages.py' BEFORE running this script
 - when done with program, please click 'Abort' button instead of closing window
-    - can cause terminal to freeze sometimes otherwise
+    - can cause terminal to freeze sometimes if just closing windows
 - ensure sheets are in the 'raw_data' folder
     - OR specify file directory in gui
 - consistency in data column placement and naming is required, however columns will be renamed
 - if error occurs, it will be displayed in the terminal
-- if uncaught error occurs, please notify me asap and describe what was done to reproduce
+- if uncaught error occurs, please notify developer asap and describe what was done to reproduce
 - specify in GUI:
     - file name (with exetension)
     - file path (if not in predefined raw_data directory)
@@ -18,15 +18,20 @@
     - change scale of time if applicable
     - change file format if applicable
 
+- IF USING SPYDER
+    - by default, plt will show plots in console box and span selector will not work
+    - follow these steps to make selection plots open in new window:
+        Tools > Preferences > IPython console > Graphics > Graphics Backend > Apply & OK
+
 - For interactive plot:
     - for whichever overtone is to be analyzed in the interactive plot, 
-    ensure that that overtone is selected in the baseline corrected data section as well,
-    as it relies on the cleaned data processing done there
+    ensure that that overtone is selected in the baseline corrected data section as well, as it relies on the cleaned data processing done there
     - indicate which overtone will be analyzed
-    - selected range is displayed in lower portion of figure, and data points written to 'range_{range selection}_rf/dis.txt'
+    - selected range is displayed in right side of figure, and data points written to files in selected_ranges folder for sauerbray equation, and statistical calculations written for linear regression modeling
+    - if analyzing new data file, be sure to clear range data selections via the button in column 4 before making new selections
     - save multiple ranges
-        - if interactive plot selected, small new window opens
-        - new window will show text entry to indiciate which range is being selected
+        - if interactive plot selected, new column opens
+        - new column will show text entry to indiciate which range is being selected
         - input and confirm the range BEFORE making selection in the plot window
         - later analysis will use the range and file src for grouping and averaging data
         - input from entry box will correlate to which file for which range is being selected
@@ -35,28 +40,18 @@
         even if there are other ranges in the file, only data for range 'x' file 'data1.csv' will be overwritten,
         and data for range 'y' in 'data1.csv' and range 'x' in 'data2.csv' will remain untouched
     - no matter which overtone is analyzed, the range selected there will apply to ALL overtones for statistical analysis
-    - to run the statistical analysis, click the button in the smaller window where the range was indicated, after selecting a range in the plot
+    - to run the statistical analysis, click the button in the smaller window where the range was indicated, after all desired range selections are made, and after indicating to use theoretical or calibration/experimental values required in analysis
+        - indicating calibration/exerimental values will require additional input as specified in the application window
     
 - For linear Analysis
     - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
     - selections from interactive plot are calculated and will be exported to a csv file that are then used in the 'lin_reg.py' script
-    - more information of linear regression in 'lin_reg.py'    
 
-GUI features
-- file name box (later maybe window to search for file)
-- checkbox for each frequency being plotted
-    - checkbox for raw and clean data
-        - raw data plots are individual for overtone of each freq/dis
-- abs base time t0, tf
-- input for scale of time (seconds, minutes, hours)
-- change saved figure file format
-- alternate plot options:
-    - plot dF and dD together
-    - normalize F
-    - dD vs dF
-    - interactive plot -> linear analysis
-- submit button runs data analysis while keeping gui window open
-
+- For Sauerbray equation
+    - 1 plot per overtone per range selected will be generated
+        - i.e. if you make a selection for range x and one for range y, and you have selected frequency overtones 3, 5, and 7, you will get a plot for range x overtone 3, range y overtone 3, range x overtone 5, and so on
+    - color map scheme for Sauerbray plots will match color map of baseline corrected data plots
+    - equation being applied for Sauerbray is Dm = -C * (Df/n) where Df is an individual change in frequency point in the range selected, n is the corresponding overtone of that point, and C is either experimentally calculated, or the theoretical value 17.7 as chosen in the window
 
 
 --------------------------------------------------------------
@@ -133,8 +128,7 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- opt to plot temp as f(time)
-    - will also need adjustments to data formatting section
+
 
 - Sauerbray film thickness modeling
     - option to use peak frequency value or theoretical value for C
@@ -144,15 +138,28 @@ if it is not, please comment out the 2 lines below
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
 
-- fix bug when plotting only freq or dis
-
-- apply color map used in analyze.py to sauerbray eqn plots
+- refactor analyze() to put each opt into its own function
 
 ### CHANGE LOG
+
+4/18
+- updated README
+- error check to see if Df already normalized before doing Sauerbray, if it is we don't divide by the overtone as to not do it twice
+- updated plot formatting for Sauerbray
+- fixed bug legend not showing in Sauerbray plots
+- fixed bug when plotting only raw data
 
 4/17
 - refactored code to clean up analyze.py, moving nested functions outside of analyze() and shortening it. more refactoring of the like needed
 - fixed normalization bug, needed to divide baseline df by overtone as well
+- fixed bug in naming multiaxis plot, name pulled from wrong list of freqs
+- fixed bug when plotting more freq overtones than dis or vice versa
+- fixed bug in sauerbray eqn where graph shape was correct but numbers were off, was doing unnecessary unit conversion
+- applied color map used in analyze.py to sauerbray eqn plots
+- added opt to plot temp as f(time)
+- adjusted data formatting section to support above (qsense does not have temperature data)
+- added error checking for it data has temperature values
+- added error checking for if dataframe empty (if user selects a overtone to plot that doesn't actually have data in it)
 
 4/10
 - fixed sauerbray eqn plots. Now will plot all overtones selected with all ranges having selections
