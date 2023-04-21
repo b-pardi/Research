@@ -58,7 +58,7 @@ def format_QCMi(df):
     
     # rename columns
     if 'Channel A QCM Time [sec]' in df.columns:
-        df.rename(columns={'Channel A QCM Time [sec]':'Time',
+        df = df.rename(columns={'Channel A QCM Time [sec]':'Time',
             'Channel A Fundamental Frequency [Hz]':freqs[0],'Channel A Fundamental Dissipation [ ]':disps[0],
             'Channel A 3. Overtone [Hz]':freqs[1], 'Channel A 3. Dissipation  [ ]':disps[1],
             'Channel A 5. Overtone [Hz]':freqs[2], 'Channel A 5. Dissipation  [ ]':disps[2],
