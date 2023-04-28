@@ -8,6 +8,7 @@ import tkinter as tk
 import sys
 import os
 from datetime import time
+from tkinter import colorchooser
 
 import Exceptions
 from analyze import analyze_data, clear_figures, ordinal
@@ -193,12 +194,17 @@ class App(tk.Tk):
             else:
                 frame.grid_forget()
 
+    def open_plot_opts_window(self):
+        self.plot_opts_window = PlotOptsWindow
+        self.plot_opts_window.open_window(self)
+
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
         self.col_position = 0
         self.is_visible = True
+        self.parent = parent
         file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
         file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
         
@@ -229,7 +235,11 @@ class Col1(tk.Frame):
         self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
         self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
         self.file_data_clear_button.grid(row=11, column=0, pady=4)
-        
+
+        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
+        self.open_plot_opts_button.grid(row=14, pady=(16, 4))
+
+
     def handle_fn_focus_in(self, _):
         if self.file_name_entry.get() == "File name here (W/ EXTENSION)":
             self.file_name_entry.delete(0, tk.END)
@@ -251,6 +261,9 @@ class Col1(tk.Frame):
             self.file_path_entry.delete(0, tk.END)
             self.file_path_entry.config(fg='gray')
             self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")    
+
+    def open_plot_opts(self):
+        self.parent.open_plot_opts_window()
 
     def blit_time_input_frame(self, is_relative_time):
         if is_relative_time:
@@ -522,8 +535,7 @@ class Col3(tk.Frame):
 class Col4(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
-        #tk.Frame.__init__(self)
-        #App.__init__(self)
+
         self.col_position = 3
         self.is_visible = True
         self.parent = parent
@@ -722,6 +734,17 @@ class Col5(tk.Frame):
         which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=confirm_range)
         which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
+
+class PlotOptsWindow(tk.Tk):
+    def __init__(self, parent, container):
+        super().__init__() # initialize parent class for the child
+        self.parent = parent
+
+        color_code = colorchooser.askcolor(title="Choose color for overtone")
+
+    def open_window(self):
+        opts_window = self.parent
+        opts_window.title('Customize Plots')
 
 
 menu = App()
