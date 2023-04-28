@@ -46,6 +46,7 @@ class Input:
         self.first_run = True
         self.latex_installed = False
         self.will_use_theoretical_vals = True
+        self.will_plot_temp_v_time = False
         self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
         self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
@@ -539,6 +540,7 @@ class Col4(tk.Frame):
         self.plot_options_label = tk.Label(self, text="Options for plots", font=('TkDefaultFont', 12, 'bold'))
         self.plot_options_label.grid(row=0, column=4, pady=(14,16), padx=(0,6))
 
+        # miscellaneous plot options
         self.plot_dF_dD_together_var = tk.IntVar()
         self.plot_dF_dD_together_check = tk.Checkbutton(self, text="Plot Δf and Δd together", variable=self.plot_dF_dD_together_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_dF_dD_together_check.grid(row=2, column=4)
@@ -548,10 +550,13 @@ class Col4(tk.Frame):
         self.plot_dD_v_dF_var = tk.IntVar()
         self.plot_dD_v_dF_check = tk.Checkbutton(self, text="Plot Δd vs Δf", variable=self.plot_dD_v_dF_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_dD_v_dF_check.grid(row=4, column=4)
+        self.plot_temp_v_time_var = tk.IntVar()
+        self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_temp_v_time_check.grid(row=5, column=4)
         self.interactive_plot_var = tk.IntVar()
         self.interactive_plot_check = tk.Checkbutton(self, text="Interactive plot", variable=self.interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.interactive_plot_check.grid(row=5, column=4)
-
+        self.interactive_plot_check.grid(row=6, column=4)
+        
         # options for the int plot
         self.interactive_plot_opts = tk.Frame(self)
         self.interactive_plot_overtone_label = tk.Label(self.interactive_plot_opts, text="select overtone to analyze:")
@@ -563,7 +568,7 @@ class Col4(tk.Frame):
         self.scale_time_var = tk.IntVar()
         self.which_range_var = tk.IntVar()
         self.scale_time_check = tk.Checkbutton(self, text="Change scale of time? (default (s))", variable=self.scale_time_var, onvalue=1, offvalue=0, command=self.receive_scale_radios)
-        self.scale_time_check.grid(row=7, column=4, pady=(32,0))
+        self.scale_time_check.grid(row=8, column=4, pady=(32,0))
         # default to seconds
         self.time_scale_frame = tk.Frame(self)
         self.which_time_scale_var = tk.IntVar()
@@ -600,7 +605,7 @@ class Col4(tk.Frame):
     def receive_scale_radios(self):
         global input
         if self.scale_time_var.get() == 1:
-            self.time_scale_frame.grid(row=8, column=4)
+            self.time_scale_frame.grid(row=11, column=4)
             if self.which_time_scale_var.get() == 1:
                 input.x_timescale = 's'
             elif self.which_time_scale_var.get() == 2:
@@ -632,27 +637,17 @@ class Col4(tk.Frame):
     def receive_optional_checkboxes(self):
         global input
 
-        if self.plot_dF_dD_together_var.get() == 1:
-            input.will_plot_dF_dD_together = True
-        else:
-            input.will_plot_dF_dD_together = False
-
-        if self.normalize_F_var.get() == 1:
-            input.will_normalize_F = True
-        else:
-            input.will_normalize_F = False
-
-        if self.plot_dD_v_dF_var.get() == 1:
-            input.will_plot_dD_v_dF = True
-        else:
-            input.will_plot_dD_v_dF = False
+        input.will_plot_dF_dD_together = True if self.plot_dF_dD_together_var.get() == 1 else False
+        input.will_normalize_F = True if self.normalize_F_var.get() == 1 else False
+        input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
+        input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
 
         if self.interactive_plot_var.get() == 1:
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.frames[Col5].is_visible = True
             self.parent.repack_frames()
-            self.interactive_plot_opts.grid(row=6, column=4)
+            self.interactive_plot_opts.grid(row=7, column=4)
         else:
             print("ELSE")
             input.will_interactive_plot = False
@@ -732,7 +727,7 @@ class Col5(tk.Frame):
 
         # run sauerbray button
         run_sauerbray_analysis_button = tk.Button(self, text="Run Sauerbray analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbray((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
+                                             command=lambda: sauerbray((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale)))
         run_sauerbray_analysis_button.grid(row=9, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field

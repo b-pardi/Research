@@ -40,7 +40,8 @@ def format_QCMd(df):
         'Frequency_1':freqs[1], 'Dissipation_1':disps[1],
         'Frequency_2':freqs[2], 'Dissipation_2':disps[2],
         'Frequency_3':freqs[3], 'Dissipation_3':disps[3],
-        'Frequency_4':freqs[4], 'Dissipation_4':disps[4]}, inplace=True)
+        'Frequency_4':freqs[4], 'Dissipation_4':disps[4],
+        'Temperature':'Temp'}, inplace=True)
     
     return df
 
@@ -54,7 +55,8 @@ def format_QCMi(df):
              'Channel A 7. Dissipation  [ ]', 'Channel A 7. Overtone [Hz]',
              'Channel A 9. Dissipation  [ ]', 'Channel A 9. Overtone [Hz]',
              'Channel A 11. Dissipation  [ ]', 'Channel A 11. Overtone [Hz]',
-             'Channel A 13. Dissipation  [ ]', 'Channel A 13. Overtone [Hz]',]]
+             'Channel A 13. Dissipation  [ ]', 'Channel A 13. Overtone [Hz]',
+             'Channel A Temp [Celsius]']]
     
     # rename columns
     if 'Channel A QCM Time [sec]' in df.columns:
@@ -65,7 +67,8 @@ def format_QCMi(df):
             'Channel A 7. Overtone [Hz]':freqs[3], 'Channel A 7. Dissipation  [ ]':disps[3],
             'Channel A 9. Overtone [Hz]':freqs[4], 'Channel A 9. Dissipation  [ ]':disps[4],
             'Channel A 11. Overtone [Hz]':freqs[5], 'Channel A 11. Dissipation  [ ]':disps[5],
-            'Channel A 13. Overtone [Hz]':freqs[6], 'Channel A 13. Dissipation  [ ]':disps[6]}, inplace=True)
+            'Channel A 13. Overtone [Hz]':freqs[6], 'Channel A 13. Dissipation  [ ]':disps[6],
+            'Channel A Temp [Celsius]':'Temp'}, inplace=True)
 
     return df
 

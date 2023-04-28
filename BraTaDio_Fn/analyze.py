@@ -12,15 +12,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
-import shutil
-
-from modeling import linear_regression, sauerbray
+import sys
 
 ''' ANALYSIS VARIABLES '''
 class Analysis:
     def __init__(self):
         self.time_col = 'Time' # relative time
         self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
+        self.temp_col = 'Temp'
 
         self.freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
         self.disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
@@ -95,6 +94,12 @@ def find_nearest_time(time, my_df, time_col_name, is_relative_time):
         base_t0_ind = time_df.index[0]
 
     return base_t0_ind
+
+def plot_temp_v_time(time, temp, x_scale, fig_format):
+    plt.figure(6)
+    plt.clf()
+    plt.plot(time, temp, '.', markersize=1, label="Temperature vs Time")
+    setup_plot(6, determine_xlabel(x_scale), "Temperature °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", fig_format, True)
 
 # check if label and file already exists and remove if it does before writing new data for that range
 # this allows for overwriting of only the currently selected file and frequency,
@@ -180,6 +185,14 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
     dis_stat_file.close()
     rf_stat_file.close()
 
+# removing axis lines for plots
+def remove_axis_lines(ax):
+    ax.spines['top'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+    ax.spines['left'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+    
 
 def analyze_data(input):
     analysis = Analysis()
@@ -188,28 +201,30 @@ def analyze_data(input):
     # grab singular file and create dataframe from it
     input.file_name, _ = os.path.splitext(input.file_name)
     df = pd.read_csv(f"raw_data/Formatted-{input.file_name}.csv")
-    #df = df.dropna()
 
     '''Cleaning Data and plotting clean data'''
     if input.will_plot_clean_data:
         clean_freqs, clean_disps = get_channels(input.which_plot['clean'].items())
-        clean_iters = 0
         freq_plot_cap = len(clean_freqs)
         disp_plot_cap = len(clean_disps)
         diff = len(clean_freqs) - len(clean_disps)
+
         # if different num of freq and raw channels, must do equal amount for plotting,
         # but can just not plot the results later; set plot cap for the lesser
+        
         # diff pos -> more freq channels than disp
         if diff > 0:
             clean_iters = len(clean_freqs)
-            disp_plot_cap = len(clean_disps)
-            for i in range(diff, clean_iters):
-                clean_disps.append(analysis.disps[i])
+
+            for i, ov in enumerate(clean_freqs):
+                if ov not in clean_disps:
+                    corr_dis = 'fundamental_dis' if ov.__contains__('fundamental') else ov[:4] + 'dis'
+                    clean_disps.insert(i, corr_dis)
+
         # diff neg -> more disp channels than freq
         elif diff < 0:
             clean_iters = len(clean_disps)
-            freq_plot_cap = len(clean_freqs)
-            for i in range(abs(diff), clean_iters):
+            for i in range(abs(diff)):
                 clean_freqs.append(analysis.freqs[i])
         # if length same, then iterations is length of either
         else:
@@ -229,12 +244,24 @@ def analyze_data(input):
             base_tf_ind = find_nearest_time(tf_str, df, analysis.abs_time_col, input.is_relative_time) # baseline correction
         baseline_df = df[:base_tf_ind]
         
+        if input.will_plot_temp_v_time:
+            try:
+                temperature_df = df[[analysis.time_col, analysis.temp_col]]
+                temperature_df = temperature_df.dropna(axis=0, how='any', inplace=False)
+            except Exception as e:
+                print(f"Experiment file does not have temperature data\nerr: {e}")
+                temperature_df = df[[analysis.time_col]]
+                temperature_df[analysis.temp_col] = 0
+        
         for i in range(clean_iters):
             # grab data from df and grab only columns we need, then drop nan values
             data_df = df[[analysis.time_col,clean_freqs[i],clean_disps[i]]]
-            
             print(f"clean freq ch: {clean_freqs[i]}; clean disp ch: {clean_disps[i]}")
             data_df = data_df.dropna(axis=0, how='any', inplace=False)
+            if data_df.empty:
+                print(f"ERROR: there is no data for either {clean_freqs[i]} or {clean_disps[i]}",
+                      "\nPlease either uncheck these overtones, or check file for missing data and try again")
+                sys.exit(1)
             print(data_df)
 
             # normalize by overtone
@@ -260,7 +287,9 @@ def analyze_data(input):
             data_df[clean_disps[i]] -= dis_base_avg # baseline correction
             # shift x to left to start at 0
 
-            data_df[analysis.time_col] -= data_df[analysis.time_col].iloc[0] # baseline correction
+            baseline_start = data_df[analysis.time_col].iloc[0]
+            data_df[analysis.time_col] -= baseline_start # baseline correction
+            
                 
             # choose appropriate divisor for x scale of time
             if input.x_timescale == 'm':
@@ -270,15 +299,17 @@ def analyze_data(input):
             else:
                 divisor = 1
             data_df[analysis.time_col] /= divisor # baseline correction
-            print(clean_freqs[i])
-            print(data_df[clean_freqs[i]])
+            
             x_time = data_df[analysis.time_col]
             y_rf = data_df[clean_freqs[i]]
-            print(y_rf)
             # scale disipation by 10^6
             data_df[clean_disps[i]] *= 1000000 # baseline correction
             y_dis = data_df[clean_disps[i]]
             
+            if input.will_plot_temp_v_time:
+                temperature_df[analysis.time_col] /= divisor
+                temperature_df[analysis.time_col] -= baseline_start
+
             # PLOTTING
             plt.figure(1, clear=False)
             # don't plot data for channels not selected
@@ -306,7 +337,7 @@ def analyze_data(input):
                 plt.xticks(fontsize=14, fontfamily='Arial')
                 plt.yticks(fontsize=14, fontfamily='Arial')
                 plt.title("", fontsize=16, fontfamily='Arial')
-                plt.savefig(f"qcmd-plots/freq_dis_V_time_{analysis.freqs[i][:3]}", bbox_inches='tight', transparent=True, dpi=400)
+                plt.savefig(f"qcmd-plots/freq_dis_V_time_{clean_freqs[i]}", bbox_inches='tight', transparent=True, dpi=400)
             
             print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 
@@ -317,6 +348,9 @@ def analyze_data(input):
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
+        if input.will_plot_temp_v_time:
+            print(temperature_df[analysis.temp_col].values)
+            plot_temp_v_time(temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, input.x_timescale, input.fig_format)    
 
         if input.will_overwrite_file:
             df.to_csv(f"raw_data/CLEANED-{input.file_name}", index=False)
@@ -324,10 +358,10 @@ def analyze_data(input):
         # Titles, lables, etc. for plots
         if input.will_normalize_F:
             rf_fig_title = "QCM-D Resonant Frequency - NORMALIZED"
-            rf_fn = f"qcmd-plots/NORM-resonant-freq-plot"
+            rf_fn = "qcmd-plots/NORM-resonant-freq-plot"
         else:
             rf_fig_title = "QCM-D Resonant Frequency"
-            rf_fn = f"qcmd-plots/resonant-freq-plot"
+            rf_fn = "qcmd-plots/resonant-freq-plot"
         rf_fig_x = determine_xlabel(input.x_timescale)
 
         dis_fig_title = "QCM-D Dissipation"
@@ -371,7 +405,7 @@ def analyze_data(input):
             x_time = rf_data_df[analysis.time_col] / time_scale_divisor
             y_rf = rf_data_df[raw_freqs[i]]
             plt.figure(3, clear=True)
-            plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=analysis.color_map_freq[clean_freqs[i]])
+            plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=analysis.color_map_freq[raw_freqs[i]])
             rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}"
             setup_plot(3, rf_fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format)
             plt.figure(3).savefig(rf_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
@@ -383,19 +417,12 @@ def analyze_data(input):
             x_time = dis_data_df[analysis.time_col] / time_scale_divisor
             y_dis = dis_data_df[raw_disps[i]]
             plt.figure(4, clear=True)
-            plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=analysis.color_map_dis[clean_disps[i]])
+            plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=analysis.color_map_dis[raw_disps[i]])
             dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}"
             setup_plot(4, dis_fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn,  input.fig_format)
             plt.figure(4).savefig(dis_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
-    # removing axis lines for plots
-    def remove_axis_lines(ax):
-        ax.spines['top'].set_color('none')
-        ax.spines['bottom'].set_color('none')
-        ax.spines['left'].set_color('none')
-        ax.spines['right'].set_color('none')
-        ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
-        
+    
     # interactive plot
     if input.will_interactive_plot:
         # clear all previous plots
@@ -426,7 +453,7 @@ def analyze_data(input):
         int_ax1_zoom.set_title("\nFrequency Selection Data", fontsize=16, fontfamily='Arial')
         int_ax2_zoom.set_title("\nDissipation Selection Data", fontsize=16, fontfamily='Arial')
         ax.set_title("Click and drag to select range", fontsize=20, fontfamily='Arial', weight='bold', pad=40)
-        y_ax1.set_ylabel("change in frequency, " + '$\it{Δf}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
+        y_ax1.set_ylabel("Change in frequency, " + '$\it{Δf}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
         y_ax2.set_ylabel("Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=14, fontfamily='Arial', labelpad=5)
         ax.set_xlabel (determine_xlabel(input.x_timescale), fontsize=16, fontfamily='Arial')
         plt.sca(int_ax1)
@@ -532,8 +559,9 @@ def analyze_data(input):
 
 
     # clear plots and lists for next iteration
-    clean_freqs.clear()
-    clean_disps.clear()
+    if input.will_plot_clean_data:
+        clean_freqs.clear()
+        clean_disps.clear()
     print("*** Plots Generated ***")
 
 
