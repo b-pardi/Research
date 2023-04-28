@@ -9,9 +9,10 @@ import sys
 import os
 from datetime import time
 
-from analyze import analyze_data, clear_figures
+import Exceptions
+from analyze import analyze_data, clear_figures, ordinal
 from format_file import format_raw_data
-from modeling import linear_regression, sauerbray
+from modeling import linear_regression, sauerbrey
 
 '''
 WIP
@@ -40,8 +41,7 @@ class Input:
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
         self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
-        self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression
-        self.will_use_theoretical_sauerbray_vals = True # indicates if using calibration data or theoretical values for Sauerbray modeling
+        self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression/sauerbrey
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
@@ -60,14 +60,6 @@ class Input:
                             '13th_freq': False, '13th_dis': False}}
 
 input = Input()
-
-# returns the ordinal suffix of number (i.e. the rd in 3rd)
-# instead of 'st' for 1st, will return 'fundamental'
-def ordinal(n):
-    overtone_ordinal = ("th" if 4<=n%100<=20 else {1:"Fundamental",2:"nd",3:"rd"}.get(n%10, "th"))
-    if n != 1:
-        overtone_ordinal = str(n) + overtone_ordinal
-    return overtone_ordinal
     
 def create_checkboxes(frame, cleanliness):
     keys = list(input.which_plot[cleanliness].keys())
@@ -672,8 +664,8 @@ class Col4(tk.Frame):
     def clear_range_data(self):
         rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
         dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
-        sauerbray_ranges = open("selected_ranges/sauerbray_ranges.csv", 'w')
-        files = [rf_stats, dis_stats, sauerbray_ranges]
+        sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
+        files = [rf_stats, dis_stats, sauerbrey_ranges]
         for file in files:
             file.write('')
 
@@ -708,34 +700,21 @@ class Col5(tk.Frame):
         calibration_peak_freq_radio = tk.Radiobutton(theoretical_or_calibration_peak_freq_frame, text='calibration', variable=theoretical_or_calibration_peak_freq_var, value=0)
         calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
-        # prompt to use theoretical or experimental values for sauerbray modeling
-        theoretical_or_calibration_sauerbray_frame = tk.Frame(self)
-        theoretical_or_calibration_sauerbray_frame.grid(row=7, column=0, columnspan=1, pady=8)
-        theoretical_or_calibration_sauerbray_var = tk.IntVar()
-        theoretical_or_calibration_sauerbray_label = tk.Label(theoretical_or_calibration_sauerbray_frame,
-                                        text="Use theoretical or experimental\nresonant frequency values for Sauerbray model")
-        theoretical_or_calibration_sauerbray_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
-        theoretical_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='theoretical', variable=theoretical_or_calibration_sauerbray_var, value=1)
-        theoretical_sauerbray_radio.grid(row=1, column=0, pady=(2,4))
-        calibration_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='experimental', variable=theoretical_or_calibration_sauerbray_var, value=0)
-        calibration_sauerbray_radio.grid(row=1, column=1, pady=(2,4))
-
         # run linear regression button
         run_linear_analysis_button = tk.Button(self, text="Run linear analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed)))
+                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
         run_linear_analysis_button.grid(row=8, column=0, pady=4)
 
-        # run sauerbray button
-        run_sauerbray_analysis_button = tk.Button(self, text="Run Sauerbray analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbray((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale)))
-        run_sauerbray_analysis_button.grid(row=9, column=0, pady=4)
+        # run sauerbrey button
+        run_sauerbrey_analysis_button = tk.Button(self, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
+                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale, input.fig_format)))
+        run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global input
             input.which_range_selecting = which_range_entry.get()
             input.will_use_theoretical_peak_freq_vals = theoretical_or_calibration_peak_freq_var
-            input.will_use_theoretical_sauerbray_vals = theoretical_or_calibration_sauerbray_var
 
             print(f"Confirmed range: {input.which_range_selecting}")
 

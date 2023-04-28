@@ -128,7 +128,14 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-
+- plot options
+    - new window
+    - save options for all future uses 
+    - tick direction out/in
+    - label text sizes
+    - value text size on tick marks
+    - font change
+    - user specified color
 
 - Sauerbray film thickness modeling
     - option to use peak frequency value or theoretical value for C
@@ -142,12 +149,26 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+4/27
+- error check for linear regression if different number overtones selected than saved in stats files
+- bug fix: plots saved in modeling.py now also utilize user selected figure format
+- bug fix: after submitting and running linear regression, would alter keys in which_plot in the double digit overtones, causing the underscore to be removed and not be found in dataframe (i.e. 11th_dis -> 11thdis). Culprit in overtone selection in modeling.py
+- started custom Error classes to handle shape mismatch
+- remove legend in temp v time
+- changed overtone labels to just number of overtone using get_num_from_string() function
+- removed Delta from Delta t in time labels
+- bug fix normalizing overtone, used num from string function instead of hardcoding
+
+4/22
+- removed option for calibration/theoretical vals for Sauerbray, as option currently for Linear Regression will also apply for Sauerbray, so 2 separate options unnecessary
+
 4/18
 - updated README
 - error check to see if Df already normalized before doing Sauerbray, if it is we don't divide by the overtone as to not do it twice
 - updated plot formatting for Sauerbray
 - fixed bug legend not showing in Sauerbray plots
 - fixed bug when plotting only raw data
+- fixed bug in Linear regression model
 
 4/17
 - refactored code to clean up analyze.py, moving nested functions outside of analyze() and shortening it. more refactoring of the like needed

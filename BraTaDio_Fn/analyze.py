@@ -56,17 +56,26 @@ def get_channels(channels):
 
     return (freq_list, disp_list)
 
+# returns the ordinal suffix of number (i.e. the rd in 3rd)
+# instead of 'st' for 1st, will return 'fundamental'
+def ordinal(n):
+    overtone_ordinal = ("th" if 4<=n%100<=20 else {1:"Fundamental",2:"nd",3:"rd"}.get(n%10, "th"))
+    if n != 1:
+        overtone_ordinal = str(n) + overtone_ordinal
+    return overtone_ordinal
+
 def determine_xlabel(x_timescale):
     if x_timescale == 's':
-        return "Time, " + '$\it{Δt}$' + " (s)"
+        return "Time, " + '$\it{t}$' + " (s)"
     elif x_timescale == 'm':
-        return "Time, " + '$\it{Δt}$' + " (min)"
+        return "Time, " + '$\it{t}$' + " (min)"
     else:
-        return "Time, " + '$\it{Δt}$' + " (hr)"
+        return "Time, " + '$\it{t}$' + " (hr)"
 
-def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, fig_format, will_save=False):
+def setup_plot(fig_num, fig_x, fig_y, fig_title, fn, fig_format, will_save=False, legend=True):
     plt.figure(fig_num, clear=False)
-    plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
+    if legend:
+        plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
     plt.xticks(fontsize=14, fontfamily='Arial')
     plt.yticks(fontsize=14, fontfamily='Arial')
     plt.xlabel(fig_x, fontsize=16, fontfamily='Arial')
@@ -98,8 +107,8 @@ def find_nearest_time(time, my_df, time_col_name, is_relative_time):
 def plot_temp_v_time(time, temp, x_scale, fig_format):
     plt.figure(6)
     plt.clf()
-    plt.plot(time, temp, '.', markersize=1, label="Temperature vs Time")
-    setup_plot(6, determine_xlabel(x_scale), "Temperature °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", fig_format, True)
+    plt.plot(time, temp, '.', markersize=1)
+    setup_plot(6, determine_xlabel(x_scale), "Temperature °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", fig_format, True, False)
 
 # check if label and file already exists and remove if it does before writing new data for that range
 # this allows for overwriting of only the currently selected file and frequency,
@@ -159,13 +168,12 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
 
-                # range data for Sauerbray
+                # range data for Sauerbrey
                 temp_df = pd.DataFrame()
                 temp_df['freq'] = y_data
                 temp_df['time'] = df['Time']
                 temp_df['overtone'] = ov
                 temp_df['range_used'] = which_range
-                print(temp_df.head())
                 temp_df['data_source'] = fn
                 range_df = pd.concat([range_df, temp_df[imin:imax]], ignore_index=True)
 
@@ -180,7 +188,7 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
     
-    range_df.to_csv(f"selected_ranges/sauerbray_ranges.csv", mode='a', index=False, header=None)
+    range_df.to_csv(f"selected_ranges/Sauerbrey_ranges.csv", mode='a', index=False, header=None)
     
     dis_stat_file.close()
     rf_stat_file.close()
@@ -193,6 +201,17 @@ def remove_axis_lines(ax):
     ax.spines['right'].set_color('none')
     ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
     
+def get_num_from_string(string):
+    if string.__contains__("fundamental"):
+        return 1
+    nums = []
+    for char in string:
+        if char.isdigit():
+            nums.append(char)
+    num = 0
+    for i, digit in enumerate(reversed(list(nums))):
+        num += int(digit) * 10**i
+    return int(num)
 
 def analyze_data(input):
     analysis = Analysis()
@@ -262,19 +281,10 @@ def analyze_data(input):
                 print(f"ERROR: there is no data for either {clean_freqs[i]} or {clean_disps[i]}",
                       "\nPlease either uncheck these overtones, or check file for missing data and try again")
                 sys.exit(1)
-            print(data_df)
 
             # normalize by overtone
             if input.will_normalize_F:
-                overtone = 1
-                if clean_freqs[i].__contains__("3"):
-                    overtone = 3
-                if clean_freqs[i].__contains__("5"):
-                    overtone = 5
-                if clean_freqs[i].__contains__("7"):
-                    overtone = 7
-                if clean_freqs[i].__contains__("9"):
-                    overtone = 9
+                overtone = get_num_from_string(clean_freqs[i])
                 data_df[clean_freqs[i]] /= overtone
                 baseline_df[clean_freqs[i]] /= overtone
 
@@ -314,10 +324,10 @@ def analyze_data(input):
             plt.figure(1, clear=False)
             # don't plot data for channels not selected
             if i < freq_plot_cap:
-                plt.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color=analysis.color_map_freq[clean_freqs[i]])
+                plt.plot(x_time, y_rf, '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])), color=analysis.color_map_freq[clean_freqs[i]])
             plt.figure(2, clear=False)
             if i < disp_plot_cap:
-                plt.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color=analysis.color_map_dis[clean_disps[i]])
+                plt.plot(x_time, y_dis, '.', markersize=1, label=ordinal(get_num_from_string(clean_disps[i])), color=analysis.color_map_dis[clean_disps[i]])
 
             # plotting change in disp vs change in freq
             if input.will_plot_dD_v_dF:
@@ -331,8 +341,8 @@ def analyze_data(input):
                 ax1.set_ylabel(analysis.rf_fig_y, fontsize=16, fontfamily='Arial')
                 ax2 = ax1.twinx()
                 ax2.set_ylabel(analysis.dis_fig_y,fontsize=16, fontfamily='Arial')
-                ax1.plot(x_time, y_rf, '.', markersize=1, label=f"resonant freq - {clean_freqs[i]}", color='green')
-                ax2.plot(x_time, y_dis, '.', markersize=1, label=f"dissipation - {clean_disps[i]}", color='blue')
+                ax1.plot(x_time, y_rf, '.', markersize=1, label=clean_freqs[i], color='green')
+                ax2.plot(x_time, y_dis, '.', markersize=1, label=clean_disps[i], color='blue')
                 fig.legend(loc='upper center', fontsize=14, prop={'family': 'Arial'}, framealpha=0.1)
                 plt.xticks(fontsize=14, fontfamily='Arial')
                 plt.yticks(fontsize=14, fontfamily='Arial')
@@ -349,7 +359,6 @@ def analyze_data(input):
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
 
         if input.will_plot_temp_v_time:
-            print(temperature_df[analysis.temp_col].values)
             plot_temp_v_time(temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, input.x_timescale, input.fig_format)    
 
         if input.will_overwrite_file:
@@ -362,20 +371,18 @@ def analyze_data(input):
         else:
             rf_fig_title = "QCM-D Resonant Frequency"
             rf_fn = "qcmd-plots/resonant-freq-plot"
-        rf_fig_x = determine_xlabel(input.x_timescale)
+        fig_x = determine_xlabel(input.x_timescale)
 
         dis_fig_title = "QCM-D Dissipation"
-        dis_fig_x = rf_fig_x
         dis_fn = f"qcmd-plots/dissipation-plot"
 
         # fig 1: clean freq plot
         # fig 2: clean disp plot
         # fig 5: dD v dF
-        setup_plot(1, rf_fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format, True)
-        setup_plot(2, dis_fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn, input.fig_format, True)
+        setup_plot(1, fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format, True)
+        setup_plot(2, fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn, input.fig_format, True)
         if input.will_plot_dD_v_dF:
             dVf_fn = f"qcmd-plots/disp_V_freq-plot"
-            dVf_title = "Dissipiation against Frequency"
             setup_plot(5, analysis.rf_fig_y, analysis.dis_fig_y, dis_fig_title, dVf_fn, input.fig_format, True)
 
 
@@ -405,7 +412,7 @@ def analyze_data(input):
             x_time = rf_data_df[analysis.time_col] / time_scale_divisor
             y_rf = rf_data_df[raw_freqs[i]]
             plt.figure(3, clear=True)
-            plt.plot(x_time, y_rf, '.', markersize=1, label=f"raw resonant freq - {i}", color=analysis.color_map_freq[raw_freqs[i]])
+            plt.plot(x_time, y_rf, '.', markersize=1, label=ordinal(get_num_from_string(raw_freqs[i])), color=analysis.color_map_freq[raw_freqs[i]])
             rf_fn = f"qcmd-plots/RAW-resonant-freq-plot-{raw_freqs[i]}"
             setup_plot(3, rf_fig_x, analysis.rf_fig_y, rf_fig_title, rf_fn, input.fig_format)
             plt.figure(3).savefig(rf_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
@@ -417,7 +424,7 @@ def analyze_data(input):
             x_time = dis_data_df[analysis.time_col] / time_scale_divisor
             y_dis = dis_data_df[raw_disps[i]]
             plt.figure(4, clear=True)
-            plt.plot(x_time, y_dis, '.', markersize=1, label=f"raw dissipation - {i}", color=analysis.color_map_dis[raw_disps[i]])
+            plt.plot(x_time, y_dis, '.', markersize=1, label=ordinal(get_num_from_string(raw_disps[i])), color=analysis.color_map_dis[raw_disps[i]])
             dis_fn = f"qcmd-plots/RAW-dissipation-plot-{raw_freqs[i]}"
             setup_plot(4, dis_fig_x, analysis.dis_fig_y, dis_fig_title, dis_fn,  input.fig_format)
             plt.figure(4).savefig(dis_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
@@ -534,7 +541,7 @@ def analyze_data(input):
                 header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
                 
-                range_selection_out_fn = 'sauerbray_ranges.csv'
+                range_selection_out_fn = 'Sauerbrey_ranges.csv'
                 header = f"freq,time,overtone,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, range_selection_out_fn)
                 

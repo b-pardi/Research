@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+import Exceptions
 from analyze import determine_xlabel
 
 # pass in 3 dimensional array of data values
@@ -70,13 +71,17 @@ def get_overtones_selected(which_plot):
 
 def get_calibration_values(which_plot, use_theoretical_vals):
     delete_keys = []
+    which_freq_plots = {}
     if use_theoretical_vals:
         # clean which_plot and remove the dis keys since we only need freq
-        for key in which_plot.keys():
-            if key.__contains__('dis'):
-                delete_keys.append(key)
-        for key in delete_keys:
-            del which_plot[key]
+        for key, val in which_plot.items():
+            if key.__contains__('freq'):
+                which_freq_plots[key] = val
+        '''for key, val in which_plot.items():
+            which_freq_plots[key] = val'''
+        '''for key in delete_keys:
+            del which_plot[key]'''
+        print(which_freq_plots, which_plot)
 
         calibration_freq = []
         sigma_calibration_freq = []
@@ -87,7 +92,7 @@ def get_calibration_values(which_plot, use_theoretical_vals):
         # for items in which plot, if true,
         # insert the value from theoretical values
         # and 0 if false
-        for i, ov in enumerate(which_plot.items()):
+        for i, ov in enumerate(which_freq_plots.items()):
             if ov[1]:
                 calibration_freq.append(theoretical_values[i])
             else:
@@ -165,15 +170,15 @@ def setup_plot(use_tex=False):
     plt.cla()
     return plot, ax
 
-def plot_data(xdata, ydata, xerr, yerr, label, use_tex=False, color=''):
+def plot_data(xdata, ydata, xerr, yerr, label, plot_type, use_tex=False, color=''):
     fig, ax = setup_plot(use_tex)
     
     # plotting modeled data slightly different than range data
-    if xerr != None or yerr != None:
+    if plot_type == 'model':
         ax.plot(xdata, ydata, 'o', markersize=8, label=label)
         ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
 
-    else:
+    elif plot_type == 'equation':
         ax.plot(xdata, ydata, markersize=1, label=label, color=color)
 
     return fig, ax
@@ -222,7 +227,7 @@ def get_labels(label, usetex, model):
     return data_label, x, y, title
 
 def linear_regression(user_input):
-    which_plot, use_theoretical_vals, latex_installed = user_input
+    which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
     print("Performing linear analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
@@ -257,9 +262,11 @@ def linear_regression(user_input):
 
         # plot data
         data_label, x_label, y_label, title = get_labels(label, latex_installed, 'linear')
+        if n_mean_delta_freqs.shape != delta_gamma.shape:
+            raise Exceptions.ShapeMismatchException((n_mean_delta_freqs.shape, delta_gamma.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         lin_plot, ax = plot_data(n_mean_delta_freqs, delta_gamma,
                                  sigma_n_mean_delta_freqs, sigma_delta_gamma,
-                                 data_label, latex_installed)
+                                 data_label, 'model', latex_installed)
         
         # take care of all linear fitting analysis    
         linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
@@ -267,14 +274,14 @@ def linear_regression(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}", bbox_inches='tight', dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
         print("Linear Regression Complete")
         plt.rc('text', usetex=False)
 
-def sauerbray(user_input):
-    use_theoretical_vals, df_normalized, x_timescale = user_input
-    print("Modeling Sauerbray function...")
-    df = pd.read_csv("selected_ranges/sauerbray_ranges.csv")
+def sauerbrey(user_input):
+    use_theoretical_vals, df_normalized, x_timescale, fig_format = user_input
+    print("Modeling Sauerbrey function...")
+    df = pd.read_csv("selected_ranges/Sauerbrey_ranges.csv")
     labels = df['range_used'].unique()
     print(f"LABELS: {labels}")
     color_map = _get_color_map()
@@ -300,14 +307,14 @@ def sauerbray(user_input):
 
             # plot and save
             x_label = determine_xlabel(x_timescale)
-            y_label = 'Sauerbray mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
-            title = f"Sauerbray eqn for range: {label}, overtone: {ov}"
-            plot_label = "Sauerbray eqn"
-            sauerbray_plot, ax = plot_data(time, Dm, None, None, plot_label, False, color_map[ov])
+            y_label = 'Sauerbrey mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
+            title = f"Sauerbrey eqn for range: {label}, overtone: {ov}"
+            plot_label = "Sauerbrey eqn"
+            Sauerbrey_plot, ax = plot_data(time, Dm, None, None, plot_label, 'equation', False, color_map[ov])
             format_plot(ax, x_label, y_label, title)
-            sauerbray_plot.tight_layout()
-            plt.savefig(f"qcmd-plots/Sauerbray_label-ov_{label}-{ov}", bbox_inches='tight', dpi=200)
-    print("Sauerbray Analysis Complete")
+            Sauerbrey_plot.tight_layout()
+            plt.savefig(f"qcmd-plots/Sauerbrey_label-ov_{label}-{ov}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+    print("Sauerbrey Analysis Complete")
     plt.rc('text', usetex=False)
 
     
@@ -324,4 +331,4 @@ if __name__ == "__main__":
                             '13th_freq': False, '13th_dis': False}}
     
     #linear_regression((which_plot['clean'], True, False))
-    sauerbray((which_plot['clean'], True, False))
+    sauerbrey((which_plot['clean'], True, False))
