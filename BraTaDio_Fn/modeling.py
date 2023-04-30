@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import determine_xlabel, get_plot_preferences
+from analyze import determine_xlabel, get_plot_preferences, map_colors
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -54,11 +54,6 @@ def propogate_mean_err(means, errs, n_vals):
 
 def linear(x, m, b):
     return m * x + b
-
-def _get_color_map():
-    color_map = {'fundamental_freq':'blue', '3rd_freq':'orange', '5th_freq':'green',
-                    '7th_freq':'red', '9th_freq':'purple', '11th_freq':'aqua', '13th_freq':'pink'}
-    return color_map
 
 def get_overtones_selected(which_plot):
     overtones = []
@@ -202,13 +197,16 @@ def linearly_analyze(x, y, ax):
     ax.plot(x, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}\nrsq = {rSquared:.4f}')
 
 def format_plot(ax, x_label, y_label, title):
+    plot_customs = get_plot_preferences()
+    font = plot_customs['font']
     plt.sca(ax)
-    plt.legend(loc='best', fontsize=14, prop={'family': 'Arial'}, framealpha=0.3)
-    plt.xticks(fontsize=14, fontfamily='Arial')
-    plt.yticks(fontsize=14, fontfamily='Arial') 
-    plt.xlabel(x_label, fontsize=16, fontfamily='Arial')
-    plt.ylabel(y_label, fontsize=16, fontfamily='Arial')
-    plt.title(title, fontsize=16, fontfamily='Arial')
+    plt.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': font}, framealpha=0.3)
+    plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=font)
+    plt.yticks(fontsize=plot_customs['value_text_size'], fontfamily=font) 
+    plt.xlabel(x_label, fontsize=plot_customs['label_text_size'], fontfamily=font)
+    plt.ylabel(y_label, fontsize=plot_customs['label_text_size'], fontfamily=font)
+    plt.tick_params(axis='both', direction=plot_customs['tick_dir'])
+    plt.title(title, fontsize=plot_customs['title_text_size'], fontfamily=font)
 
 # grab plot labels determined by use of latex, and which function modeling
 def get_labels(label, usetex, model):
@@ -284,7 +282,8 @@ def sauerbrey(user_input):
     df = pd.read_csv("selected_ranges/Sauerbrey_ranges.csv")
     labels = df['range_used'].unique()
     print(f"LABELS: {labels}")
-    color_map = _get_color_map()
+    color_map, _ = map_colors(get_plot_preferences())
+
 
     for label in labels:
         df_range = df.loc[df['range_used'] == label]

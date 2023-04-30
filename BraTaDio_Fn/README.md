@@ -130,17 +130,12 @@ if it is not, please comment out the 2 lines below
 
 - document and comment the hell out of the code
 
-- error checking to ensure all plot opts are inputted
 - maybe add marker size/type customizations
-- add plot customizations to modeling.py
 
-- Sauerbray film thickness modeling
-    - option to use peak frequency value or theoretical value for C
-        - C = Vq * Pq / 2F0^2   ->   theoretically is 17.7 for a 5MHz crystal
-
-- add option in col 5 to indicate if user has latex installed. if yes, linear regression model will remain as is with italicized capital greek letters, if not, disable rc params and user std matplotlib chars
+- remove latex features
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
+    - C = Vq * Pq / 2F0^2
 
 - refactor analyze() to put each opt into its own function
 
@@ -153,6 +148,7 @@ if it is not, please comment out the 2 lines below
 - fixed set with copy warning for multiaxis plot
 - fixed legend placement for multiaxis plot
 - added error checking to ensure all plot opt fields are filled out
+- modeling.py functions now utilize plot customizations
 
 4/29
 - began plot customizations class and figured out inheritance issue (instantiated in App class)
