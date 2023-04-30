@@ -185,6 +185,11 @@ class App(tk.Tk):
             if frame.is_visible:
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
 
+        self.plot_opts_window = PlotOptsWindow
+        
+    def choose_color(self):
+        self.plot_opts_window.choose_color(self)
+
     def repack_frames(self):
         for frame in self.frames:
             frame = self.frames[frame]
@@ -195,8 +200,11 @@ class App(tk.Tk):
                 frame.grid_forget()
 
     def open_plot_opts_window(self):
-        self.plot_opts_window = PlotOptsWindow
         self.plot_opts_window.open_window(self)
+        print("window test")
+        self.plot_opts_window.fill_window(self)
+        print("window tesssst")
+
 
 
 class Col1(tk.Frame):
@@ -735,16 +743,37 @@ class Col5(tk.Frame):
         which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
 
-class PlotOptsWindow(tk.Tk):
+class PlotOptsWindow(App):
     def __init__(self, parent, container):
-        super().__init__() # initialize parent class for the child
-        self.parent = parent
-
-        color_code = colorchooser.askcolor(title="Choose color for overtone")
+        super().__init__(container) # initialize parent class for the child
+        self.parent = parent        
 
     def open_window(self):
-        opts_window = self.parent
+        print("window opened")
+        opts_window = tk.Toplevel(self)
         opts_window.title('Customize Plots')
+        self.opts_col1 = tk.Frame(opts_window)
+        self.opts_col1.pack(side='left')
+        self.opts_col2 = tk.Frame(opts_window)
+        self.opts_col2.pack(side='right')
+
+    def fill_window(self):
+        # first column contains most plot customizations
+        self.customize_label = tk.Label(self.opts_col1, text="Plot Customization Options", font=('TkDefaultFont', 12, 'bold'))
+        self.customize_label.grid(row=1, column=0, padx=16, pady=12)
+
+        # second column color customizer
+        self.ov_color_label = tk.Label(self.opts_col2, text="Customize Overtone Plot Colors", font=('TkDefaultFont', 12, 'bold'))
+        self.ov_color_label.grid(row=1, column=0, padx=16, pady=12)
+        
+        self.ov1_color_button = tk.Button(self.opts_col2, text="1st overtone", width=10, command=self.choose_color)
+        self.ov1_color_button.grid(row=3, column=0, pady=(20,0))
+
+        print("window filled")
+
+    def choose_color(self):
+        self.color_code = colorchooser.askcolor(title="Choose color for overtone")
+        print(self.color_code)    
 
 
 menu = App()
