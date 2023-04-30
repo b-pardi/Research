@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import determine_xlabel
+from analyze import determine_xlabel, get_plot_preferences
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]

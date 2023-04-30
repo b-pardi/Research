@@ -770,7 +770,7 @@ class PlotOptsWindow():
     def fill_window(self):
         # first column contains most plot customizations
         self.customize_label = tk.Label(self.opts_col1, text="Plot Customization Options", font=('TkDefaultFont', 12, 'bold'))
-        self.customize_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
+        self.customize_label.grid(row=1, column=0, columnspan=3, padx=16, pady=12)
 
         self.font_choice_label = tk.Label(self.opts_col1, text="Enter font selection:")
         self.font_choice_label.grid(row=3, column=0, pady=(20,4))
@@ -792,13 +792,20 @@ class PlotOptsWindow():
         self.value_text_size_entry = tk.Entry(self.opts_col1, width=10)
         self.value_text_size_entry.grid(row=6, column=1, pady=(16,0))
 
+        self.legend_text_size_label = tk.Label(self.opts_col1, text="Enter Legend font size:")
+        self.legend_text_size_label.grid(row=7, column=0, pady=(16,0))
+        self.legend_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.legend_text_size_entry.grid(row=7, column=1, pady=(16,0))
+
         self.tick_direction_label = tk.Label(self.opts_col1, text="Choose tick direction:")
-        self.tick_direction_label.grid(row=9, column=0, columnspan=2, pady=(16,0))
+        self.tick_direction_label.grid(row=9, column=0, columnspan=3, pady=(16,0))
         self.tick_direction_var = tk.IntVar()
         self.tick_direction_in_radio = tk.Radiobutton(self.opts_col1, text="in", variable=self.tick_direction_var, value=1)
         self.tick_direction_in_radio.grid(row=10, column=0)
         self.tick_direction_out_radio = tk.Radiobutton(self.opts_col1, text="out", variable=self.tick_direction_var, value=0)
         self.tick_direction_out_radio.grid(row=10, column=1)
+        self.tick_direction_inout_radio = tk.Radiobutton(self.opts_col1, text="both", variable=self.tick_direction_var, value=2)
+        self.tick_direction_inout_radio.grid(row=10, column=2)
 
 
         # second column color customizer
@@ -828,9 +835,6 @@ class PlotOptsWindow():
     def choose_color(self, ov_num):
         self.color_code = colorchooser.askcolor(title="Choose color for overtone", parent=self)
         self.options['colors'][f'ov{ov_num}'] = self.color_code[1]
-        
-    def reset_colors(self):
-        self.options['colors'] = self.default_colors
 
     def set_text(self, entry, text):
         entry.delete(0, tk.END)
@@ -843,6 +847,7 @@ class PlotOptsWindow():
         self.set_text(self.label_text_size_entry, default_opts['label_text_size'])
         self.set_text(self.title_text_size_entry, default_opts['title_text_size'])
         self.set_text(self.value_text_size_entry, default_opts['value_text_size'])
+        self.set_text(self.legend_text_size_entry, default_opts['legend_text_size'])
         
         self.options['tick_dir'] = default_opts['tick_dir']
         self.options['colors'] = default_opts['colors']
@@ -852,8 +857,19 @@ class PlotOptsWindow():
         self.options['label_text_size'] = self.label_text_size_entry.get()
         self.options['title_text_size'] = self.title_text_size_entry.get()
         self.options['value_text_size'] = self.value_text_size_entry.get()
+        self.options['legend_text_size'] = self.legend_text_size_entry.get()
 
-        self.options['tick_dir'] = 'in' if self.tick_direction_var.get() == 0 else 'out'
+        if self.tick_direction_var.get() == 0:
+            self.options['tick_dir'] = 'in'
+        elif self.tick_direction_var.get() == 1:
+            self.options['tick_dir'] = 'out'
+        else:
+            self.options['tick_dir'] = 'inout'
+
+        for key in self.options.keys():
+            if self.options[key] == '':
+                raise Exceptions.MissingPlotCustomizationException(key, "Please Specify Missing field. ")
+
         with open('plot_opts/plot_customizations.json', 'w') as fp:
             json.dump(self.options, fp)
 

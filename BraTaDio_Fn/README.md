@@ -128,8 +128,11 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- actually integrate saved plot opts into software
+- document and comment the hell out of the code
+
 - error checking to ensure all plot opts are inputted
+- maybe add marker size/type customizations
+- add plot customizations to modeling.py
 
 - Sauerbray film thickness modeling
     - option to use peak frequency value or theoretical value for C
@@ -142,6 +145,14 @@ if it is not, please comment out the 2 lines below
 - refactor analyze() to put each opt into its own function
 
 ### CHANGE LOG
+
+4/30
+- integrated plot customizations from json file into analyze.py
+- added legend text size option
+- added inout option to tick directions
+- fixed set with copy warning for multiaxis plot
+- fixed legend placement for multiaxis plot
+- added error checking to ensure all plot opt fields are filled out
 
 4/29
 - began plot customizations class and figured out inheritance issue (instantiated in App class)

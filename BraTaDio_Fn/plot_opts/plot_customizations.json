@@ -1,1 +1,1 @@
-{"colors": {"ov1": "blue", "ov3": "#d9df62", "ov5": "green", "ov7": "#c47dc4", "ov9": "#d96868", "ov11": "aqua", "ov13": "pink"}, "font": "bahuas", "label_text_size": "12", "title_text_size": "", "value_text_size": "32", "tick_dir": "in"}
+{"colors": {"ov1": "#c0c0c0", "ov3": "#000000", "ov5": "green", "ov7": "red", "ov9": "#ff80ff", "ov11": "aqua", "ov13": "pink"}, "font": "times new roman", "label_text_size": "12", "title_text_size": "10", "value_text_size": "", "legend_text_size": "", "tick_dir": "in"}
