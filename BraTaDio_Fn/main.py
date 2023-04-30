@@ -153,7 +153,6 @@ def set_frame_flag():
 def abort():
     sys.exit()
 
-
 # menu class inherits Tk class 
 class App(tk.Tk):
     def __init__(self):
@@ -186,11 +185,10 @@ class App(tk.Tk):
             if frame.is_visible:
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
 
+        # initialize plot customizations with previously saved values
         self.plot_opts_window = PlotOptsWindow
-        self.options = {}
-        self.default_colors = {'ov1':'blue', 'ov3':'orange', 'ov5':'green',
-                            'ov7':'red', 'ov9':'purple', 'ov11':'aqua', 'ov13':'pink'}
-        self.options['colors'] = self.default_colors
+        with open('plot_opts/plot_customizations.json', 'r') as fp:
+            self.options = json.load(fp)
 
     def repack_frames(self):
         for frame in self.frames:
@@ -203,18 +201,19 @@ class App(tk.Tk):
 
     def open_plot_opts_window(self):
         self.plot_opts_window.open_window(self)
-        print("window test")
         self.plot_opts_window.fill_window(self)
-        print("window tesssst")
 
     def choose_color(self, ov_num):
         self.plot_opts_window.choose_color(self, ov_num)
 
-    def reset_colors(self):
-        self.plot_opts_window.reset_colors(self)
+    def set_default_values(self):
+        self.plot_opts_window.set_default_values(self)
 
-    def dump_json(self):
-        self.plot_opts_window.dump_json(self)
+    def confirm_opts(self):
+        self.plot_opts_window.confirm_opts(self)
+
+    def set_text(self, entry, text):
+        self.plot_opts_window.set_text(self, entry, text)
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
@@ -753,34 +752,61 @@ class Col5(tk.Frame):
         which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
 
-class PlotOptsWindow(App):
+class PlotOptsWindow():
     def __init__(self, parent, container):
         super().__init__(container) # initialize parent class for the child
         self.parent = parent
 
-
     def open_window(self):
-        print("window opened")
         opts_window = tk.Toplevel(self)
         opts_window.title('Customize Plots')
         self.opts_col1 = tk.Frame(opts_window)
-        self.opts_col1.pack(side='left')
+        self.opts_col1.pack(side='left', anchor='n')
         self.opts_col2 = tk.Frame(opts_window)
-        self.opts_col2.pack(side='right')
+        self.opts_col2.pack(side='right', anchor='n')
         self.opts_confirm = tk.Frame(opts_window)
         self.opts_confirm.pack(side='bottom')
 
     def fill_window(self):
         # first column contains most plot customizations
         self.customize_label = tk.Label(self.opts_col1, text="Plot Customization Options", font=('TkDefaultFont', 12, 'bold'))
-        self.customize_label.grid(row=1, column=0, padx=16, pady=12)
+        self.customize_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
+
+        self.font_choice_label = tk.Label(self.opts_col1, text="Enter font selection:")
+        self.font_choice_label.grid(row=3, column=0, pady=(20,4))
+        self.font_choice_entry = tk.Entry(self.opts_col1, width=10)
+        self.font_choice_entry.grid(row=3, column=1, pady=(20,4))
+
+        self.label_text_size_label = tk.Label(self.opts_col1, text="Enter Label font size:")
+        self.label_text_size_label.grid(row=4, column=0, pady=(16,0))
+        self.label_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.label_text_size_entry.grid(row=4, column=1, pady=(16,0))
+
+        self.title_text_size_label = tk.Label(self.opts_col1, text="Enter Title font size:")
+        self.title_text_size_label.grid(row=5, column=0, pady=(16,0))
+        self.title_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.title_text_size_entry.grid(row=5, column=1, pady=(16,0))
+
+        self.value_text_size_label = tk.Label(self.opts_col1, text="Enter Value font size:")
+        self.value_text_size_label.grid(row=6, column=0, pady=(16,0))
+        self.value_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.value_text_size_entry.grid(row=6, column=1, pady=(16,0))
+
+        self.tick_direction_label = tk.Label(self.opts_col1, text="Choose tick direction:")
+        self.tick_direction_label.grid(row=9, column=0, columnspan=2, pady=(16,0))
+        self.tick_direction_var = tk.IntVar()
+        self.tick_direction_in_radio = tk.Radiobutton(self.opts_col1, text="in", variable=self.tick_direction_var, value=1)
+        self.tick_direction_in_radio.grid(row=10, column=0)
+        self.tick_direction_out_radio = tk.Radiobutton(self.opts_col1, text="out", variable=self.tick_direction_var, value=0)
+        self.tick_direction_out_radio.grid(row=10, column=1)
+
 
         # second column color customizer
         self.ov_color_label = tk.Label(self.opts_col2, text="Customize Overtone Plot Colors", font=('TkDefaultFont', 12, 'bold'))
         self.ov_color_label.grid(row=1, column=0, padx=16, pady=12)
         
         self.ov1_color_button = tk.Button(self.opts_col2, text="1st overtone", width=10, command=lambda: self.choose_color(1))
-        self.ov1_color_button.grid(row=3, column=0, pady=(20,4))
+        self.ov1_color_button.grid(row=3, column=0, pady=(16,4))
         self.ov3_color_button = tk.Button(self.opts_col2, text="3rd overtone", width=10, command=lambda: self.choose_color(3))
         self.ov3_color_button.grid(row=4, column=0, pady=4)
         self.ov5_color_button = tk.Button(self.opts_col2, text="5th overtone", width=10, command=lambda: self.choose_color(5))
@@ -792,26 +818,43 @@ class PlotOptsWindow(App):
         self.ov11_color_button = tk.Button(self.opts_col2, text="11th overtone", width=10, command=lambda: self.choose_color(11))
         self.ov11_color_button.grid(row=8, column=0, pady=4)
         self.ov13_color_button = tk.Button(self.opts_col2, text="13th overtone", width=10, command=lambda: self.choose_color(13))
-        self.ov13_color_button.grid(row=9, column=0, pady=4)
+        self.ov13_color_button.grid(row=9, column=0, pady=(4, 100))
 
-        self.default_color_button = tk.Button(self.opts_col2, text="Default Colors", width=15, command=self.reset_colors)
-        self.default_color_button.grid(row=10, column=0, pady=20)
-
-        self.confirm_button = tk.Button(self.opts_confirm, text="Confirm Selections", width=20, command=self.dump_json)
-        self.confirm_button.grid(row=20, column=0, pady=16)
+        self.default_button = tk.Button(self.opts_confirm, text="Default Values", width=20, command=self.set_default_values)
+        self.default_button.grid(row=19, column=0, pady=(24,0))
+        self.confirm_button = tk.Button(self.opts_confirm, text="Confirm Selections", width=20, command=self.confirm_opts)
+        self.confirm_button.grid(row=20, column=0, pady=(4,16))
 
     def choose_color(self, ov_num):
-        self.color_code = colorchooser.askcolor(title="Choose color for overtone")
+        self.color_code = colorchooser.askcolor(title="Choose color for overtone", parent=self)
         self.options['colors'][f'ov{ov_num}'] = self.color_code[1]
-        print(self.options)
-        self.open_plot_opts_window()
         
     def reset_colors(self):
         self.options['colors'] = self.default_colors
-        print(self.options)
 
-    def dump_json(self):
-        with open('plot_customizations.json', 'w') as fp:
+    def set_text(self, entry, text):
+        entry.delete(0, tk.END)
+        entry.insert(0, text)
+        
+    def set_default_values(self):
+        with open('plot_opts/default_opts.json', 'r') as fp:
+            default_opts = json.load(fp)
+        self.set_text(self.font_choice_entry, default_opts['font'])
+        self.set_text(self.label_text_size_entry, default_opts['label_text_size'])
+        self.set_text(self.title_text_size_entry, default_opts['title_text_size'])
+        self.set_text(self.value_text_size_entry, default_opts['value_text_size'])
+        
+        self.options['tick_dir'] = default_opts['tick_dir']
+        self.options['colors'] = default_opts['colors']
+
+    def confirm_opts(self):
+        self.options['font'] = self.font_choice_entry.get()
+        self.options['label_text_size'] = self.label_text_size_entry.get()
+        self.options['title_text_size'] = self.title_text_size_entry.get()
+        self.options['value_text_size'] = self.value_text_size_entry.get()
+
+        self.options['tick_dir'] = 'in' if self.tick_direction_var.get() == 0 else 'out'
+        with open('plot_opts/plot_customizations.json', 'w') as fp:
             json.dump(self.options, fp)
 
 

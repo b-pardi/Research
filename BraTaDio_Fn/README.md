@@ -128,14 +128,8 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- plot options
-    - new window
-    - save options for all future uses 
-    - tick direction out/in
-    - label text sizes
-    - value text size on tick marks
-    - font change
-    - user specified color
+- actually integrate saved plot opts into software
+- error checking to ensure all plot opts are inputted
 
 - Sauerbray film thickness modeling
     - option to use peak frequency value or theoretical value for C
@@ -148,6 +142,14 @@ if it is not, please comment out the 2 lines below
 - refactor analyze() to put each opt into its own function
 
 ### CHANGE LOG
+
+4/29
+- began plot customizations class and figured out inheritance issue (instantiated in App class)
+- added color wheel customization to plot opts window for each overtone
+- added json dump function to save plot preferences
+- added all other plot customization options to window
+- added default values option to set options to default, also means having a default values json file
+- fixed bug so plot customizations dictionary is initialized to previously saved values instead of resetting everytime
 
 4/27
 - error check for linear regression if different number overtones selected than saved in stats files
