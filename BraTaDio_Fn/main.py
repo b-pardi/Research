@@ -9,6 +9,7 @@ import sys
 import os
 from datetime import time
 from tkinter import colorchooser
+import json
 
 import Exceptions
 from analyze import analyze_data, clear_figures, ordinal
@@ -186,9 +187,10 @@ class App(tk.Tk):
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
 
         self.plot_opts_window = PlotOptsWindow
-        
-    def choose_color(self):
-        self.plot_opts_window.choose_color(self)
+        self.options = {}
+        self.default_colors = {'ov1':'blue', 'ov3':'orange', 'ov5':'green',
+                            'ov7':'red', 'ov9':'purple', 'ov11':'aqua', 'ov13':'pink'}
+        self.options['colors'] = self.default_colors
 
     def repack_frames(self):
         for frame in self.frames:
@@ -205,7 +207,14 @@ class App(tk.Tk):
         self.plot_opts_window.fill_window(self)
         print("window tesssst")
 
+    def choose_color(self, ov_num):
+        self.plot_opts_window.choose_color(self, ov_num)
 
+    def reset_colors(self):
+        self.plot_opts_window.reset_colors(self)
+
+    def dump_json(self):
+        self.plot_opts_window.dump_json(self)
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
@@ -246,6 +255,7 @@ class Col1(tk.Frame):
 
         self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
         self.open_plot_opts_button.grid(row=14, pady=(16, 4))
+        
 
 
     def handle_fn_focus_in(self, _):
@@ -746,7 +756,8 @@ class Col5(tk.Frame):
 class PlotOptsWindow(App):
     def __init__(self, parent, container):
         super().__init__(container) # initialize parent class for the child
-        self.parent = parent        
+        self.parent = parent
+
 
     def open_window(self):
         print("window opened")
@@ -756,6 +767,8 @@ class PlotOptsWindow(App):
         self.opts_col1.pack(side='left')
         self.opts_col2 = tk.Frame(opts_window)
         self.opts_col2.pack(side='right')
+        self.opts_confirm = tk.Frame(opts_window)
+        self.opts_confirm.pack(side='bottom')
 
     def fill_window(self):
         # first column contains most plot customizations
@@ -766,14 +779,40 @@ class PlotOptsWindow(App):
         self.ov_color_label = tk.Label(self.opts_col2, text="Customize Overtone Plot Colors", font=('TkDefaultFont', 12, 'bold'))
         self.ov_color_label.grid(row=1, column=0, padx=16, pady=12)
         
-        self.ov1_color_button = tk.Button(self.opts_col2, text="1st overtone", width=10, command=self.choose_color)
-        self.ov1_color_button.grid(row=3, column=0, pady=(20,0))
+        self.ov1_color_button = tk.Button(self.opts_col2, text="1st overtone", width=10, command=lambda: self.choose_color(1))
+        self.ov1_color_button.grid(row=3, column=0, pady=(20,4))
+        self.ov3_color_button = tk.Button(self.opts_col2, text="3rd overtone", width=10, command=lambda: self.choose_color(3))
+        self.ov3_color_button.grid(row=4, column=0, pady=4)
+        self.ov5_color_button = tk.Button(self.opts_col2, text="5th overtone", width=10, command=lambda: self.choose_color(5))
+        self.ov5_color_button.grid(row=5, column=0, pady=4)
+        self.ov7_color_button = tk.Button(self.opts_col2, text="7th overtone", width=10, command=lambda: self.choose_color(7))
+        self.ov7_color_button.grid(row=6, column=0, pady=4)
+        self.ov9_color_button = tk.Button(self.opts_col2, text="9th overtone", width=10, command=lambda: self.choose_color(9))
+        self.ov9_color_button.grid(row=7, column=0, pady=4)
+        self.ov11_color_button = tk.Button(self.opts_col2, text="11th overtone", width=10, command=lambda: self.choose_color(11))
+        self.ov11_color_button.grid(row=8, column=0, pady=4)
+        self.ov13_color_button = tk.Button(self.opts_col2, text="13th overtone", width=10, command=lambda: self.choose_color(13))
+        self.ov13_color_button.grid(row=9, column=0, pady=4)
 
-        print("window filled")
+        self.default_color_button = tk.Button(self.opts_col2, text="Default Colors", width=15, command=self.reset_colors)
+        self.default_color_button.grid(row=10, column=0, pady=20)
 
-    def choose_color(self):
+        self.confirm_button = tk.Button(self.opts_confirm, text="Confirm Selections", width=20, command=self.dump_json)
+        self.confirm_button.grid(row=20, column=0, pady=16)
+
+    def choose_color(self, ov_num):
         self.color_code = colorchooser.askcolor(title="Choose color for overtone")
-        print(self.color_code)    
+        self.options['colors'][f'ov{ov_num}'] = self.color_code[1]
+        print(self.options)
+        self.open_plot_opts_window()
+        
+    def reset_colors(self):
+        self.options['colors'] = self.default_colors
+        print(self.options)
+
+    def dump_json(self):
+        with open('plot_customizations.json', 'w') as fp:
+            json.dump(self.options, fp)
 
 
 menu = App()
