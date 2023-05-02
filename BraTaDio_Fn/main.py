@@ -8,10 +8,13 @@ import tkinter as tk
 import sys
 import os
 from datetime import time
+from tkinter import colorchooser
+import json
 
-from analyze import analyze_data, clear_figures
+import Exceptions
+from analyze import analyze_data, clear_figures, ordinal
 from format_file import format_raw_data
-from modeling import linear_regression, sauerbray
+from modeling import linear_regression, sauerbrey
 
 '''
 WIP
@@ -40,8 +43,7 @@ class Input:
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
         self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
-        self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression
-        self.will_use_theoretical_sauerbray_vals = True # indicates if using calibration data or theoretical values for Sauerbray modeling
+        self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression/sauerbrey
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
@@ -60,14 +62,6 @@ class Input:
                             '13th_freq': False, '13th_dis': False}}
 
 input = Input()
-
-# returns the ordinal suffix of number (i.e. the rd in 3rd)
-# instead of 'st' for 1st, will return 'fundamental'
-def ordinal(n):
-    overtone_ordinal = ("th" if 4<=n%100<=20 else {1:"Fundamental",2:"nd",3:"rd"}.get(n%10, "th"))
-    if n != 1:
-        overtone_ordinal = str(n) + overtone_ordinal
-    return overtone_ordinal
     
 def create_checkboxes(frame, cleanliness):
     keys = list(input.which_plot[cleanliness].keys())
@@ -159,7 +153,6 @@ def set_frame_flag():
 def abort():
     sys.exit()
 
-
 # menu class inherits Tk class 
 class App(tk.Tk):
     def __init__(self):
@@ -192,6 +185,11 @@ class App(tk.Tk):
             if frame.is_visible:
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
 
+        # initialize plot customizations with previously saved values
+        self.plot_opts_window = PlotOptsWindow
+        with open('plot_opts/plot_customizations.json', 'r') as fp:
+            self.options = json.load(fp)
+
     def repack_frames(self):
         for frame in self.frames:
             frame = self.frames[frame]
@@ -201,12 +199,28 @@ class App(tk.Tk):
             else:
                 frame.grid_forget()
 
+    def open_plot_opts_window(self):
+        self.plot_opts_window.open_window(self)
+        self.plot_opts_window.fill_window(self)
+
+    def choose_color(self, ov_num):
+        self.plot_opts_window.choose_color(self, ov_num)
+
+    def set_default_values(self):
+        self.plot_opts_window.set_default_values(self)
+
+    def confirm_opts(self):
+        self.plot_opts_window.confirm_opts(self)
+
+    def set_text(self, entry, text):
+        self.plot_opts_window.set_text(self, entry, text)
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
         self.col_position = 0
         self.is_visible = True
+        self.parent = parent
         file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
         file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
         
@@ -237,7 +251,12 @@ class Col1(tk.Frame):
         self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
         self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
         self.file_data_clear_button.grid(row=11, column=0, pady=4)
+
+        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
+        self.open_plot_opts_button.grid(row=14, pady=(16, 4))
         
+
+
     def handle_fn_focus_in(self, _):
         if self.file_name_entry.get() == "File name here (W/ EXTENSION)":
             self.file_name_entry.delete(0, tk.END)
@@ -259,6 +278,9 @@ class Col1(tk.Frame):
             self.file_path_entry.delete(0, tk.END)
             self.file_path_entry.config(fg='gray')
             self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")    
+
+    def open_plot_opts(self):
+        self.parent.open_plot_opts_window()
 
     def blit_time_input_frame(self, is_relative_time):
         if is_relative_time:
@@ -530,8 +552,7 @@ class Col3(tk.Frame):
 class Col4(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
-        #tk.Frame.__init__(self)
-        #App.__init__(self)
+
         self.col_position = 3
         self.is_visible = True
         self.parent = parent
@@ -672,8 +693,8 @@ class Col4(tk.Frame):
     def clear_range_data(self):
         rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
         dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
-        sauerbray_ranges = open("selected_ranges/sauerbray_ranges.csv", 'w')
-        files = [rf_stats, dis_stats, sauerbray_ranges]
+        sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
+        files = [rf_stats, dis_stats, sauerbrey_ranges]
         for file in files:
             file.write('')
 
@@ -708,34 +729,21 @@ class Col5(tk.Frame):
         calibration_peak_freq_radio = tk.Radiobutton(theoretical_or_calibration_peak_freq_frame, text='calibration', variable=theoretical_or_calibration_peak_freq_var, value=0)
         calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
-        # prompt to use theoretical or experimental values for sauerbray modeling
-        theoretical_or_calibration_sauerbray_frame = tk.Frame(self)
-        theoretical_or_calibration_sauerbray_frame.grid(row=7, column=0, columnspan=1, pady=8)
-        theoretical_or_calibration_sauerbray_var = tk.IntVar()
-        theoretical_or_calibration_sauerbray_label = tk.Label(theoretical_or_calibration_sauerbray_frame,
-                                        text="Use theoretical or experimental\nresonant frequency values for Sauerbray model")
-        theoretical_or_calibration_sauerbray_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
-        theoretical_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='theoretical', variable=theoretical_or_calibration_sauerbray_var, value=1)
-        theoretical_sauerbray_radio.grid(row=1, column=0, pady=(2,4))
-        calibration_sauerbray_radio = tk.Radiobutton(theoretical_or_calibration_sauerbray_frame, text='experimental', variable=theoretical_or_calibration_sauerbray_var, value=0)
-        calibration_sauerbray_radio.grid(row=1, column=1, pady=(2,4))
-
         # run linear regression button
         run_linear_analysis_button = tk.Button(self, text="Run linear analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed)))
+                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
         run_linear_analysis_button.grid(row=8, column=0, pady=4)
 
-        # run sauerbray button
-        run_sauerbray_analysis_button = tk.Button(self, text="Run Sauerbray analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbray((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale)))
-        run_sauerbray_analysis_button.grid(row=9, column=0, pady=4)
+        # run sauerbrey button
+        run_sauerbrey_analysis_button = tk.Button(self, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
+                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale, input.fig_format)))
+        run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():
             global input
             input.which_range_selecting = which_range_entry.get()
             input.will_use_theoretical_peak_freq_vals = theoretical_or_calibration_peak_freq_var
-            input.will_use_theoretical_sauerbray_vals = theoretical_or_calibration_sauerbray_var
 
             print(f"Confirmed range: {input.which_range_selecting}")
 
@@ -743,6 +751,127 @@ class Col5(tk.Frame):
         which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=confirm_range)
         which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
+
+class PlotOptsWindow():
+    def __init__(self, parent, container):
+        super().__init__(container) # initialize parent class for the child
+        self.parent = parent
+
+    def open_window(self):
+        opts_window = tk.Toplevel(self)
+        opts_window.title('Customize Plots')
+        self.opts_col1 = tk.Frame(opts_window)
+        self.opts_col1.pack(side='left', anchor='n')
+        self.opts_col2 = tk.Frame(opts_window)
+        self.opts_col2.pack(side='right', anchor='n')
+        self.opts_confirm = tk.Frame(opts_window)
+        self.opts_confirm.pack(side='bottom')
+
+    def fill_window(self):
+        # first column contains most plot customizations
+        self.customize_label = tk.Label(self.opts_col1, text="Plot Customization Options", font=('TkDefaultFont', 12, 'bold'))
+        self.customize_label.grid(row=1, column=0, columnspan=3, padx=16, pady=12)
+
+        self.font_choice_label = tk.Label(self.opts_col1, text="Enter font selection:")
+        self.font_choice_label.grid(row=3, column=0, pady=(20,4))
+        self.font_choice_entry = tk.Entry(self.opts_col1, width=10)
+        self.font_choice_entry.grid(row=3, column=1, pady=(20,4))
+
+        self.label_text_size_label = tk.Label(self.opts_col1, text="Enter Label font size:")
+        self.label_text_size_label.grid(row=4, column=0, pady=(16,0))
+        self.label_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.label_text_size_entry.grid(row=4, column=1, pady=(16,0))
+
+        self.title_text_size_label = tk.Label(self.opts_col1, text="Enter Title font size:")
+        self.title_text_size_label.grid(row=5, column=0, pady=(16,0))
+        self.title_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.title_text_size_entry.grid(row=5, column=1, pady=(16,0))
+
+        self.value_text_size_label = tk.Label(self.opts_col1, text="Enter Value font size:")
+        self.value_text_size_label.grid(row=6, column=0, pady=(16,0))
+        self.value_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.value_text_size_entry.grid(row=6, column=1, pady=(16,0))
+
+        self.legend_text_size_label = tk.Label(self.opts_col1, text="Enter Legend font size:")
+        self.legend_text_size_label.grid(row=7, column=0, pady=(16,0))
+        self.legend_text_size_entry = tk.Entry(self.opts_col1, width=10)
+        self.legend_text_size_entry.grid(row=7, column=1, pady=(16,0))
+
+        self.tick_direction_label = tk.Label(self.opts_col1, text="Choose tick direction:")
+        self.tick_direction_label.grid(row=9, column=0, columnspan=3, pady=(16,0))
+        self.tick_direction_var = tk.IntVar()
+        self.tick_direction_in_radio = tk.Radiobutton(self.opts_col1, text="in", variable=self.tick_direction_var, value=1)
+        self.tick_direction_in_radio.grid(row=10, column=0)
+        self.tick_direction_out_radio = tk.Radiobutton(self.opts_col1, text="out", variable=self.tick_direction_var, value=0)
+        self.tick_direction_out_radio.grid(row=10, column=1)
+        self.tick_direction_inout_radio = tk.Radiobutton(self.opts_col1, text="both", variable=self.tick_direction_var, value=2)
+        self.tick_direction_inout_radio.grid(row=10, column=2)
+
+
+        # second column color customizer
+        self.ov_color_label = tk.Label(self.opts_col2, text="Customize Overtone Plot Colors", font=('TkDefaultFont', 12, 'bold'))
+        self.ov_color_label.grid(row=1, column=0, padx=16, pady=12)
+        
+        self.ov1_color_button = tk.Button(self.opts_col2, text="1st overtone", width=10, command=lambda: self.choose_color(1))
+        self.ov1_color_button.grid(row=3, column=0, pady=(16,4))
+        self.ov3_color_button = tk.Button(self.opts_col2, text="3rd overtone", width=10, command=lambda: self.choose_color(3))
+        self.ov3_color_button.grid(row=4, column=0, pady=4)
+        self.ov5_color_button = tk.Button(self.opts_col2, text="5th overtone", width=10, command=lambda: self.choose_color(5))
+        self.ov5_color_button.grid(row=5, column=0, pady=4)
+        self.ov7_color_button = tk.Button(self.opts_col2, text="7th overtone", width=10, command=lambda: self.choose_color(7))
+        self.ov7_color_button.grid(row=6, column=0, pady=4)
+        self.ov9_color_button = tk.Button(self.opts_col2, text="9th overtone", width=10, command=lambda: self.choose_color(9))
+        self.ov9_color_button.grid(row=7, column=0, pady=4)
+        self.ov11_color_button = tk.Button(self.opts_col2, text="11th overtone", width=10, command=lambda: self.choose_color(11))
+        self.ov11_color_button.grid(row=8, column=0, pady=4)
+        self.ov13_color_button = tk.Button(self.opts_col2, text="13th overtone", width=10, command=lambda: self.choose_color(13))
+        self.ov13_color_button.grid(row=9, column=0, pady=(4, 100))
+
+        self.default_button = tk.Button(self.opts_confirm, text="Default Values", width=20, command=self.set_default_values)
+        self.default_button.grid(row=19, column=0, pady=(24,0))
+        self.confirm_button = tk.Button(self.opts_confirm, text="Confirm Selections", width=20, command=self.confirm_opts)
+        self.confirm_button.grid(row=20, column=0, pady=(4,16))
+
+    def choose_color(self, ov_num):
+        self.color_code = colorchooser.askcolor(title="Choose color for overtone", parent=self)
+        self.options['colors'][f'ov{ov_num}'] = self.color_code[1]
+
+    def set_text(self, entry, text):
+        entry.delete(0, tk.END)
+        entry.insert(0, text)
+        
+    def set_default_values(self):
+        with open('plot_opts/default_opts.json', 'r') as fp:
+            default_opts = json.load(fp)
+        self.set_text(self.font_choice_entry, default_opts['font'])
+        self.set_text(self.label_text_size_entry, default_opts['label_text_size'])
+        self.set_text(self.title_text_size_entry, default_opts['title_text_size'])
+        self.set_text(self.value_text_size_entry, default_opts['value_text_size'])
+        self.set_text(self.legend_text_size_entry, default_opts['legend_text_size'])
+        
+        self.options['tick_dir'] = default_opts['tick_dir']
+        self.options['colors'] = default_opts['colors']
+
+    def confirm_opts(self):
+        self.options['font'] = self.font_choice_entry.get()
+        self.options['label_text_size'] = self.label_text_size_entry.get()
+        self.options['title_text_size'] = self.title_text_size_entry.get()
+        self.options['value_text_size'] = self.value_text_size_entry.get()
+        self.options['legend_text_size'] = self.legend_text_size_entry.get()
+
+        if self.tick_direction_var.get() == 0:
+            self.options['tick_dir'] = 'in'
+        elif self.tick_direction_var.get() == 1:
+            self.options['tick_dir'] = 'out'
+        else:
+            self.options['tick_dir'] = 'inout'
+
+        for key in self.options.keys():
+            if self.options[key] == '':
+                raise Exceptions.MissingPlotCustomizationException(key, "Please Specify Missing field. ")
+
+        with open('plot_opts/plot_customizations.json', 'w') as fp:
+            json.dump(self.options, fp)
 
 
 menu = App()

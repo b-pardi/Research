@@ -128,15 +128,14 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- document and comment the hell out of the code
 
+- maybe add marker size/type customizations
 
-- Sauerbray film thickness modeling
-    - option to use peak frequency value or theoretical value for C
-        - C = Vq * Pq / 2F0^2   ->   theoretically is 17.7 for a 5MHz crystal
-
-- add option in col 5 to indicate if user has latex installed. if yes, linear regression model will remain as is with italicized capital greek letters, if not, disable rc params and user std matplotlib chars
+- remove latex features
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
+    - C = Vq * Pq / 2F0^2
 
 - refactor analyze() to put each opt into its own function
 
@@ -144,12 +143,43 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+4/30
+- integrated plot customizations from json file into analyze.py
+- added legend text size option
+- added inout option to tick directions
+- fixed set with copy warning for multiaxis plot
+- fixed legend placement for multiaxis plot
+- added error checking to ensure all plot opt fields are filled out
+- modeling.py functions now utilize plot customizations
+
+4/29
+- began plot customizations class and figured out inheritance issue (instantiated in App class)
+- added color wheel customization to plot opts window for each overtone
+- added json dump function to save plot preferences
+- added all other plot customization options to window
+- added default values option to set options to default, also means having a default values json file
+- fixed bug so plot customizations dictionary is initialized to previously saved values instead of resetting everytime
+
+4/27
+- error check for linear regression if different number overtones selected than saved in stats files
+- bug fix: plots saved in modeling.py now also utilize user selected figure format
+- bug fix: after submitting and running linear regression, would alter keys in which_plot in the double digit overtones, causing the underscore to be removed and not be found in dataframe (i.e. 11th_dis -> 11thdis). Culprit in overtone selection in modeling.py
+- started custom Error classes to handle shape mismatch
+- remove legend in temp v time
+- changed overtone labels to just number of overtone using get_num_from_string() function
+- removed Delta from Delta t in time labels
+- bug fix normalizing overtone, used num from string function instead of hardcoding
+
+4/22
+- removed option for calibration/theoretical vals for Sauerbray, as option currently for Linear Regression will also apply for Sauerbray, so 2 separate options unnecessary
+
 4/18
 - updated README
 - error check to see if Df already normalized before doing Sauerbray, if it is we don't divide by the overtone as to not do it twice
 - updated plot formatting for Sauerbray
 - fixed bug legend not showing in Sauerbray plots
 - fixed bug when plotting only raw data
+- fixed bug in Linear regression model
 
 4/17
 - refactored code to clean up analyze.py, moving nested functions outside of analyze() and shortening it. more refactoring of the like needed
