@@ -325,7 +325,7 @@ class srcFileFrame(tk.Frame):
         file_src_label = tk.Label(self, text="What is the source of the data file?")
         file_src_label.grid(row=0, column=0, columnspan=3, pady=(0,4), padx=6)
         self.file_src_var = tk.IntVar(value=5) # set value to one not in radios, so none selected by default
-        self.opt1_radio = tk.Radiobutton(self, text="QCM-D", variable=self.file_src_var, value=0, command=self.handle_radios)
+        self.opt1_radio = tk.Radiobutton(self, text="Open QCM Next", variable=self.file_src_var, value=0, command=self.handle_radios)
         self.opt1_radio.grid(row=1, column=0)
         self.opt2_radio = tk.Radiobutton(self, text="QCM-I ", variable=self.file_src_var, value=1, command=self.handle_radios)
         self.opt2_radio.grid(row=1, column=1)
@@ -494,7 +494,7 @@ class Col3(tk.Frame):
         self.col_position = 2
         self.is_visible = True
         self.plot_clean_data_var = tk.IntVar()
-        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot corrected data", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
+        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
         self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
         self.which_clean_channels_label = tk.Label(self, text="Select overtones for\nbaseline corrected data")
 
@@ -693,8 +693,9 @@ class Col4(tk.Frame):
     def clear_range_data(self):
         rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
         dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
+        sauerbray_stats = open("selected_ranges/Sauerbrey_stats.csv", 'w')
         sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
-        files = [rf_stats, dis_stats, sauerbrey_ranges]
+        files = [rf_stats, dis_stats, sauerbray_stats, sauerbrey_ranges]
         for file in files:
             file.write('')
 
@@ -730,14 +731,14 @@ class Col5(tk.Frame):
         calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
         # run linear regression button
-        run_linear_analysis_button = tk.Button(self, text="Run linear analysis\nof overtones", padx=6, pady=4, width=20,
+        run_linear_analysis_button = tk.Button(self, text="Shear Dependent\nCompliance Analysis", padx=6, pady=4, width=20,
                                              command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
-        run_linear_analysis_button.grid(row=8, column=0, pady=4)
+        run_linear_analysis_button.grid(row=9, column=0, pady=4)
 
         # run sauerbrey button
         run_sauerbrey_analysis_button = tk.Button(self, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
                                              command=lambda: sauerbrey((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale, input.fig_format)))
-        run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
+        run_sauerbrey_analysis_button.grid(row=8, column=0, pady=4)
 
         # when interactive plot window opens, grabs number of range from text field
         def confirm_range():

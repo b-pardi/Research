@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import determine_xlabel, get_plot_preferences, map_colors
+from analyze import get_plot_preferences, map_colors, plot_full_sauerbrey
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -65,17 +65,13 @@ def get_overtones_selected(which_plot):
     return overtones
 
 def get_calibration_values(which_plot, use_theoretical_vals):
-    delete_keys = []
     which_freq_plots = {}
     if use_theoretical_vals:
         # clean which_plot and remove the dis keys since we only need freq
         for key, val in which_plot.items():
             if key.__contains__('freq'):
                 which_freq_plots[key] = val
-        '''for key, val in which_plot.items():
-            which_freq_plots[key] = val'''
-        '''for key in delete_keys:
-            del which_plot[key]'''
+
         print(which_freq_plots, which_plot)
 
         calibration_freq = []
@@ -165,15 +161,15 @@ def setup_plot(use_tex=False):
     plt.cla()
     return plot, ax
 
-def plot_data(xdata, ydata, xerr, yerr, label, plot_type, use_tex=False, color=''):
-    fig, ax = setup_plot(use_tex)
+def plot_data(xdata, ydata, xerr, yerr, label, has_err, color=''):
+    fig, ax = setup_plot(False)
     
     # plotting modeled data slightly different than range data
-    if plot_type == 'model':
+    if has_err:
         ax.plot(xdata, ydata, 'o', markersize=8, label=label)
         ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
 
-    elif plot_type == 'equation':
+    else:
         ax.plot(xdata, ydata, markersize=1, label=label, color=color)
 
     return fig, ax
@@ -209,8 +205,8 @@ def format_plot(ax, x_label, y_label, title):
     plt.title(title, fontsize=plot_customs['title_text_size'], fontfamily=font)
 
 # grab plot labels determined by use of latex, and which function modeling
-def get_labels(label, usetex, model):
-    if model == 'linear':
+def get_labels(label, type, usetex=False):
+    if type == 'linear':
         data_label = f"average values used for range: {label}"
         title = f"Bandwidth Shift vs N * Change in Frequency\nfor range: {label}"
         if usetex:
@@ -219,6 +215,13 @@ def get_labels(label, usetex, model):
         else:
             x = 'Overtone * Change in frequency, $\it{n\Delta f_n}$'
             y = "Bandwidth shift, $\it{\Gamma_n}$"
+    
+    elif type == 'sauerbrey':
+        data_label = f"average Dm"
+        title = f"Average change in Sauerbrey Mass\nfor range: {label}"
+        x = 'Overtone order, $\it{n}$'
+        y = 'Average Sauerbrey mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
+    
     else:
         return None
 
@@ -259,12 +262,12 @@ def linear_regression(user_input):
         n_mean_delta_freqs, sigma_n_mean_delta_freqs = remove_zero_elements(np.array(n_mean_delta_freqs), np.array(sigma_n_mean_delta_freqs))
 
         # plot data
-        data_label, x_label, y_label, title = get_labels(label, latex_installed, 'linear')
+        data_label, x_label, y_label, title = get_labels(label, 'linear', latex_installed)
         if n_mean_delta_freqs.shape != delta_gamma.shape:
             raise Exceptions.ShapeMismatchException((n_mean_delta_freqs.shape, delta_gamma.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         lin_plot, ax = plot_data(n_mean_delta_freqs, delta_gamma,
                                  sigma_n_mean_delta_freqs, sigma_delta_gamma,
-                                 data_label, 'model', latex_installed)
+                                 data_label, True)
         
         # take care of all linear fitting analysis    
         linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
@@ -279,18 +282,34 @@ def linear_regression(user_input):
 def sauerbrey(user_input):
     use_theoretical_vals, df_normalized, x_timescale, fig_format = user_input
     print("Modeling Sauerbrey function...")
-    df = pd.read_csv("selected_ranges/Sauerbrey_ranges.csv")
+    df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
     labels = df['range_used'].unique()
-    print(f"LABELS: {labels}")
+    overtones = df['overtone'].unique() # overtone number (x)
+    print(f"LABELS: {labels}; OVERTONES: {overtones}")
     color_map, _ = map_colors(get_plot_preferences())
+
+    for label in labels:
+        df_range = df.loc[df['range_used'] == label]
+        mu_Dm = df['Dm_mean'].values # average Sauerbrey mass (y)
+        delta_mu_Dm = df['Dm_std_dev'].values # std dev of y
+        data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+        if mu_Dm.shape != overtones.shape:
+            raise Exceptions.ShapeMismatchException((mu_Dm.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
+        
+        sauerbray_range_plot, ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
+        format_plot(ax, x_label, y_label, title)
+        sauerbray_range_plot.tight_layout()
+        plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+
+        plot_full_sauerbrey()
+
+
 
 
     for label in labels:
         df_range = df.loc[df['range_used'] == label]
-        overtones = df['overtone'].unique()
-        print(f"OVERTONES: {overtones}")
 
-        for ov in overtones:
+        '''for ov in overtones:
             df_ov_range = df_range.loc[df_range['overtone'] == ov]
             if use_theoretical_vals:
                 C = 17.7
@@ -312,7 +331,8 @@ def sauerbrey(user_input):
             Sauerbrey_plot, ax = plot_data(time, Dm, None, None, plot_label, 'equation', False, color_map[ov])
             format_plot(ax, x_label, y_label, title)
             Sauerbrey_plot.tight_layout()
-            plt.savefig(f"qcmd-plots/Sauerbrey_label-ov_{label}-{ov}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+            plt.savefig(f"qcmd-plots/Sauerbrey_label-ov_{label}-{ov}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)'''
+        
     print("Sauerbrey Analysis Complete")
     plt.rc('text', usetex=False)
 

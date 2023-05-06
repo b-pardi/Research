@@ -51,6 +51,18 @@ def get_channels(channels):
 
     return (freq_list, disp_list)
 
+def get_num_from_string(string):
+    if string.__contains__("fundamental"):
+        return 1
+    nums = []
+    for char in string:
+        if char.isdigit():
+            nums.append(char)
+    num = 0
+    for i, digit in enumerate(reversed(list(nums))):
+        num += int(digit) * 10**i
+    return int(num)
+
 # returns the ordinal suffix of number (i.e. the rd in 3rd)
 # instead of 'st' for 1st, will return 'fundamental'
 def ordinal(n):
@@ -158,7 +170,7 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
             new_file.write(header)
         os.chdir('../')
 
-def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
+def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normalized):
     which_overtones = []
     for ov in overtone_sel:
         if ov[1]:
@@ -166,6 +178,7 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
         
     dis_stat_file = open(f"selected_ranges/all_stats_dis.csv", 'a')
     rf_stat_file = open(f"selected_ranges/all_stats_rf.csv", 'a')
+    saurbrey_stat_file = open(f"selected_ranges/Sauerbrey_stats.csv", 'a')
 
     # statistical analysis for all desired overtones using range of selection
     range_df = pd.DataFrame()
@@ -182,15 +195,16 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, header):
         
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
+                
+                # stats for Sauerbray avgs
+                Df = y_sel.values
+                n = get_num_from_string(ov)
+                y_sel_Dm = -C *  Df if df_normalized else -C * (Df/n)
+                mean_y_sauerbray = np.average(y_sel_Dm)
+                std_dev_y_sauerbrey = np.std(y_sel_Dm)
+                median_y_sauerbrey = np.median(y_sel_Dm)
+                saurbrey_stat_file.write(f"{n},{mean_y_sauerbray:.16E},{std_dev_y_sauerbrey:.16E},{median_y_sauerbrey:.16E},{which_range},{fn}\n")
 
-                # range data for Sauerbrey
-                temp_df = pd.DataFrame()
-                temp_df['freq'] = y_data
-                temp_df['time'] = df['Time']
-                temp_df['overtone'] = ov
-                temp_df['range_used'] = which_range
-                temp_df['data_source'] = fn
-                range_df = pd.concat([range_df, temp_df[imin:imax]], ignore_index=True)
 
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
@@ -215,18 +229,6 @@ def remove_axis_lines(ax):
     ax.spines['left'].set_color('none')
     ax.spines['right'].set_color('none')
     ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
-    
-def get_num_from_string(string):
-    if string.__contains__("fundamental"):
-        return 1
-    nums = []
-    for char in string:
-        if char.isdigit():
-            nums.append(char)
-    num = 0
-    for i, digit in enumerate(reversed(list(nums))):
-        num += int(digit) * 10**i
-    return int(num)
 
 def get_plot_preferences():
     with open ("plot_opts/plot_customizations.json", 'r') as fp:
@@ -567,13 +569,14 @@ def analyze_data(input):
                 stats_out_fn = 'all_stats_dis.csv'
                 header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
-                
-                range_selection_out_fn = 'Sauerbrey_ranges.csv'
-                header = f"freq,time,overtone,range_used,data_source\n"
-                prepare_stats_file(header, input.which_range_selecting, input.file_name, range_selection_out_fn)
-                
+
+                stats_out_fn = 'Sauerbrey_stats.csv'                
+                header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
+                prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
+
+                # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
                 range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(),
-                                 input.which_range_selecting, input.file_name, header)
+                                 input.which_range_selecting, input.file_name, 17.7, input.will_normalize_F)
             
 
         # using plt's span selector to select area of top plot
