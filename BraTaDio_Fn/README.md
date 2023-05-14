@@ -128,20 +128,41 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- document and comment the hell out of the code
-
-- maybe add marker size/type customizations
-
-- remove latex features
+- ASK ROBERTO:
+    - can Sauerbrey equation plotting (full range not the averages) go in the column 4 plot options section? Would simplify code (wouldn't need to save all points to csv) and makes sense because the full range plot doesn't require the interactive plot like the shear dependent compliance analysis and sauerbrey range analysis
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
     - C = Vq * Pq / 2F0^2
 
-- refactor analyze() to put each opt into its own function
+- long term
+    - document and comment the hell out of the code
+
+    - maybe add marker size/type customizations
+
+    - remove latex features
+
+    - remove latex features
+
+    - refactor analyze() to put each opt into its own function
 
 
 
 ### CHANGE LOG
+
+5/6
+- change QCM-D -> Open QCM Next
+- change linear analysis to Shear dependent compliance analysis
+- change corrected data to shifted data
+- switch order of buttons in modeling column
+- added file checking/creation of sauerbray stats to prepare_stats_file in interactive plot
+- added saurbrey statistical calculations to range_statistics() in interactive plot
+- added sauerbrey stats file to clear range data function button
+- for sauerbrey analysis:
+    - for eqn plotting just do the whole range of the overtone
+    - similar to linear regression, plot avg Dm values in each overtone for each range selected, with err for std dev
+    - 1 plot per range selected, each range analyze all overtones
+    - Dm v overtone, n
+    - removed code to plot sauerbray range eqn points (opting for averages described above)
 
 4/30
 - integrated plot customizations from json file into analyze.py
