@@ -149,6 +149,9 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+5/14
+- progress on moving column 5 (modeling) to new window instead
+
 5/6
 - change QCM-D -> Open QCM Next
 - change linear analysis to Shear dependent compliance analysis
