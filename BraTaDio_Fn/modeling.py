@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import get_plot_preferences, map_colors, plot_full_sauerbrey
+from analyze import get_plot_preferences, map_colors#, plot_full_sauerbrey
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -301,7 +301,7 @@ def sauerbrey(user_input):
         sauerbray_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
-        plot_full_sauerbrey()
+        #plot_full_sauerbrey()
 
 
 

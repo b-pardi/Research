@@ -128,6 +128,17 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- do same thing as change in M as f(overtone), for change in F
+    - put in modeling section
+
+- put column 5 (modeling) into new window
+
+- bandwidth shift add hz units to x and y axis, and title to thin film in liquid
+    - in legend remove 1st and 3rd items
+    - just linear fit
+    - in title add DGamma/-Dfreq ~ J`(sub)f(omega)(eta(sub)bulk)
+
+
 - ASK ROBERTO:
     - can Sauerbrey equation plotting (full range not the averages) go in the column 4 plot options section? Would simplify code (wouldn't need to save all points to csv) and makes sense because the full range plot doesn't require the interactive plot like the shear dependent compliance analysis and sauerbrey range analysis
 
