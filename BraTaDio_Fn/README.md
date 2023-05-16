@@ -160,6 +160,9 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+5/16
+- modeling options moved from 5th column of main UI to a new window that opens upon selecting the interactive plot
+
 5/14
 - progress on moving column 5 (modeling) to new window instead
 

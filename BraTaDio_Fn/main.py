@@ -205,7 +205,7 @@ class App(tk.Tk):
         self.plot_opts_window.open_opts_window(self)
         self.plot_opts_window.fill_opts_window(self)
 
-    def open_modeling_window(self):
+    def open_model_window(self):
         self.modeling_window.open_modeling_window(self)
         self.modeling_window.fill_modeling_window(self)
 
@@ -220,6 +220,9 @@ class App(tk.Tk):
 
     def set_text(self, entry, text):
         self.plot_opts_window.set_text(self, entry, text)
+
+    def confirm_range(self):
+        self.modeling_window.confirm_range(self)
 
 class Col1(tk.Frame):
     def __init__(self, parent, container):
@@ -673,15 +676,14 @@ class Col4(tk.Frame):
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.repack_frames()
-            self.parent.modeling_window.open_modeling_window(self)
-            self.parent.modeling_window.fill_modeling_window(self)
+            self.parent.open_model_window()
             self.interactive_plot_opts.grid(row=7, column=4)
         else:
             print("ELSE")
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.repack_frames()
-            self.parent.modeling_window.destroy_modeling_window(self)
+            self.parent.modeling_window.destroy_model_window()
             self.interactive_plot_opts.grid_forget()
 
     def submit(self):
@@ -714,32 +716,32 @@ class ModelingWindow():
         self.parent = parent
 
     def open_modeling_window(self):
-        self.model_window = tk.Toplevel(self)
-        self.model_window.title('Customize Plots')
-        self.models_frame = tk.Frame(self.model_window)
+        model_window = tk.Toplevel(self)
+        model_window.title('Customize Plots')
+        self.models_frame = tk.Frame(model_window)
         self.models_frame.pack(side='left', anchor='n')
 
     def fill_modeling_window(self):
         # first column contains most plot customizations
         self.customize_label = tk.Label(self.models_frame, text="Modeling Options", font=('TkDefaultFont', 12, 'bold'))
-        self.customize_label.grid(row=1, column=0, columnspan=3, padx=16, pady=12)
-        self.range_label = tk.Label(self, text="NOTE: Visit this section AFTER Submitting")
+        self.customize_label.grid(row=0, column=0, columnspan=3, padx=16, pady=12)
+        self.range_label = tk.Label(self.models_frame, text="NOTE: Visit this section AFTER Submitting")
         self.range_label.grid(row=1, column=0, padx=10, pady=(0,8))
         # open secondary window with range selections for interactive plot
         
         # define and place entry for range options
-        self.which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
+        self.which_range_label = tk.Label(self.models_frame, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
         self.which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
-        self.which_range_entry = tk.Entry(self, width=10)
+        self.which_range_entry = tk.Entry(self.models_frame, width=10)
         self.which_range_entry.grid(row=3, column=0, pady=(2,4))
 
         # button to submit range selected
-        self.which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
+        self.which_range_submit = tk.Button(self.models_frame, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
         self.which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
 
         # prompt to use theoretical or calibration values for peak frequency
-        self.theoretical_or_calibration_peak_freq_frame = tk.Frame(self)
+        self.theoretical_or_calibration_peak_freq_frame = tk.Frame(self.models_frame)
         self.theoretical_or_calibration_peak_freq_frame.grid(row=6, column=0, columnspan=1)
         self.theoretical_or_calibration_peak_freq_var = tk.IntVar()
         self.theoretical_or_calibration_peak_freq_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame,
@@ -751,12 +753,12 @@ class ModelingWindow():
         self.calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
         # run linear regression button
-        self.run_linear_analysis_button = tk.Button(self, text="Shear Dependent\nCompliance Analysis", padx=6, pady=4, width=20,
+        self.run_linear_analysis_button = tk.Button(self.models_frame, text="Shear Dependent\nCompliance Analysis", padx=6, pady=4, width=20,
                                              command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
         self.run_linear_analysis_button.grid(row=9, column=0, pady=4)
 
         # run sauerbrey button
-        self.run_sauerbrey_analysis_button = tk.Button(self, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
+        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
                                              command=lambda: sauerbrey((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale, input.fig_format)))
         self.run_sauerbrey_analysis_button.grid(row=8, column=0, pady=4)
 
