@@ -205,7 +205,6 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
                 median_y_sauerbrey = np.median(y_sel_Dm)
                 saurbrey_stat_file.write(f"{n},{mean_y_sauerbray:.16E},{std_dev_y_sauerbrey:.16E},{median_y_sauerbrey:.16E},{which_range},{fn}\n")
 
-
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
         
@@ -562,14 +561,17 @@ def analyze_data(input):
                 int_plot.canvas.draw_idle()
 
                 # prep and save data to file
+                # frequency stats for bandwidth shift
                 stats_out_fn = 'all_stats_rf.csv'
                 header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
                 
+                # dissipation stats for bandwidth shift
                 stats_out_fn = 'all_stats_dis.csv'
                 header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
 
+                # frequency values inserted into Sauerbrey equation
                 stats_out_fn = 'Sauerbrey_stats.csv'                
                 header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
                 prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)

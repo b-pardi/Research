@@ -14,7 +14,7 @@ import json
 import Exceptions
 from analyze import analyze_data, clear_figures, ordinal
 from format_file import format_raw_data
-from modeling import linear_regression, sauerbrey
+from modeling import linear_regression, sauerbrey, avg_Df
 
 '''
 WIP
@@ -208,6 +208,9 @@ class App(tk.Tk):
     def open_model_window(self):
         self.modeling_window.open_modeling_window(self)
         self.modeling_window.fill_modeling_window(self)
+
+    def destroy_model_window(self):
+        self.modeling_window.destroy_modeling_window(self)
 
     def choose_color(self, ov_num):
         self.plot_opts_window.choose_color(self, ov_num)
@@ -683,7 +686,7 @@ class Col4(tk.Frame):
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.repack_frames()
-            self.parent.modeling_window.destroy_model_window()
+            self.parent.destroy_model_window()
             self.interactive_plot_opts.grid_forget()
 
     def submit(self):
@@ -692,8 +695,7 @@ class Col4(tk.Frame):
         if input.first_run:
             format_raw_data(input.file_src_type, input.file_name, input.file_path)
         clear_figures()
-        model_window = self.parent.modeling_window
-        if model_window.is_visible:
+        if input.range_frame_flag:
             input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
         analyze_data(input)
@@ -716,9 +718,9 @@ class ModelingWindow():
         self.parent = parent
 
     def open_modeling_window(self):
-        model_window = tk.Toplevel(self)
-        model_window.title('Customize Plots')
-        self.models_frame = tk.Frame(model_window)
+        self.model_window = tk.Toplevel(self)
+        self.model_window.title('Customize Plots')
+        self.models_frame = tk.Frame(self.model_window)
         self.models_frame.pack(side='left', anchor='n')
 
     def fill_modeling_window(self):
@@ -759,8 +761,13 @@ class ModelingWindow():
 
         # run sauerbrey button
         self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.will_normalize_F, input.x_timescale, input.fig_format)))
+                                             command=lambda: sauerbrey(input.fig_format))
         self.run_sauerbrey_analysis_button.grid(row=8, column=0, pady=4)
+
+        # avg change in freq against overtone button
+        self.run_avg_Df_button = tk.Button(self.models_frame, text="Run button thingy\nof overtones", padx=6, pady=4, width=20,
+                                             command=lambda: avg_Df(input.fig_format))
+        self.run_avg_Df_button.grid(row=10, column=0, pady=4)
 
     def destroy_modeling_window(self):
         self.model_window.destroy()

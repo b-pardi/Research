@@ -60,7 +60,7 @@ def format_QCMi(df):
     
     # rename columns
     if 'Channel A QCM Time [sec]' in df.columns:
-        df = df.rename(columns={'Channel A QCM Time [sec]':'Time',
+        df.rename(columns={'Channel A QCM Time [sec]':'Time',
             'Channel A Fundamental Frequency [Hz]':freqs[0],'Channel A Fundamental Dissipation [ ]':disps[0],
             'Channel A 3. Overtone [Hz]':freqs[1], 'Channel A 3. Dissipation  [ ]':disps[1],
             'Channel A 5. Overtone [Hz]':freqs[2], 'Channel A 5. Dissipation  [ ]':disps[2],
@@ -77,7 +77,7 @@ def format_Qsense(df):
     df = df.iloc[:, :-2]
 
     if 'F_1:1' in df.columns:
-        df.rename(columns={'Time_1':'Time',
+        renamed_df = df.rename(columns={'Time_1':'Time',
         'F_1:1':freqs[0], 'D_1:1':disps[0],
         'F_1:3':freqs[1], 'D_1:3':disps[1],
         'F_1:5':freqs[2], 'D_1:5':disps[2],
@@ -86,24 +86,23 @@ def format_Qsense(df):
         'F_1:11':freqs[5], 'D_1:11':disps[5],
         'F_1:13':freqs[6], 'D_1:13':disps[6]}, inplace=True)
 
-    return df
+    return renamed_df
 
 def format_raw_data(src_type, fn, fp):
     df = open_df_from_file(fn, fp)
     if src_type == 'QCM-d':
-        df = format_QCMd(df)
+        formatted_df = format_QCMd(df)
     elif src_type == 'QCM-i':
-        df = format_QCMi(df)
+        formatted_df = format_QCMi(df)
     elif src_type == 'Qsense':
-        df = format_Qsense(df)
+        formatted_df = format_Qsense(df)
     else:
         print("invalid option selected")
         sys.exit(1)
     
     file_name, ext = os.path.splitext(fn)
     print(file_name)
-    print(df.head)
-    df.to_csv(f"raw_data/Formatted-{file_name}.csv", index=False)
+    formatted_df.to_csv(f"raw_data/Formatted-{file_name}.csv", index=False)
 
 
 if __name__ == '__main__':

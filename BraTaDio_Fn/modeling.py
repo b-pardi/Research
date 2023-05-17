@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import get_plot_preferences, map_colors
+from analyze import get_plot_preferences, map_colors, get_num_from_string
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -221,6 +221,12 @@ def get_labels(label, type, usetex=False):
         title = f"Average change in Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
         y = 'Average Sauerbrey mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
+
+    elif type == 'avg_Df':
+        data_label = f"average Df"
+        title = f"Average change in Frequency\nfor range: {label}"
+        x = 'Overtone order, $\it{n}$'
+        y = 'Average Change in Frequency $\it{Δf}$ ' + '(Hz)'
     
     else:
         return None
@@ -279,9 +285,8 @@ def linear_regression(user_input):
         print("Linear Regression Complete")
         plt.rc('text', usetex=False)
 
-def sauerbrey(user_input):
-    use_theoretical_vals, df_normalized, x_timescale, fig_format = user_input
-    print("Modeling Sauerbrey function...")
+def sauerbrey(fig_format):
+    print("Analyzing Sauerbrey equation...")
     df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
     labels = df['range_used'].unique()
     overtones = df['overtone'].unique() # overtone number (x)
@@ -301,39 +306,38 @@ def sauerbrey(user_input):
         sauerbray_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
+    print("Sauerbrey analysis complete")
+    plt.rc('text', usetex=False)
+
+def avg_Df(fig_format):
+    print("Analyzing average change in frequency...")
+
+    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = df[(df!= 0).all(1)] # remove rows with 0 (unselected rows)
+    labels = df['range_used'].unique()
+    overtones = df['overtone'].unique() # overtone number (x)
+    overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
+    print(f"LABELS: {labels}; OVERTONES: {overtones}")
+    color_map, _ = map_colors(get_plot_preferences())
 
     for label in labels:
         df_range = df.loc[df['range_used'] == label]
-
-        '''for ov in overtones:
-            df_ov_range = df_range.loc[df_range['overtone'] == ov]
-            if use_theoretical_vals:
-                C = 17.7
-            else:
-                C = 0 # will later contain experimental value
-
-            # n = 1 for fundamental, for rest of overtones we pull the first char being the number
-            n = 1 if ov == 'fundamental_freq' else int(ov[0])
-
-            Df = df_ov_range['freq'].values
-            time = df_ov_range['time'].values
-            Dm = -C *  Df if df_normalized else -C * (Df/n)
-
-            # plot and save
-            x_label = determine_xlabel(x_timescale)
-            y_label = 'Sauerbrey mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
-            title = f"Sauerbrey eqn for range: {label}, overtone: {ov}"
-            plot_label = "Sauerbrey eqn"
-            Sauerbrey_plot, ax = plot_data(time, Dm, None, None, plot_label, 'equation', False, color_map[ov])
-            format_plot(ax, x_label, y_label, title)
-            Sauerbrey_plot.tight_layout()
-            plt.savefig(f"qcmd-plots/Sauerbrey_label-ov_{label}-{ov}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)'''
+        mu_Df = df['Dfreq_mean'].values # average change in frequency (y)
+        delta_mu_Df = df['Dfreq_std_dev'].values # std dev of y
+        data_label, x_label, y_label, title = get_labels(label, 'avg_Df')
+        if mu_Df.shape != overtones.shape:
+            raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
-    print("Sauerbrey Analysis Complete")
+        avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
+        format_plot(ax, x_label, y_label, title)
+        avg_Df_range_plot.tight_layout()
+        plt.savefig(f"qcmd-plots/equation/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+
+    print("Average change in frequency analysis complete")
     plt.rc('text', usetex=False)
 
-    
 
+# main used for testing
 if __name__ == "__main__":
     which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
                             '5th_freq': False, '5th_dis': False, '7th_freq': False, '7th_dis': False,

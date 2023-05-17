@@ -128,10 +128,7 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- do same thing as change in M as f(overtone), for change in F
-    - put in modeling section
-
-- put column 5 (modeling) into new window
+- make sauerbrey and avg df work for multiple ranges
 
 - bandwidth shift add hz units to x and y axis, and title to thin film in liquid
     - in legend remove 1st and 3rd items
@@ -162,6 +159,14 @@ if it is not, please comment out the 2 lines below
 
 5/16
 - modeling options moved from 5th column of main UI to a new window that opens upon selecting the interactive plot
+- added functionality to close modeling window when unchecking interactive plot box
+- added button to analyze avg change in frequency against overtone numbers
+- added functionality to plot average change in frequency against overtone numbers (akin to Sauerbrey equation just without the actual equation)
+- fix bug where non selected frequencies that have 0 rows in range data are still plotted
+- fixed labels for avg change in frequency plots
+- fixed bug in renaming dataframe to bratadio format
+- fixed bug when grabbing overtone selection for int plot, was checking if model window is visible when it didn't have that attribute, changed to input.range_frame_flag
+
 
 5/14
 - progress on moving column 5 (modeling) to new window instead
