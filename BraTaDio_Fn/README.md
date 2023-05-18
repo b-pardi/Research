@@ -128,10 +128,6 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- add linear fit to int plot for zoomed data
-    - report slope value (drift)
-    - Hz/(second/minute/hour)
-
 - plot calibration values from data against overtone
     - calibration values come from the flatlining of points that we normally removed before the baseline
     - will be receiving more data soon with this air stabilization
@@ -141,13 +137,6 @@ if it is not, please comment out the 2 lines below
 
 - qsense will need option to add calibration freqs to values because qsense records just change in frequency, qcmi and open qcm next record actual frequency
     - prompt user to put absolute frequencies of measured overtones into separate file, than in formatting script add those to each of the delta freq values
-
-- implement avg Df plots for avg dissipation as well
-
-- bandwidth shift add delta infront of the gamma
-- overtone * change in frequency of overtone
-- change * to a dot
-- shift and n to lowercase in title, frequency lower case
 
 - make sauerbrey and avg df work for multiple ranges
 
@@ -178,11 +167,14 @@ if it is not, please comment out the 2 lines below
     - plot DGamma against n^2
         - slope is Jdoubleprime
     - see Johannsmann paper fig 17 eqn 46 for details
-    
+
 - added linear fit to interactive plot zoom section to measure drift
 - fix bug where previous linear fits remains on screen during new selections
 - add legend to report drift value (slope)
 - adjusted value reporting to account for user selected time inputs with units in legend
+
+- implemented avg plots for avg dissipation as well
+
 
 5/17
 - changed func name avg_Df to avgs_analysis to prepare for adding avg Dd functionality

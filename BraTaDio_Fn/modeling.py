@@ -238,9 +238,13 @@ def get_labels(label, type, subtype='', usetex=False):
 
     elif type == 'avgs':
         data_label = f"average"
-        title = f"Average change in Frequency\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = 'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
+        if subtype == 'freq':
+            title = f"Average change in Frequency\nfor range: {label}"
+            y = r'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
+        if subtype == 'dis':
+            title = f"Average change in Dissipation\nfor range: {label}"
+            y = r'Average change in Dissipation, $\it{Δd}$'
     
     else:
         return None
@@ -395,30 +399,45 @@ def sauerbrey(fig_format):
     plt.rc('text', usetex=False)
 
 def avgs_analysis(fig_format):
-    print("Analyzing average change in frequency...")
+    print("Analyzing average change in frequency and dissipation...")
 
-    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
-    df = df[(df!= 0).all(1)] # remove rows with 0 (unselected rows)
-    labels = df['range_used'].unique()
-    overtones = df['overtone'].unique() # overtone number (x)
+    # grabbing df from csv
+    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    rf_df = rf_df[(rf_df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
+    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
+    dis_df = dis_df[(dis_df!= 0).all(1)] # remove dis rows with 0 (unselected rows)
+    labels = rf_df['range_used'].unique()
+    overtones = rf_df['overtone'].unique() # overtone number (x)
     overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
     print(f"LABELS: {labels}; OVERTONES: {overtones}")
-    color_map, _ = map_colors(get_plot_preferences())
 
     for label in labels:
-        df_range = df.loc[df['range_used'] == label]
-        mu_Df = df['Dfreq_mean'].values # average change in frequency (y)
-        delta_mu_Df = df['Dfreq_std_dev'].values # std dev of y
-        data_label, x_label, y_label, title = get_labels(label, 'avgs')
+        # grabbing data from df
+        df_range = rf_df.loc[rf_df['range_used'] == label]
+        mu_Df = rf_df['Dfreq_mean'].values # average change in frequency (y)
+        delta_mu_Df = rf_df['Dfreq_std_dev'].values # std dev of y
+        mu_Dd = dis_df['Ddis_mean'].values # average change in dissipation (y)
+        delta_mu_Dd = dis_df['Ddis_std_dev'].values # std dev of y
+
         if mu_Df.shape != overtones.shape:
             raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
+        # plotting average frequencies
+        data_label, x_label, y_label, title = get_labels(label, 'avgs', 'freq')
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
-    print("Average change in frequency analysis complete")
+        # plotting average dissipations
+        data_label, x_label, y_label, title = get_labels(label, 'avgs', 'dis')
+        avg_Dd_range_plot, ax = plot_data(overtones, mu_Dd, None, delta_mu_Dd, data_label, True)
+        format_plot(ax, x_label, y_label, title, overtones)
+        avg_Dd_range_plot.tight_layout()
+        plt.savefig(f"qcmd-plots/equation/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+
+
+    print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)
 
 
