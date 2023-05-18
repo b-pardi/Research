@@ -128,15 +128,25 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- add linear fit to int plot for zoomed data
+    - report slope value (drift)
+    - Hz/(second/minute/hour)
+
+- plot calibration values from data against overtone
+    - calibration values come from the flatlining of points that we normally removed before the baseline
+    - will be receiving more data soon with this air stabilization
+    - interactive plot for RAW data to select the pre baseline baseline
+    - bring up new window to enter range selections for each baseline (considering Bernardo's temperature jumps)
+
+
+- qsense will need option to add calibration freqs to values because qsense records just change in frequency, qcmi and open qcm next record actual frequency
+    - prompt user to put absolute frequencies of measured overtones into separate file, than in formatting script add those to each of the delta freq values
+
 - implement avg Df plots for avg dissipation as well
 
-- Thin film in air analysis
-    - plot Df/n (Hz) against n^2
-        - offset m(sub)f is y intercept of linear fit
-        - slope is Jprime
-    - plot DGamma against n^2
-        - slope is Jdoubleprime
-    - see Johannsmann paper fig 17 eqn 46 for details
+- for int plot, put linear fit to zoomed data
+
+
 
 - bandwidth shift add delta infront of the gamma
 - overtone * change in frequency of overtone
@@ -152,6 +162,8 @@ if it is not, please comment out the 2 lines below
     - C = Vq * Pq / 2F0^2
 
 - long term
+    - error messages become window popups
+        - like when trying to submit with selections that there are no data for
     - document and comment the hell out of the code
     - maybe add marker size/type customizations
     - remove latex features
@@ -160,6 +172,16 @@ if it is not, please comment out the 2 lines below
 
 
 ### CHANGE LOG
+
+5/18
+- added thin film in liquid to title of plot
+- Added functionality of Thin film in air analysis
+    - plot Df/n (Hz) against n^2
+        - offset m(sub)f is y intercept of linear fit
+        - slope is Jprime
+    - plot DGamma against n^2
+        - slope is Jdoubleprime
+    - see Johannsmann paper fig 17 eqn 46 for details
 
 5/17
 - changed func name avg_Df to avgs_analysis to prepare for adding avg Dd functionality
@@ -178,6 +200,7 @@ if it is not, please comment out the 2 lines below
 - changed modeling button names
 - added button for thin film in air analysis
 - changed linear_regression function to thin_film_liquid_analysis to differentiate between the soon added thin_film_air_analysis
+- refactored code moving all bandwidth shift calcs from thin_film_liquid_analysis() to new function process_bandwidth_calculations_for_linear_regression() for more reusable code for thin_film_air_analysis
 
 5/16
 - modeling options moved from 5th column of main UI to a new window that opens upon selecting the interactive plot

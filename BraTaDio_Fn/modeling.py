@@ -72,8 +72,6 @@ def get_calibration_values(which_plot, use_theoretical_vals):
             if key.__contains__('freq'):
                 which_freq_plots[key] = val
 
-        print(which_freq_plots, which_plot)
-
         calibration_freq = []
         sigma_calibration_freq = []
         # theoretical calibration values for experiment, used in calculating bandwidth shift
@@ -195,7 +193,7 @@ def linearly_analyze(x, y, ax):
     # plot curve fit
     ax.plot(x, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}')
 
-def format_plot(ax, x_label, y_label, title, xticks=np.empty(1)):
+def format_plot(ax, x_label, y_label, title, xticks=np.asarray(None)):
     plot_customs = get_plot_preferences()
     font = plot_customs['font']
     if xticks.any():
@@ -210,16 +208,23 @@ def format_plot(ax, x_label, y_label, title, xticks=np.empty(1)):
     plt.title(title, fontsize=plot_customs['title_text_size'], fontfamily=font)
 
 # grab plot labels determined by use of latex, and which function modeling
-def get_labels(label, type, usetex=False):
-    if type == 'linear':
+def get_labels(label, type, subtype='', usetex=False):
+    if type == 'film_liquid':
         data_label = None
-        title = r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + "  for range: " + f"{label}"
-        if usetex:
-            x = r"Overtone * Change in frequency, $\mathit{n\Delta}$$\mathit{f}$$_n$ (Hz)"
-            y = r"Bandwidth shift, $\mathit{\Gamma}$$_n$"
+        title = "Thin Film in Liquid " + r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + "  for range: " + f"{label}"
+        x = r"Overtone * Change in frequency, $\mathit{n\Delta}$$\mathit{f}$$_n$ (Hz)"
+        y = r"Bandwidth shift, $\mathit{\Delta\Gamma}$$_n$"
+
+    elif type == 'film_air':
+        data_label = None
+        title = "placeholder film in air" + f"for range: {label}"
+        x = r"$\mathit{n^2}$"
+        if subtype == 'gamma':
+            y = r"Normalized Bandwidth shift, $\mathit{\Delta\Gamma/n}$ Hz"
+        elif subtype == 'freq':
+            y = r"Normalized change in frequency, $\mathit{\Delta}$$\mathit{f/n}$ Hz"
         else:
-            x = 'Overtone * Change in frequency, $\it{n\Delta f_n}$'
-            y = "Bandwidth shift, $\it{\Gamma_n}$"
+            y = 'placeholder'
     
     elif type == 'sauerbrey':
         data_label = f"average"
@@ -238,9 +243,32 @@ def get_labels(label, type, usetex=False):
 
     return data_label, x, y, title
 
+def process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf_df, dis_df, label, use_theoretical_vals):
+    calibration_freq, sigma_calibration_freq = get_calibration_values(which_plot, use_theoretical_vals)
+
+    mean_delta_freqs, sigma_mean_delta_freqs = avg_and_propogate(label, sources, rf_df, True)
+    n_mean_delta_freqs = [Df * (2*i+1) for i, Df in enumerate(mean_delta_freqs)] # 2i+1 corresponds to overtone number
+    sigma_n_mean_delta_freqs = [sDf * (2*i+1) for i, sDf in enumerate(sigma_mean_delta_freqs)] 
+    mean_delta_dis, sigma_mean_delta_dis = avg_and_propogate(label, sources, dis_df, False)        
+    
+    print(f"*** rf for label: {label}\n\tn*means: {n_mean_delta_freqs}\n\tstddev: {sigma_n_mean_delta_freqs}\n")
+    print(f"*** dis for label: {label}:\n\tmeans: {mean_delta_dis}\n\tstddev: {sigma_mean_delta_dis}\n")
+
+    # calculate bandwidth shift and propogate error for this calculation
+    data = [[np.array(mean_delta_dis), np.array(sigma_mean_delta_dis)], [np.array(calibration_freq), np.array(sigma_calibration_freq)]]
+    delta_gamma = np.array(mean_delta_dis * calibration_freq / 2) # bandwidth shift, Γ
+    sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
+
+    # remove entries of freqs not being analyzed
+    delta_gamma, sigma_delta_gamma = remove_zero_elements(delta_gamma, sigma_delta_gamma)
+    n_mean_delta_freqs, sigma_n_mean_delta_freqs = remove_zero_elements(np.array(n_mean_delta_freqs), np.array(sigma_n_mean_delta_freqs))
+
+    return n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma
+
+
 def thin_film_liquid_analysis(user_input):
     which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
-    print("Performing linear analysis...")
+    print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
     rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
@@ -250,35 +278,18 @@ def thin_film_liquid_analysis(user_input):
     labels = rf_df['range_used'].unique()
     sources = rf_df['data_source'].unique()
     print(f"*** found labels: {labels}\n\t from sources: {sources}\n")
-
-    calibration_freq, sigma_calibration_freq = get_calibration_values(which_plot, use_theoretical_vals)
-
+    
     # grab and analyze data for each range and indicated by the label
     for label in labels:
-        mean_delta_freqs, sigma_mean_delta_freqs = avg_and_propogate(label, sources, rf_df, True)
-        n_mean_delta_freqs = [Df * (2*i+1) for i, Df in enumerate(mean_delta_freqs)] # 2i+1 corresponds to overtone number
-        sigma_n_mean_delta_freqs = [sDf * (2*i+1) for i, sDf in enumerate(sigma_mean_delta_freqs)] 
-        mean_delta_dis, sigma_mean_delta_dis = avg_and_propogate(label, sources, dis_df, False)        
-        
-        print(f"*** rf for label: {label}\n\tn*means: {n_mean_delta_freqs}\n\tstddev: {sigma_n_mean_delta_freqs}\n")
-        print(f"*** dis for label: {label}:\n\tmeans: {mean_delta_dis}\n\tstddev: {sigma_mean_delta_dis}\n")
-
-        # calculate bandwidth shift and propogate error for this calculation
-        data = [[np.array(mean_delta_dis), np.array(sigma_mean_delta_dis)], [np.array(calibration_freq), np.array(sigma_calibration_freq)]]
-        delta_gamma = np.array(mean_delta_dis * calibration_freq / 2) # bandwidth shift, Γ
-        sigma_delta_gamma = propogate_mult_err(delta_gamma, data)
-
-        # remove entries of freqs not being analyzed
-        delta_gamma, sigma_delta_gamma = remove_zero_elements(delta_gamma, sigma_delta_gamma)
-        n_mean_delta_freqs, sigma_n_mean_delta_freqs = remove_zero_elements(np.array(n_mean_delta_freqs), np.array(sigma_n_mean_delta_freqs))
+        n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
 
         # plot data
-        data_label, x_label, y_label, title = get_labels(label, 'linear', latex_installed)
+        data_label, x_label, y_label, title = get_labels(label, 'film_liquid', '', latex_installed)
+        
         if n_mean_delta_freqs.shape != delta_gamma.shape:
             raise Exceptions.ShapeMismatchException((n_mean_delta_freqs.shape, delta_gamma.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
-        lin_plot, ax = plot_data(n_mean_delta_freqs, delta_gamma,
-                                 sigma_n_mean_delta_freqs, sigma_delta_gamma,
-                                 data_label, True)
+        lin_plot, ax = plot_data(n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs,
+                                 sigma_delta_gamma, data_label, True)
         
         # take care of all linear fitting analysis    
         linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
@@ -286,12 +297,75 @@ def thin_film_liquid_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/lin_regression_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
         print("Linear Regression Complete")
         plt.rc('text', usetex=False)
 
 def thin_film_air_analysis(user_input):
-    pass
+    which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
+    print("Performing thin film in liquid analysis...")
+
+    # grab statistical data of overtones from files generated in interactive plot
+    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
+    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+
+    # grab all unique labels from dataset
+    labels = rf_df['range_used'].unique()
+    sources = rf_df['data_source'].unique()
+    print(rf_df.index)
+    overtones_df = rf_df[(rf_df!= 0).all(1)] # remove rows with 0 (unselected rows)
+    overtones = overtones_df.index
+    overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
+    print(f"*** found labels: {labels}\n\t from sources: {sources}\nfor overtones: {overtones}")
+    
+    # grab and analyze data for each range and indicated by the label
+    for label in labels:
+        n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
+        
+        # for thin film in air, Df and DGamma are normalized
+        delta_gamma_norm = delta_gamma / overtones
+        sigma_delta_gamma_norm = sigma_delta_gamma / overtones
+        # Df is divided twice since process function returns n*DGamma
+        delta_freqs_norm = n_mean_delta_freqs / overtones / overtones
+        sigma_delta_freqs_norm = sigma_n_mean_delta_freqs / overtones / overtones
+        # plotting against overtones^2
+        sq_overtones = overtones * overtones
+        print(f"delta_gamma: {delta_gamma}\ndelta_gamma_normalized: {delta_gamma_norm}\nn^2: {sq_overtones}")
+
+        # error checking
+        if n_mean_delta_freqs.shape != delta_gamma.shape:
+            raise Exceptions.ShapeMismatchException((n_mean_delta_freqs.shape, delta_gamma.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
+
+        # plot data for DGamma/n v n^2
+        data_label, x_label, y_label, title = get_labels(label, 'film_air', 'gamma', latex_installed)     
+        lin_plot, ax = plot_data(sq_overtones, delta_gamma_norm, None,
+                                 sigma_delta_gamma_norm, data_label, True)
+        
+        # take care of all linear fitting analysis    
+        linearly_analyze(sq_overtones, delta_gamma_norm, ax) 
+
+        # save figure
+        format_plot(ax, x_label, y_label, title)
+        lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_GAMMA_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        
+        # repeat above plotting/saving for Df/n v n^2
+        data_label, x_label, y_label, title = get_labels(label, 'film_air', 'freq', latex_installed)     
+        lin_plot, ax = plot_data(sq_overtones, delta_freqs_norm, None,
+                                 sigma_delta_freqs_norm, data_label, True)
+        
+        # take care of all linear fitting analysis    
+        linearly_analyze(sq_overtones, delta_freqs_norm, ax) 
+
+        # save figure
+        format_plot(ax, x_label, y_label, title)
+        lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        
+
+        
+        print("Linear Regression Complete")
+        plt.rc('text', usetex=False)
 
 def sauerbrey(fig_format):
     print("Analyzing Sauerbrey equation...")

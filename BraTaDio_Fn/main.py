@@ -771,7 +771,7 @@ class ModelingWindow():
 
         # avg change in freq against overtone button
         self.run_tf_air_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Air", padx=6, pady=4, width=20,
-                                             command=lambda: thin_film_air_analysis(input.fig_format))
+                                             command=lambda: thin_film_air_analysis((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
     def destroy_modeling_window(self):
