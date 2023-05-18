@@ -128,13 +128,22 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- implement avg Df plots for avg dissipation as well
+
+- Thin film in air analysis
+    - plot Df/n (Hz) against n^2
+        - offset m(sub)f is y intercept of linear fit
+        - slope is Jprime
+    - plot DGamma against n^2
+        - slope is Jdoubleprime
+    - see Johannsmann paper fig 17 eqn 46 for details
+
+- bandwidth shift add delta infront of the gamma
+- overtone * change in frequency of overtone
+- change * to a dot
+- shift and n to lowercase in title, frequency lower case
+
 - make sauerbrey and avg df work for multiple ranges
-
-- bandwidth shift add hz units to x and y axis, and title to thin film in liquid
-    - in legend remove 1st and 3rd items
-    - just linear fit
-    - in title add DGamma/-Dfreq ~ J`(sub)f(omega)(eta(sub)bulk)
-
 
 - ASK ROBERTO:
     - can Sauerbrey equation plotting (full range not the averages) go in the column 4 plot options section? Would simplify code (wouldn't need to save all points to csv) and makes sense because the full range plot doesn't require the interactive plot like the shear dependent compliance analysis and sauerbrey range analysis
@@ -144,18 +153,31 @@ if it is not, please comment out the 2 lines below
 
 - long term
     - document and comment the hell out of the code
-
     - maybe add marker size/type customizations
-
     - remove latex features
-
-    - remove latex features
-
     - refactor analyze() to put each opt into its own function
 
 
 
 ### CHANGE LOG
+
+5/17
+- changed func name avg_Df to avgs_analysis to prepare for adding avg Dd functionality
+- bandwidth shift
+    - removed 1st and 3rd items from legend
+    - removed rsq value from legend
+    - changed title to DGamma/-Dfreq ~ J`(sub)f(omega)(eta(sub)bulk)
+
+- avg Df and Sauerbrey
+    - changed y axis labels
+    - adjusted legend
+    - x tick marks show odd numbers (corresponding to the overtone vals)
+
+- fixed modeling options window title
+- changed order of modeling buttons
+- changed modeling button names
+- added button for thin film in air analysis
+- changed linear_regression function to thin_film_liquid_analysis to differentiate between the soon added thin_film_air_analysis
 
 5/16
 - modeling options moved from 5th column of main UI to a new window that opens upon selecting the interactive plot

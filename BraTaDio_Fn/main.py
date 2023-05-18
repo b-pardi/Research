@@ -14,7 +14,7 @@ import json
 import Exceptions
 from analyze import analyze_data, clear_figures, ordinal
 from format_file import format_raw_data
-from modeling import linear_regression, sauerbrey, avg_Df
+from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis
 
 '''
 WIP
@@ -719,7 +719,7 @@ class ModelingWindow():
 
     def open_modeling_window(self):
         self.model_window = tk.Toplevel(self)
-        self.model_window.title('Customize Plots')
+        self.model_window.title('Modeling Options')
         self.models_frame = tk.Frame(self.model_window)
         self.models_frame.pack(side='left', anchor='n')
 
@@ -755,19 +755,24 @@ class ModelingWindow():
         self.calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
         # run linear regression button
-        self.run_linear_analysis_button = tk.Button(self.models_frame, text="Shear Dependent\nCompliance Analysis", padx=6, pady=4, width=20,
-                                             command=lambda: linear_regression((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
-        self.run_linear_analysis_button.grid(row=9, column=0, pady=4)
+        self.run_tf_liquid_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Liquid", padx=6, pady=4, width=20,
+                                             command=lambda: thin_film_liquid_analysis((input.which_plot['clean'], input.will_use_theoretical_peak_freq_vals, input.latex_installed, input.fig_format)))
+        self.run_tf_liquid_analysis_button.grid(row=10, column=0, pady=4)
 
         # run sauerbrey button
-        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey analysis\nof overtones", padx=6, pady=4, width=20,
+        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey Mass Analysis", padx=6, pady=4, width=20,
                                              command=lambda: sauerbrey(input.fig_format))
-        self.run_sauerbrey_analysis_button.grid(row=8, column=0, pady=4)
+        self.run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
+
+        # avg change in freq and dis against overtone button
+        self.avgs_analysis = tk.Button(self.models_frame, text="Run Average Δf and Δd\nAnalysis of Overtones", padx=6, pady=4, width=20,
+                                             command=lambda: avgs_analysis(input.fig_format))
+        self.avgs_analysis.grid(row=8, column=0, pady=4)
 
         # avg change in freq against overtone button
-        self.run_avg_Df_button = tk.Button(self.models_frame, text="Run button thingy\nof overtones", padx=6, pady=4, width=20,
-                                             command=lambda: avg_Df(input.fig_format))
-        self.run_avg_Df_button.grid(row=10, column=0, pady=4)
+        self.run_tf_air_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Air", padx=6, pady=4, width=20,
+                                             command=lambda: thin_film_air_analysis(input.fig_format))
+        self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
     def destroy_modeling_window(self):
         self.model_window.destroy()

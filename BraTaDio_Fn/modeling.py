@@ -166,9 +166,12 @@ def plot_data(xdata, ydata, xerr, yerr, label, has_err, color=''):
     
     # plotting modeled data slightly different than range data
     if has_err:
-        ax.plot(xdata, ydata, 'o', markersize=8, label=label)
-        ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='error in calculations')
-
+        if label:
+            ax.plot(xdata, ydata, 'o', markersize=8, label=label)
+            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='std dev')
+        else:
+            ax.plot(xdata, ydata, 'o', markersize=8)
+            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.')
     else:
         ax.plot(xdata, ydata, markersize=1, label=label, color=color)
 
@@ -190,11 +193,13 @@ def linearly_analyze(x, y, ax):
     print(f"R² = {rSquared}")
 
     # plot curve fit
-    ax.plot(x, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}\nrsq = {rSquared:.4f}')
+    ax.plot(x, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}')
 
-def format_plot(ax, x_label, y_label, title):
+def format_plot(ax, x_label, y_label, title, xticks=np.empty(1)):
     plot_customs = get_plot_preferences()
     font = plot_customs['font']
+    if xticks.any():
+        ax.set_xticks(xticks)
     plt.sca(ax)
     plt.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': font}, framealpha=0.3)
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=font)
@@ -207,8 +212,8 @@ def format_plot(ax, x_label, y_label, title):
 # grab plot labels determined by use of latex, and which function modeling
 def get_labels(label, type, usetex=False):
     if type == 'linear':
-        data_label = f"average values used for range: {label}"
-        title = f"Bandwidth Shift vs N * Change in Frequency\nfor range: {label}"
+        data_label = None
+        title = r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + "  for range: " + f"{label}"
         if usetex:
             x = r"Overtone * Change in frequency, $\mathit{n\Delta}$$\mathit{f}$$_n$ (Hz)"
             y = r"Bandwidth shift, $\mathit{\Gamma}$$_n$"
@@ -217,23 +222,23 @@ def get_labels(label, type, usetex=False):
             y = "Bandwidth shift, $\it{\Gamma_n}$"
     
     elif type == 'sauerbrey':
-        data_label = f"average Dm"
+        data_label = f"average"
         title = f"Average change in Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = 'Average Sauerbrey mass $\it{Δm}$ ' + r'($\frac{ng}{cm^2}$)'
+        y = 'Average Sauerbrey mass, $\it{m_S}$ ' + r'($\frac{ng}{cm^2}$)'
 
-    elif type == 'avg_Df':
-        data_label = f"average Df"
+    elif type == 'avgs':
+        data_label = f"average"
         title = f"Average change in Frequency\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = 'Average Change in Frequency $\it{Δf}$ ' + '(Hz)'
+        y = 'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
     
     else:
         return None
 
     return data_label, x, y, title
 
-def linear_regression(user_input):
+def thin_film_liquid_analysis(user_input):
     which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
     print("Performing linear analysis...")
 
@@ -285,6 +290,9 @@ def linear_regression(user_input):
         print("Linear Regression Complete")
         plt.rc('text', usetex=False)
 
+def thin_film_air_analysis(user_input):
+    pass
+
 def sauerbrey(fig_format):
     print("Analyzing Sauerbrey equation...")
     df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
@@ -302,14 +310,14 @@ def sauerbrey(fig_format):
             raise Exceptions.ShapeMismatchException((mu_Dm.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
         sauerbray_range_plot, ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
-        format_plot(ax, x_label, y_label, title)
+        format_plot(ax, x_label, y_label, title, overtones)
         sauerbray_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
     print("Sauerbrey analysis complete")
     plt.rc('text', usetex=False)
 
-def avg_Df(fig_format):
+def avgs_analysis(fig_format):
     print("Analyzing average change in frequency...")
 
     df = pd.read_csv("selected_ranges/all_stats_rf.csv")
@@ -324,12 +332,12 @@ def avg_Df(fig_format):
         df_range = df.loc[df['range_used'] == label]
         mu_Df = df['Dfreq_mean'].values # average change in frequency (y)
         delta_mu_Df = df['Dfreq_std_dev'].values # std dev of y
-        data_label, x_label, y_label, title = get_labels(label, 'avg_Df')
+        data_label, x_label, y_label, title = get_labels(label, 'avgs')
         if mu_Df.shape != overtones.shape:
             raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
-        format_plot(ax, x_label, y_label, title)
+        format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
