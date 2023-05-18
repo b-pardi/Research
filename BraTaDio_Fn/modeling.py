@@ -175,7 +175,7 @@ def plot_data(xdata, ydata, xerr, yerr, label, has_err, color=''):
 
     return fig, ax
 
-def linearly_analyze(x, y, ax):
+def linearly_analyze(x, y, ax, label_prefix='', label_postfix=''):
     # performing the linear fit
     params, cov = curve_fit(linear, x, y)
     m, b = params
@@ -191,7 +191,11 @@ def linearly_analyze(x, y, ax):
     print(f"R² = {rSquared}")
 
     # plot curve fit
-    ax.plot(x, y_fit, 'r', label=f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}')
+    if label_prefix == '' and label_postfix == '':
+        label = f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}'
+    else:
+        label = label_prefix + f"{m:.4e} " + label_postfix
+    ax.plot(x, y_fit, 'r', label=label)
 
 def format_plot(ax, x_label, y_label, title, xticks=np.asarray(None)):
     plot_customs = get_plot_preferences()
@@ -298,7 +302,7 @@ def thin_film_liquid_analysis(user_input):
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
-        print("Linear Regression Complete")
+        print("Thin film in liquid analysis complete")
         plt.rc('text', usetex=False)
 
 def thin_film_air_analysis(user_input):
@@ -361,10 +365,9 @@ def thin_film_air_analysis(user_input):
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
-        
 
         
-        print("Linear Regression Complete")
+        print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
 
 def sauerbrey(fig_format):

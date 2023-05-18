@@ -144,10 +144,6 @@ if it is not, please comment out the 2 lines below
 
 - implement avg Df plots for avg dissipation as well
 
-- for int plot, put linear fit to zoomed data
-
-
-
 - bandwidth shift add delta infront of the gamma
 - overtone * change in frequency of overtone
 - change * to a dot
@@ -182,6 +178,11 @@ if it is not, please comment out the 2 lines below
     - plot DGamma against n^2
         - slope is Jdoubleprime
     - see Johannsmann paper fig 17 eqn 46 for details
+    
+- added linear fit to interactive plot zoom section to measure drift
+- fix bug where previous linear fits remains on screen during new selections
+- add legend to report drift value (slope)
+- adjusted value reporting to account for user selected time inputs with units in legend
 
 5/17
 - changed func name avg_Df to avgs_analysis to prepare for adding avg Dd functionality

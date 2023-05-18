@@ -460,6 +460,8 @@ def analyze_data(input):
     
     # interactive plot
     if input.will_interactive_plot:
+        from modeling import linearly_analyze # import in function to avoid circular import
+
         # clear all previous plots
         plt.close("all")
 
@@ -490,7 +492,7 @@ def analyze_data(input):
         ax.set_title("Click and drag to select range", fontsize=20, fontfamily='Arial', weight='bold', pad=40)
         y_ax1.set_ylabel("Change in frequency, " + '$\it{Δf}$' + " (Hz)", fontsize=14, fontfamily='Arial', labelpad=15) # label the shared axes
         y_ax2.set_ylabel("Change in dissipation, " + '$\it{Δd}$' + " (" + r'$10^{-6}$' + ")", fontsize=14, fontfamily='Arial', labelpad=5)
-        ax.set_xlabel (determine_xlabel(input.x_timescale), fontsize=16, fontfamily='Arial')
+        ax.set_xlabel(determine_xlabel(input.x_timescale), fontsize=16, fontfamily='Arial')
         plt.sca(int_ax1)
         plt.xticks(fontsize=12, fontfamily='Arial')
         plt.yticks(fontsize=12, fontfamily='Arial')
@@ -539,6 +541,10 @@ def analyze_data(input):
                     if span.active:
                         span.extents = (xmin, xmax)
 
+                # clear previous linear fit
+                int_ax1_zoom.cla()
+                int_ax2_zoom.cla()
+
                 # min and max indices are where elements should be inserted to maintain order
                 imin, imax = np.searchsorted(x_time, (xmin, xmax))
                 # range will be at most all elems in x, or imax
@@ -550,9 +556,16 @@ def analyze_data(input):
                 zoomy2 = y_dis[imin:imax]
 
                 # update data to newly spec'd range
-                zoom_plot1.set_data(zoomx, zoomy1)
-                zoom_plot2.set_data(zoomx, zoomy2)
+                int_ax1_zoom.plot(zoomx, zoomy1, '.', color='green', markersize=1)
+                int_ax2_zoom.plot(zoomx, zoomy2, '.', color='blue', markersize=1)
                 
+                # linear regression on zoomed data
+                units = f"Hz/{input.x_timescale}"
+                linearly_analyze(zoomx, zoomy1, int_ax1_zoom, "frequency drift: ", units)
+                linearly_analyze(zoomx, zoomy2, int_ax2_zoom, "dissipation drift: ", units)
+                int_ax1_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
+                int_ax2_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
+
                 # set limits of tick marks
                 int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
                 int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
