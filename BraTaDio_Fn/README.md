@@ -175,6 +175,20 @@ if it is not, please comment out the 2 lines below
 
 - implemented avg plots for avg dissipation as well
 
+- added button in raw data column for calibration data window
+- new class for calibration data window
+- filled calibration data window with entries for constants and button for raw data int plot
+- refactor to put all code setting up int plot into its own function
+- refactor put clean data int plot into its own function
+- added input fields to input which overtone analyzing and which range selecting for raw int plot
+- raw_interactive_plot() function acts similarly to clean one but with different data and calculations
+- save_calibration_data() function to save the averages of selections in raw int plot in similar fashion to range_statistics
+- selections are averaged and saved in calibration_data.csv
+- select_calibration_data() function to handle all processes relating to selection of raw data
+- move conversion of files to confirm file data button 
+- exception to check if selected overtone to analyze in int plot is selected in checkboxes
+- interactive plot now open from calibration menu
+- set yticks in dissipation plot to be scientific notation to clean it up
 
 5/17
 - changed func name avg_Df to avgs_analysis to prepare for adding avg Dd functionality

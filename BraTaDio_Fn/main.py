@@ -12,7 +12,7 @@ from tkinter import colorchooser
 import json
 
 import Exceptions
-from analyze import analyze_data, clear_figures, ordinal
+from analyze import analyze_data, clear_figures, ordinal, select_calibration_data
 from format_file import format_raw_data
 from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis
 
@@ -42,7 +42,7 @@ class Input:
         self.will_interactive_plot = False # indicates if user selected interactive plot option
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
-        self.interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
+        self.clean_interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
         self.will_use_theoretical_peak_freq_vals = True # indicates if using calibration data or theoretical peak frequencies for linear regression/sauerbrey
         self.range_frame_flag = False
         self.first_run = True
@@ -184,6 +184,9 @@ class App(tk.Tk):
             if frame.is_visible:
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
 
+        # intialize calibration window to be opened later
+        self.calibration_window = CalibrationWindow
+
         # intialize modeling window to be opened later
         self.modeling_window = ModelingWindow
 
@@ -204,6 +207,13 @@ class App(tk.Tk):
     def open_plot_opts_window(self):
         self.plot_opts_window.open_opts_window(self)
         self.plot_opts_window.fill_opts_window(self)
+
+    def open_calibration_data_window(self):
+        self.calibration_window.open_calibration_window(self)
+        self.calibration_window.fill_calibration_window(self)
+
+    def run_calibration(self):
+        self.calibration_window.run_calibration_input(self)
 
     def open_model_window(self):
         self.modeling_window.open_modeling_window(self)
@@ -245,7 +255,8 @@ class Col1(tk.Frame):
 
         self.file_path_entry = tk.Entry(self, width=40)
         self.file_path_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
-        self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")
+        self.default_path = "Enter path to file (leave blank if in 'raw data' folder)"
+        self.file_path_entry.insert(0, self.default_path)
         self.file_path_entry.bind("<FocusIn>", self.handle_fp_focus_in)
         self.file_path_entry.bind("<FocusOut>", self.handle_fp_focus_out)
 
@@ -266,8 +277,6 @@ class Col1(tk.Frame):
 
         self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
         self.open_plot_opts_button.grid(row=14, pady=(16, 4))
-        
-
 
     def handle_fn_focus_in(self, _):
         if self.file_name_entry.get() == "File name here (W/ EXTENSION)":
@@ -281,7 +290,7 @@ class Col1(tk.Frame):
             self.file_name_entry.insert(0, "File name here (W/ EXTENSION)")
 
     def handle_fp_focus_in(self, _):
-        if self.file_path_entry.get() == "Enter path to file (leave blank if in 'raw data' folder)":
+        if self.file_path_entry.get() == self.default_path:
             self.file_path_entry.delete(0, tk.END)
             self.file_path_entry.config(fg='black')
 
@@ -289,7 +298,7 @@ class Col1(tk.Frame):
         if self.file_path_entry.get() == "":
             self.file_path_entry.delete(0, tk.END)
             self.file_path_entry.config(fg='gray')
-            self.file_path_entry.insert(0, "Enter path to file (leave blank if in 'raw data' folder)")    
+            self.file_path_entry.insert(0, self.default_path)    
 
     def open_plot_opts(self):
         self.parent.open_plot_opts_window()
@@ -306,13 +315,17 @@ class Col1(tk.Frame):
         global input
         input.first_run = True
         input.file_name = self.file_name_entry.get()
-        input.file_path = self.file_path_entry.get()
+        input.file_path = "" if self.file_path_entry.get() == self.default_path else self.file_path_entry.get()
         
         input.file_src_type = self.file_src_frame.file_src_type
         if input.is_relative_time:
             input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
         else:
             input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
+
+        if input.first_run:
+            format_raw_data(input.file_src_type, input.file_name, input.file_path)
+            input.file_name, _ = os.path.splitext(input.file_name)
         
         self.submitted_label.grid(row=13, column=0)
         self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
@@ -437,10 +450,69 @@ class CheckBox:
         self.checkbutton = checkbutton
         self.key = key 
     
+class CalibrationWindow():
+    def __init__(self, parent, container):
+        super().__init__(container) # initialize parent class for the child
+        self.parent = parent
+
+    def open_calibration_window(self):
+        calibration_window = tk.Toplevel(self)
+        calibration_window.title('Input/Select Calibration Data')
+        self.calibration_frame = tk.Frame(calibration_window)
+        self.calibration_frame.pack(anchor='n')
+        self.constants_frame = tk.Frame(calibration_window)
+        self.constants_frame.pack(anchor='n')
+        self.int_plot_frame = tk.Frame(calibration_window)
+        self.int_plot_frame.pack(anchor='n')
+
+    def fill_calibration_window(self):
+        self.calibration_label = tk.Label(self.calibration_frame, text="Calibration Data", font=('TkDefaultFont', 12, 'bold'))
+        self.calibration_label.grid(row=1, column=0, columnspan=3, padx=16, pady=12)
+        instructions = "In this menu, enter crystal constants below,\nas well as make your selection of the\ncalibration range data with the button below"
+        self.instruction_label = tk.Label(self.calibration_frame, text=instructions)
+        self.instruction_label.grid(row=2, column=0, padx=16, pady=12)
+
+        # crystal constant entries and labels
+        self.c1_label = tk.Label(self.constants_frame, text="c1: ")
+        self.c1_label.grid(row=0, column=0, pady=(2,4), padx=4)
+        self.c1_entry = tk.Entry(self.constants_frame, width=10)
+        self.c1_entry.grid(row=0, column=1, pady=(2,4))
+        self.c2_label = tk.Label(self.constants_frame, text="c2: ")
+        self.c2_label.grid(row=0, column=2, pady=(2,4), padx=4)
+        self.c2_entry = tk.Entry(self.constants_frame, width=10)
+        self.c2_entry.grid(row=0, column=3, pady=(2,4))
+        self.c3_label = tk.Label(self.constants_frame, text="c3: ")
+        self.c3_label.grid(row=1, column=0, pady=(2,4), padx=4)
+        self.c3_entry = tk.Entry(self.constants_frame, width=10)
+        self.c3_entry.grid(row=1, column=1, pady=(2,4))
+        self.c4_label = tk.Label(self.constants_frame, text="c4: ")
+        self.c4_label.grid(row=1, column=2, pady=(2,4), padx=4)
+        self.c4_entry = tk.Entry(self.constants_frame, width=10)
+        self.c4_entry.grid(row=1, column=3, pady=(2,4), padx=4)
+
+        # raw data interactive plot
+        self.raw_int_plot_overtone_label = tk.Label(self.int_plot_frame, text="select overtone to analyze:")
+        self.raw_int_plot_overtone_label.grid(row=0, column=0, pady=(16,2))
+        self.raw_int_plot_overtone_select = tk.Entry(self.int_plot_frame, width=10)
+        self.raw_int_plot_overtone_select.grid(row=0, column=1, pady=(16,2))
+        self.which_range_label = tk.Label(self.int_plot_frame, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
+        self.which_range_label.grid(row=1, column=0, pady=(2,12), padx=8)
+        self.which_range_entry = tk.Entry(self.int_plot_frame, width=10)
+        self.which_range_entry.grid(row=1, column=1, pady=(2,12))
+
+        self.raw_int_plot_button = tk.Button(self.int_plot_frame, text="Calibration Data Selection", padx=6, pady=4, width=20, command=self.run_calibration)
+        self.raw_int_plot_button.grid(row=2, column=0, columnspan=2, pady=12)   
+
+    def run_calibration_input(self):
+        overtone_select = self.raw_int_plot_overtone_select.get()
+        which_range = self.which_range_entry.get()
+        print(f"opening calibration thingy: {overtone_select}")
+        select_calibration_data(input, overtone_select, which_range)
 
 class Col2(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
+        self.parent = parent
         self.col_position = 1
         self.is_visible = True
         self.plot_raw_data_var = tk.IntVar()
@@ -453,6 +525,7 @@ class Col2(tk.Frame):
 
         self.clear_raw_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_raw_checks)
         self.select_all_raw_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_raw_checks)
+        self.calibration_data_button = tk.Button(self, text='Calibration Data Menu', width=20, command=self.parent.open_calibration_data_window)
 
     def receive_raw_checkboxes(self):
         global input
@@ -462,6 +535,7 @@ class Col2(tk.Frame):
             self.which_raw_channels_label.grid(row=1, column=0, pady=(0,26))
             self.select_all_raw_checks_button.grid(row=19, column=0, padx=(0,0), pady=(12,4))
             self.clear_raw_checks_button.grid(row=20, column=0, padx=(0,0), pady=(4,4))
+            self.calibration_data_button.grid(row=21, column=0, padx=(0,0), pady=(4,4))
             
             for i, cb in enumerate(self.raw_checks):
                 cb.checkbutton.grid(row=i+2, column=0)
@@ -480,6 +554,7 @@ class Col2(tk.Frame):
 
             self.select_all_raw_checks_button.grid_forget()
             self.clear_raw_checks_button.grid_forget()
+            self.calibration_data_button.grid_forget()
         
     def clear_raw_checks(self):
         global input
@@ -682,7 +757,6 @@ class Col4(tk.Frame):
             self.parent.open_model_window()
             self.interactive_plot_opts.grid(row=7, column=4)
         else:
-            print("ELSE")
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.repack_frames()
@@ -692,11 +766,9 @@ class Col4(tk.Frame):
     def submit(self):
         global input
         err_check()
-        if input.first_run:
-            format_raw_data(input.file_src_type, input.file_name, input.file_path)
         clear_figures()
         if input.range_frame_flag:
-            input.interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
+            input.clean_interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
         analyze_data(input)
         input.first_run = False
