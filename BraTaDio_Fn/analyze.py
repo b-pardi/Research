@@ -146,13 +146,13 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
     save_flag = False # flag determines if file will need to be saved or not after opening df
     try: # try to open df from stats csv
         try:
-            temp_df = pd.read_csv(f"selected_ranges/{stats_fn}")
+            temp_df = pd.read_csv(stats_fn)
         except FileNotFoundError as e:
             print(f"err 1: {e}")
             print("Creating modeling file...")
-            with open(f"selected_ranges/{stats_fn}", 'w') as creating_new_modeling_file: 
+            with open(stats_fn) as creating_new_modeling_file: 
                 creating_new_modeling_file.write('')
-            temp_df = pd.read_csv(f"selected_ranges/{stats_fn}")
+            temp_df = pd.read_csv(stats_fn)
         if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
             temp_df = temp_df.loc[temp_df['range_used'] != '']
             save_flag = True
@@ -163,14 +163,12 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
             temp_df = temp_df.drop(index=to_drop)
             save_flag = True
         if save_flag:
-            temp_df.to_csv(f"selected_ranges/{stats_fn}", float_format="%.16E", index=False)
+            temp_df.to_csv(stats_fn, float_format="%.16E", index=False)
     except (FileNotFoundError, pd.errors.EmptyDataError) as e:
         print(f"err 2: {e}")
         print("making new stats file...")
-        os.chdir('selected_ranges')
         with open(stats_fn, 'w') as new_file:
             new_file.write(header)
-        os.chdir('../')
 
 def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normalized):
     which_overtones = []
@@ -224,15 +222,16 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
     rf_stat_file.close()
 
 def save_calibration_data(df, imin, imax, which_plots, range, fn):
-    calibration_file = open(f"selected_ranges/calibration_data.csv", 'a')
+    calibration_file = open(f"calibration_data/calibration_data.csv", 'a')
     for overtone in which_plots:
         ov = overtone[0]
         if overtone[1] and ov.__contains__('freq'):
             y_data=df[ov]
             y_sel = y_data[imin:imax]
             mean_y = np.average(y_sel)
+            std_dev_y = np.std(y_sel)
             n = get_num_from_string(ov)
-            calibration_file.write(f"{n},{mean_y:.16E},{range},{fn}\n")
+            calibration_file.write(f"{n},{mean_y:.16E},{std_dev_y:.16E},{range},{fn}\n")
 
 
 # removing axis lines for plots
@@ -387,17 +386,17 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, plot_customs, time_col):
 
             # prep and save data to file
             # frequency stats for bandwidth shift
-            stats_out_fn = 'all_stats_rf.csv'
+            stats_out_fn = 'selected_ranges/all_stats_rf.csv'
             header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
             prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
             
             # dissipation stats for bandwidth shift
-            stats_out_fn = 'all_stats_dis.csv'
+            stats_out_fn = 'selected_ranges/all_stats_dis.csv'
             header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
             prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
 
             # frequency values inserted into Sauerbrey equation
-            stats_out_fn = 'Sauerbrey_stats.csv'                
+            stats_out_fn = 'selected_ranges/Sauerbrey_stats.csv'                
             header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
             prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
 
@@ -451,8 +450,8 @@ def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, ti
             int_plot.canvas.draw_idle()
 
             # prep and save data to file
-            stats_out_fn = 'calibration_data.csv'
-            header = f"overtone,calibration_freq,range_used,data_source\n"
+            stats_out_fn = 'calibration_data/calibration_data.csv'
+            header = f"overtone,calibration_freq,std_dev,range_used,data_source\n"
             prepare_stats_file(header, which_range, input.file_name, stats_out_fn)
             save_calibration_data(raw_df, imin, imax, input.which_plot['raw'].items(), which_range, input.file_name)
         

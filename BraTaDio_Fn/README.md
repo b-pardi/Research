@@ -128,20 +128,26 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- change sauerbrey mass to do same thing as avg Df analysis, but add linear fit and multiply slope by -17.7 and report the mass
+    - calibration values for c
+    - use eqn 2 of manuscript with fundamental frequency from calibration
+
 - plot calibration values from data against overtone
+    - WAITING ON DATA
     - calibration values come from the flatlining of points that we normally removed before the baseline
     - will be receiving more data soon with this air stabilization
     - interactive plot for RAW data to select the pre baseline baseline
     - bring up new window to enter range selections for each baseline (considering Bernardo's temperature jumps)
 
+- calibration data from file option will need file formatting akin to experimental data formatting done in 'format_file.py' 
+    - WAITING ON DATA
+
+- optimization to check data dir for existing file conversion
 
 - qsense will need option to add calibration freqs to values because qsense records just change in frequency, qcmi and open qcm next record actual frequency
     - prompt user to put absolute frequencies of measured overtones into separate file, than in formatting script add those to each of the delta freq values
 
 - make sauerbrey and avg df work for multiple ranges
-
-- ASK ROBERTO:
-    - can Sauerbrey equation plotting (full range not the averages) go in the column 4 plot options section? Would simplify code (wouldn't need to save all points to csv) and makes sense because the full range plot doesn't require the interactive plot like the shear dependent compliance analysis and sauerbrey range analysis
 
 - get calibration data for peak frequencies for linear regression (currently just using theoretical)
     - C = Vq * Pq / 2F0^2
@@ -149,6 +155,7 @@ if it is not, please comment out the 2 lines below
 - long term
     - error messages become window popups
         - like when trying to submit with selections that there are no data for
+    - investigate declaring new window objects in the column classes
     - document and comment the hell out of the code
     - maybe add marker size/type customizations
     - remove latex features
@@ -157,6 +164,28 @@ if it is not, please comment out the 2 lines below
 
 
 ### CHANGE LOG
+
+5/24
+- changed analyze to visualize when selecting overtone for int plots
+- created new csv file in 'res' folder with theoretical frequency values
+- added std dev to calibration data range selection
+- updated calibration_frequencies function to grab frequencies from calibration data file
+- adjusted prepare stats file function to have file path in name instead of hardcoding path, so can save calibration ranges to different folder than stats ranges
+- bug fix, calibration/theoretical val radio buttons in modeling were not actually being sent properly to modeling functions, now that var is sent directly to function instead of via input object
+- added button to clear old frequency data from selections in calibration_data.csv
+
+- theoretical/calibration values option selection moved to column 1
+- calibration menu option moved to nested option within column 1
+- restructured theoretical/calibration selection as follows:
+    - first prompted to use either theoretical or calibration values
+        - if using theoretical, input object is updated and user can continue
+        - if calibration selected, input object updated and user is then prompted with option to use from file or make selections
+            - if file option selected, label informs user to copy values into file in calibration_data folder
+            - if selections option selected, calibration menu button made available
+
+- lower case dissipation for equation model plots
+- changed modeling plots to black points and err bars
+- removed 'analysis' from ov avgs
 
 5/18
 - added thin film in liquid to title of plot
@@ -174,6 +203,8 @@ if it is not, please comment out the 2 lines below
 - adjusted value reporting to account for user selected time inputs with units in legend
 
 - implemented avg plots for avg dissipation as well
+- cite libraries as sources for paper
+- make flowchart in inkscape
 
 - added button in raw data column for calibration data window
 - new class for calibration data window

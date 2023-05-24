@@ -66,17 +66,19 @@ def get_overtones_selected(which_plot):
 
 def get_calibration_values(which_plot, use_theoretical_vals):
     which_freq_plots = {}
-    if use_theoretical_vals:
-        # clean which_plot and remove the dis keys since we only need freq
-        for key, val in which_plot.items():
-            if key.__contains__('freq'):
-                which_freq_plots[key] = val
+    calibration_freq = []
+    sigma_calibration_freq = []
+    print(use_theoretical_vals)
 
-        calibration_freq = []
-        sigma_calibration_freq = []
+    # clean which_plot and remove the dis keys since we only need freq
+    for key, val in which_plot.items():
+        if key.__contains__('freq'):
+            which_freq_plots[key] = val
+
+    if use_theoretical_vals:        
         # theoretical calibration values for experiment, used in calculating bandwidth shift
-        theoretical_values = [5.0e+06, 1.5e+07, 2.5e+07,
-                            3.5e+07, 4.5e+07, 5.5e+07, 6.5e+07]
+        theoretical_values_df = pd.read_csv("calibration_data/theoretical_frequencies.csv", index_col=False)
+        theoretical_values = theoretical_values_df.iloc[:,0].values
         
         # for items in which plot, if true,
         # insert the value from theoretical values
@@ -92,14 +94,24 @@ def get_calibration_values(which_plot, use_theoretical_vals):
         
     else:
         # grab peak frequency values from calibration file as specified in gui
-        with open("calibration_data/peak_frequencies.txt", 'r') as peak_file:
-            freqs = peak_file.readlines()
-            # grab freqs from peak freq list and converts them to a 2D numpy array of float values
-            freqs = [[float(freq.split()[i].strip('\"')) for i in range(len(freqs[0].split()))] for freq in freqs]
-            #freqs = np.asarray([np.asarray(freq_list) for freq_list in freqs])
-            calibration_freq = np.asarray([np.average(freq) for freq in freqs])
-            sigma_calibration_freq = np.asarray([np.std(freq) for freq in freqs])
-            print(f"*** peak frequencies: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n")
+        all_overtones = [get_num_from_string(ov) for ov in which_freq_plots.keys()] # get all overtones to insert 0s into overtones not selected\
+        selected_overtones = [get_num_from_string(ov[0]) for ov in which_freq_plots.items() if ov[1]]
+        print(all_overtones, selected_overtones)
+        exp_vals_df = pd.read_csv("calibration_data/calibration_data.csv")
+        i = 0
+        while(i < len(all_overtones)): # all ovs always >= selected overtones
+            #print(all_overtones[i], selected_overtones[i])
+            if i < len(selected_overtones) and all_overtones[i] == selected_overtones[i]:
+                print('match')
+                calibration_freq.append(exp_vals_df.iloc[i,1])
+                sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
+            else:
+                print('not')
+                calibration_freq.append(0)
+                sigma_calibration_freq.append(0)
+            i+=1
+
+        print(f"*** peak frequencies: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n")
 
     return (calibration_freq, sigma_calibration_freq)
 
@@ -159,17 +171,17 @@ def setup_plot(use_tex=False):
     plt.cla()
     return plot, ax
 
-def plot_data(xdata, ydata, xerr, yerr, label, has_err, color=''):
+def plot_data(xdata, ydata, xerr, yerr, label, has_err, color='black'):
     fig, ax = setup_plot(False)
     
     # plotting modeled data slightly different than range data
     if has_err:
         if label:
-            ax.plot(xdata, ydata, 'o', markersize=8, label=label)
-            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='std dev')
+            ax.plot(xdata, ydata, 'o', markersize=4, label=label, color=color)
+            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', label='std dev', color=color)
         else:
-            ax.plot(xdata, ydata, 'o', markersize=8)
-            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.')
+            ax.plot(xdata, ydata, 'o', markersize=4, color=color)
+            ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', color=color)
     else:
         ax.plot(xdata, ydata, markersize=1, label=label, color=color)
 
@@ -243,8 +255,8 @@ def get_labels(label, type, subtype='', usetex=False):
             title = f"Average change in Frequency\nfor range: {label}"
             y = r'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
         if subtype == 'dis':
-            title = f"Average change in Dissipation\nfor range: {label}"
-            y = r'Average change in Dissipation, $\it{Δd}$'
+            title = f"Average change in dissipation\nfor range: {label}"
+            y = r'Average change in dissipation, $\it{Δd}$'
     
     else:
         return None
