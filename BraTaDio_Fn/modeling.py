@@ -202,12 +202,18 @@ def linearly_analyze(x, y, ax, label_prefix='', label_postfix=''):
     rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
     print(f"R² = {rSquared}")
 
-    # plot curve fit
+    # for reporting Sauerbrey mass given slope
+
+    # put label together
     if label_prefix == '' and label_postfix == '':
         label = f'Linear fit:\ny = {m:.4f}x {sign} {np.abs(b):.4f}'
     else:
         label = label_prefix + f"{m:.4e} " + label_postfix
+    
+    # plot curve fit
     ax.plot(x, y_fit, 'r', label=label)
+
+    return m, b
 
 def format_plot(ax, x_label, y_label, title, xticks=np.asarray(None)):
     plot_customs = get_plot_preferences()
@@ -244,9 +250,9 @@ def get_labels(label, type, subtype='', usetex=False):
     
     elif type == 'sauerbrey':
         data_label = f"average"
-        title = f"Average change in Sauerbrey Mass\nfor range: {label}"
+        title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = 'Average Sauerbrey mass, $\it{m_S}$ ' + r'($\frac{ng}{cm^2}$)'
+        y = r'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
 
     elif type == 'avgs':
         data_label = f"average"
@@ -386,9 +392,10 @@ def thin_film_air_analysis(user_input):
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
 
-def sauerbrey(fig_format):
+def sauerbrey(user_input):
+    use_theoretical_vals, calibration_data_from_file, fig_format = user_input
     print("Analyzing Sauerbrey equation...")
-    df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
+    '''df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
     labels = df['range_used'].unique()
     overtones = df['overtone'].unique() # overtone number (x)
     print(f"LABELS: {labels}; OVERTONES: {overtones}")
@@ -406,6 +413,52 @@ def sauerbrey(fig_format):
         format_plot(ax, x_label, y_label, title, overtones)
         sauerbray_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+    '''
+
+    # grabbing df from csv
+    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
+    labels = df['range_used'].unique()
+    overtones = df['overtone'].unique() # overtone number (x)
+    overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
+    print(f"LABELS: {labels}; OVERTONES: {overtones}")
+
+    # calculate C for Sauerbrey mass formula if user opts to use calibration vals
+    C = -17.7 # default theoretical value
+    if not use_theoretical_vals:
+        if calibration_data_from_file: # if user opted to put in their own calibration values from the machine 
+            pass
+        else: # if user made selection data
+            calibration_df = pd.read_csv("calibration_data/calibration_data.csv")
+            f0 = calibration_df.loc[0]['calibration_freq']
+            print(f"f0: {f0}")
+
+        quarts_wave_velocity = 3340
+        quartz_density = 2650
+        C = ( quarts_wave_velocity * quartz_density ) / ( 2 * ( f0 ** 2 )  )
+        C *= 1e8
+        print(f"C: {C}")
+
+    for label in labels:
+        # grabbing data from df
+        df_range = df.loc[df['range_used'] == label]
+        mu_Df = df['Dfreq_mean'].values # average change in frequency (y)
+        delta_mu_Df = df['Dfreq_std_dev'].values # std dev of y
+
+        if mu_Df.shape != overtones.shape:
+            raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
+        
+        # plotting average frequencies
+        data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+        avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
+
+        # take care of all linear fitting analysis    
+        m, b = linearly_analyze(overtones, mu_Df, ax)
+
+        format_plot(ax, x_label, y_label, title, overtones)
+        avg_Df_range_plot.tight_layout()
+        plt.legend().get_texts()[1].set_text("Sauerbrey mass: " + f"{m*C:.6}" + r" ($\frac{ng}{cm^2}$)")
+        plt.savefig(f"qcmd-plots/modeling/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
     print("Sauerbrey analysis complete")
     plt.rc('text', usetex=False)

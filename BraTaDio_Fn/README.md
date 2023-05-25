@@ -128,10 +128,6 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- change sauerbrey mass to do same thing as avg Df analysis, but add linear fit and multiply slope by -17.7 and report the mass
-    - calibration values for c
-    - use eqn 2 of manuscript with fundamental frequency from calibration
-
 - plot calibration values from data against overtone
     - WAITING ON DATA
     - calibration values come from the flatlining of points that we normally removed before the baseline
@@ -149,8 +145,9 @@ if it is not, please comment out the 2 lines below
 
 - make sauerbrey and avg df work for multiple ranges
 
-- get calibration data for peak frequencies for linear regression (currently just using theoretical)
-    - C = Vq * Pq / 2F0^2
+- ASK ROBERTO
+    - for calculating C using calibration data, do we want to report the error being the std dev of f0?
+    - check unit conversion calculating C and negative val?
 
 - long term
     - error messages become window popups
@@ -161,6 +158,7 @@ if it is not, please comment out the 2 lines below
     - remove latex features
     - refactor analyze() to put each opt into its own function
 
+- changed sauerbrey mass to do same thing as avg Df analysis, but add linear fit and multiply slope by -17.7 and report the mass
 
 
 ### CHANGE LOG
@@ -186,6 +184,8 @@ if it is not, please comment out the 2 lines below
 - lower case dissipation for equation model plots
 - changed modeling plots to black points and err bars
 - removed 'analysis' from ov avgs
+
+- added ability to calculate C based on calibration fundamental frequency for Sauerbrey model
 
 5/18
 - added thin film in liquid to title of plot

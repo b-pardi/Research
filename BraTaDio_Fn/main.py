@@ -886,7 +886,7 @@ class ModelingWindow():
 
         # run sauerbrey button
         self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey Mass Analysis", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbrey(input.fig_format))
+                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.calibration_data_from_file, input.fig_format)))
         self.run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
         # avg change in freq and dis against overtone button
