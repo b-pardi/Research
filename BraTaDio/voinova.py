@@ -24,7 +24,6 @@ def voinova_equation(n, delta3, mu1, h1):
     eta1 = 10e-2 # viscosity of adsorbed film CONSTANT
     f0 = 4998264.628859391 # calibration fundamental frequency value (will be experimentally determined later)
     omega = 2 * pi * n * f0
-    print(omega)
 
     Df = -1*( 1 / ( 2*pi*rho0*h0)) * ( (eta3 / delta3) +\
         ( h1*rho1*omega - 2*h1 * (eta3/delta3)**2 * \
@@ -35,11 +34,11 @@ def voinova_equation(n, delta3, mu1, h1):
 
 def get_data():
     df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
     print(df.head)
     xdata = df['overtone'].values
     xdata = [get_num_from_string(x) for x in xdata]
     ydata = df['Dfreq_mean'].values
-    #print(x, '\n', y)
     return xdata, ydata
 
 def model():
@@ -55,7 +54,9 @@ def model():
     params, _ = curve_fit(voinova_equation, n, Df, p0=p0)
     delta3_fit, h1_fit, mu1_fit = params
 
-    Df_fit = voinova_equation(n, delta3_fit, h1_fit, mu1_fit)
+    Df_fit = []
+    for ov in n:
+        Df_fit.append(voinova_equation(ov, delta3_fit, h1_fit, mu1_fit))
     print('BANANA', Df_fit)
 
     plt.scatter(n, Df, label='data')
