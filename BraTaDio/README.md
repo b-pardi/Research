@@ -165,6 +165,11 @@ if it is not, please comment out the 2 lines below
 
 ### CHANGE LOG
 
+5/26
+- began implementation for voinova model in separate script 'voinova.py'
+- voinova model runs and produces an accurate plot when compared to the one done manually, however numbers are off
+    - need to meet next week to discuss units/orders of magnitude of values
+
 5/25
 - bug fix, C calculations for calibration data
 
