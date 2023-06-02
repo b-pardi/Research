@@ -17,14 +17,15 @@ we are replacing omega with 2pi * nf0
 '''
 
 def voinova_equation(n, delta3, mu1, h1):
-    rho0 = 2650 # density of quartz CONSTANT
-    h0 = 3.3698e-4 # thickness of quartz CONSTANT
-    eta3 = 10e-2 # viscosity of bulk fluid CONSTANT
-    rho1 = 10e3 # density of adsorbed film CONSTANT
-    eta1 = 10e-2 # viscosity of adsorbed film CONSTANT
-    f0 = 4998264.628859391 # calibration fundamental frequency value (will be experimentally determined later)
+    rho0 = 2650 # (kg/m^3) density of quartz CONSTANT
+    h0 = 3.3698e-4 # (m) thickness of quartz CONSTANT
+    eta3 = 10e-2 # (Pa.s) viscosity of bulk fluid CONSTANT
+    rho1 = 10e3 # (kg/m^3) density of adsorbed film CONSTANT
+    eta1 = 10e-2 # (Pa.s) viscosity of adsorbed film CONSTANT
+    f0 = 4998264.628859391 # (HZ) calibration fundamental frequency value (will be experimentally determined later)
+    print("vals", pi, n, f0)
     omega = 2 * pi * n * f0
-    print(omega)
+    print("omega", omega)
 
     Df = -1*( 1 / ( 2*pi*rho0*h0)) * ( (eta3 / delta3) +\
         ( h1*rho1*omega - 2*h1 * (eta3/delta3)**2 * \
@@ -35,20 +36,19 @@ def voinova_equation(n, delta3, mu1, h1):
 
 def get_data():
     df = pd.read_csv("selected_ranges/all_stats_rf.csv")
-    print(df.head)
+    df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
     xdata = df['overtone'].values
     xdata = [get_num_from_string(x) for x in xdata]
     ydata = df['Dfreq_mean'].values
-    #print(x, '\n', y)
     return xdata, ydata
 
 def model():
     n, Df = get_data() # experimental data
-    print('APPLE',n, Df)
+    print(n, '\n', Df)
 
-    delta3 = 16e-6 # coupled thickness of bulk fluid PARAMETER
-    h1 = 4.45e-9 # thicknesss of adsorbed film PARAMETER
-    mu1 = 5.3e6 # shear modulus of adsorbed film PARAMETER
+    delta3 = 16e-6 # (m) coupled thickness of bulk fluid PARAMETER
+    h1 = 4.45e-9 # (m) thicknesss of adsorbed film PARAMETER
+    mu1 = 5.3e6 # (Pa) shear modulus of adsorbed film PARAMETER
 
     p0 = (delta3, h1, mu1) # vars are initialized with initial guesses
 

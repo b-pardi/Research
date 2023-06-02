@@ -47,7 +47,7 @@
     - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
     - selections from interactive plot are calculated and will be exported to a csv file that are then used in the 'lin_reg.py' script
 
-- For Sauerbray equation
+- For Sauerbrey equation
     - 1 plot per overtone per range selected will be generated
         - i.e. if you make a selection for range x and one for range y, and you have selected frequency overtones 3, 5, and 7, you will get a plot for range x overtone 3, range y overtone 3, range x overtone 5, and so on
     - color map scheme for Sauerbray plots will match color map of baseline corrected data plots
@@ -128,6 +128,43 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
+- report chi squared for voinova
+- 
+
+- for file selection, open explorer and find file
+
+- more explicit library acknowledgement sections
+- instructions on adding more files to format
+
+- plot options put label that states options are saved even whjen closing software
+
+- change asterisks to a dot
+
+- nDf should be n * Df (dot not asterisk)
+
+- modeling plots use normalized freq data and they shouldn't
+
+- suaerbrey mass overtone/linear fit
+
+- for normalized Df plot y axis put over n, and for for all y axis but subscript n
+
+- multi axis plot all overtones selected in one image
+
+- multi axis plot not saving different file types
+
+- temp v time x time scale bugged
+
+- if selecting normalized, all plot opts use normalized data, that should be indicated on the label
+
+- for int plot linear fit in dissipation, units should be 1/(time unit)
+- same area, make units of int plot axis match units reported in fit
+
+- for dissipation adjust label akin to other plots (just fundamental, 3rd, 5th, etc)
+
+- have all raw plots together as well
+
+- OPTION TO plot all selected overtones together
+
 - sauerbrey report to 1 decimal
 
 - plot calibration values from data against overtone
@@ -136,6 +173,10 @@ if it is not, please comment out the 2 lines below
     - will be receiving more data soon with this air stabilization
     - interactive plot for RAW data to select the pre baseline baseline
     - bring up new window to enter range selections for each baseline (considering Bernardo's temperature jumps)
+
+- viscoelastic film modeling
+
+- gordon-kanazawa
 
 - calibration data from file option will need file formatting akin to experimental data formatting done in 'format_file.py' 
     - WAITING ON DATA
