@@ -5,6 +5,7 @@ Last Modified: 3/8/2022, 9:16 pm
 """
 
 import tkinter as tk
+from tkinter import filedialog
 import sys
 import os
 from datetime import time
@@ -25,8 +26,7 @@ remove as many selfs as possible from classes (specifically col 1 and 4)
 '''Variable Initializations'''
 class Input:
     def __init__(self): 
-        self.file_name = ''
-        self.file_path = ''
+        self.file = ''
         self.will_plot_raw_data = False
         self.will_plot_clean_data = False
         self.will_overwrite_file = False # if user wants copy of data data saved after processing
@@ -63,6 +63,20 @@ class Input:
 
 input = Input()
     
+def browse_files(label):
+    global input
+    fp = filedialog.askopenfilename(initialdir=os.path.join(os.getcwd(), 'raw_data'),
+                                          title="Select Data File",
+                                          filetypes=(("Comma Separated Value files", "*.csv"),
+                                                    ("Excel file 2007 and later", "*.xlsx"),
+                                                    ("Excel file 1997-2003", "*.xls"),
+                                                    ("Text file", "*.txt")))
+    
+    input.file = fp
+    label.configure(text=f"File Selected: {os.path.basename(fp)}")
+
+    return fp
+
 def create_checkboxes(frame, cleanliness):
     keys = list(input.which_plot[cleanliness].keys())
     checks = []
@@ -94,12 +108,9 @@ def err_check():
     global input
     '''Verify File Info'''
     # make sure file name was inputted
-    if (input.file_name == '' or input.file_name == 'File name here (W/ EXTENSION)'):
+    if (input.file == ''):
         print("WARNING: File name not specified")
         sys.exit(1)
-
-    if input.file_path == "Enter path to file (leave blank if in 'raw data' folder)":
-        input.file_path = ""
 
     # verify baseline time entered, if only raw data box checked, no need to base time
     if (not input.is_relative_time and input.will_plot_clean_data) and input.abs_base_t0 == time(0,0,0) and input.abs_base_tf == time(0,0,0):
@@ -248,20 +259,11 @@ class Col1(tk.Frame):
         self.parent = parent
         file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
         file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
-        
-        self.file_name_entry = tk.Entry(self, width=40)
-        self.file_name_entry.grid(row=2, column=0, columnspan=1, padx=8, pady=4)
-        #self.file_name_entry.insert(0, "File name here (W/ EXTENSION)")
-        self.file_name_entry.insert(0, "qcmi_sample.txt")
-        self.file_name_entry.bind("<FocusIn>", self.handle_fn_focus_in)
-        self.file_name_entry.bind("<FocusOut>", self.handle_fn_focus_out)
 
-        self.file_path_entry = tk.Entry(self, width=40)
-        self.file_path_entry.grid(row=3, column=0, columnspan=1, padx=8, pady=4)
-        self.default_path = "Enter path to file (leave blank if in 'raw data' folder)"
-        self.file_path_entry.insert(0, self.default_path)
-        self.file_path_entry.bind("<FocusIn>", self.handle_fp_focus_in)
-        self.file_path_entry.bind("<FocusOut>", self.handle_fp_focus_out)
+        self.filename_label = tk.Label(self, text="Data File")
+        self.filename_label.grid(row=2, column=0, pady=(8,4))
+        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: browse_files(self.filename_label))
+        self.browse_files_button.grid(row=1, column=0)
 
         self.file_src_frame = srcFileFrame(self)
         self.file_src_frame.grid(row=4, column=0, pady=(16,8))
@@ -283,29 +285,7 @@ class Col1(tk.Frame):
         self.file_data_clear_button.grid(row=11, column=0, pady=4)
 
         self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
-        self.open_plot_opts_button.grid(row=14, pady=(16, 4))
-
-    def handle_fn_focus_in(self, _):
-        if self.file_name_entry.get() == "File name here (W/ EXTENSION)":
-            self.file_name_entry.delete(0, tk.END)
-            self.file_name_entry.config(fg='black')
-
-    def handle_fn_focus_out(self, _):
-        if self.file_name_entry.get() == "":
-            self.file_name_entry.delete(0, tk.END)
-            self.file_name_entry.config(fg='gray')
-            self.file_name_entry.insert(0, "File name here (W/ EXTENSION)")
-
-    def handle_fp_focus_in(self, _):
-        if self.file_path_entry.get() == self.default_path:
-            self.file_path_entry.delete(0, tk.END)
-            self.file_path_entry.config(fg='black')
-
-    def handle_fp_focus_out(self, _):
-        if self.file_path_entry.get() == "":
-            self.file_path_entry.delete(0, tk.END)
-            self.file_path_entry.config(fg='gray')
-            self.file_path_entry.insert(0, self.default_path)    
+        self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
 
     def open_plot_opts(self):
         self.parent.open_plot_opts_window()
@@ -321,8 +301,6 @@ class Col1(tk.Frame):
     def col_names_submit(self):
         global input
         input.first_run = True
-        input.file_name = self.file_name_entry.get()
-        input.file_path = "" if self.file_path_entry.get() == self.default_path else self.file_path_entry.get()
         
         input.file_src_type = self.file_src_frame.file_src_type
         if input.is_relative_time:
@@ -331,8 +309,7 @@ class Col1(tk.Frame):
             input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
 
         if input.first_run:
-            format_raw_data(input.file_src_type, input.file_name, input.file_path)
-            input.file_name, _ = os.path.splitext(input.file_name)
+            format_raw_data(input.file_src_type, input.file)
         
         self.submitted_label.grid(row=13, column=0)
         self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
@@ -342,8 +319,7 @@ class Col1(tk.Frame):
         input.abs_base_t0 = time(0, 0, 0)
         input.abs_base_tf = time(0, 0, 0)
         self.cleared_label.grid(row=12, column=0)
-        self.file_name_entry.delete(0, tk.END)
-        self.file_path_entry.delete(0, tk.END)
+        self.filename_label.configure(text="Data File")
         self.abs_time_input.clear()
         self.rel_time_input.clear()
         self.submitted_label.grid_forget()
@@ -983,10 +959,12 @@ class PlotOptsWindow():
         self.ov11_color_button = tk.Button(self.opts_col2, text="11th overtone", width=10, command=lambda: self.choose_color(11))
         self.ov11_color_button.grid(row=8, column=0, pady=4)
         self.ov13_color_button = tk.Button(self.opts_col2, text="13th overtone", width=10, command=lambda: self.choose_color(13))
-        self.ov13_color_button.grid(row=9, column=0, pady=(4, 100))
+        self.ov13_color_button.grid(row=9, column=0, pady=(4, 200))
 
+        self.options_saved_label = tk.Label(self.opts_confirm, text="Confirming selections saves preferences\neven when software is closed")
+        self.options_saved_label.grid(row=18, column=0, pady=(24,4))
         self.default_button = tk.Button(self.opts_confirm, text="Default Values", width=20, command=self.set_default_values)
-        self.default_button.grid(row=19, column=0, pady=(24,0))
+        self.default_button.grid(row=19, column=0, pady=4)
         self.confirm_button = tk.Button(self.opts_confirm, text="Confirm Selections", width=20, command=self.confirm_opts)
         self.confirm_button.grid(row=20, column=0, pady=(4,16))
 

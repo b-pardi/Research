@@ -19,7 +19,10 @@ import Exceptions
 
 ''' ANALYSIS VARIABLES '''
 class Analysis:
-    def __init__(self):
+    def __init__(self, fn):
+        file_name, _ = os.path.splitext(fn)
+        file_name = os.path.basename(file_name)
+        self.formatted_fn = f"raw_data/Formatted-{file_name}.csv"
         self.time_col = 'Time' # relative time
         self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
         self.temp_col = 'Temp'
@@ -341,6 +344,7 @@ def generate_interactive_plot(int_plot_overtone, time_scale, df, time_col):
 
 def cleaned_interactive_plot(input, cleaned_df, x_time, plot_customs, time_col):
     from modeling import linearly_analyze # import in function to avoid circular import
+    int_plot_analysis = Analysis(input.file)
     int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, input.x_timescale, cleaned_df, time_col)
 
     def on_clean_select(xmin, xmax):
@@ -388,21 +392,21 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, plot_customs, time_col):
             # frequency stats for bandwidth shift
             stats_out_fn = 'selected_ranges/all_stats_rf.csv'
             header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
+            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
             
             # dissipation stats for bandwidth shift
             stats_out_fn = 'selected_ranges/all_stats_dis.csv'
             header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
+            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
 
             # frequency values inserted into Sauerbrey equation
             stats_out_fn = 'selected_ranges/Sauerbrey_stats.csv'                
             header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, input.file_name, stats_out_fn)
+            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
 
             # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
             range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(),
-                                input.which_range_selecting, input.file_name, 17.7, input.will_normalize_F)
+                                input.which_range_selecting, int_plot_analysis.formatted_fn, 17.7, input.will_normalize_F)
         
     # using plt's span selector to select area of top plot
     span1 = SpanSelector(int_ax1, on_clean_select, 'horizontal', useblit=True,
@@ -418,7 +422,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, plot_customs, time_col):
 
 def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, time_col):
     int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(overtone_select, input.x_timescale, raw_df, time_col)
-
+    int_plot_analysis = Analysis(input.file)
     def on_raw_select(xmin, xmax):
         if which_range == '':
             print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
@@ -452,8 +456,8 @@ def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, ti
             # prep and save data to file
             stats_out_fn = 'calibration_data/calibration_data.csv'
             header = f"overtone,calibration_freq,std_dev,range_used,data_source\n"
-            prepare_stats_file(header, which_range, input.file_name, stats_out_fn)
-            save_calibration_data(raw_df, imin, imax, input.which_plot['raw'].items(), which_range, input.file_name)
+            prepare_stats_file(header, which_range, int_plot_analysis.formatted_fn, stats_out_fn)
+            save_calibration_data(raw_df, imin, imax, input.which_plot['raw'].items(), which_range, int_plot_analysis.formatted_fn)
         
     # using plt's span selector to select area of top plot
     span1 = SpanSelector(int_ax1, on_raw_select, 'horizontal', useblit=True,
@@ -469,8 +473,8 @@ def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, ti
 
 def select_calibration_data(input, overtone_select, which_range):
     # prepare raw data
-    raw_analysis = Analysis()
-    raw_df = pd.read_csv(f"raw_data/Formatted-{input.file_name}.csv")
+    raw_analysis = Analysis(input.file)
+    raw_df = pd.read_csv(raw_analysis.formatted_fn)
     drop_cols = [key for key, val in input.which_plot['raw'].items() if val == False]
     raw_df.drop(drop_cols, axis=1, inplace=True)
     x_time = raw_df[raw_analysis.time_col]
@@ -479,12 +483,12 @@ def select_calibration_data(input, overtone_select, which_range):
     raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, raw_analysis.time_col)
 
 def analyze_data(input):
-    analysis = Analysis()
+    analysis = Analysis(input.file)
     t0_str = str(input.abs_base_t0).lstrip('0')
     tf_str = str(input.abs_base_tf).lstrip('0')
+
     # grab singular file and create dataframe from it
-    input.file_name, _ = os.path.splitext(input.file_name)
-    df = pd.read_csv(f"raw_data/Formatted-{input.file_name}.csv")
+    df = pd.read_csv(analysis.formatted_fn)
     plot_customs = get_plot_preferences()
     freq_color_map, dis_color_map = map_colors(plot_customs)
 
@@ -618,7 +622,7 @@ def analyze_data(input):
             plot_temp_v_time(plot_customs, temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, input.x_timescale, input.fig_format)    
 
         if input.will_overwrite_file:
-            df.to_csv(f"raw_data/CLEANED-{input.file_name}", index=False)
+            df.to_csv(f"raw_data/CLEANED-{file_name}", index=False)
 
         # Titles, lables, etc. for plots
         if input.will_normalize_F:

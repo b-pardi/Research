@@ -129,18 +129,11 @@ if it is not, please comment out the 2 lines below
 ### WIP
 
 - report chi squared for voinova
-- 
-
-- for file selection, open explorer and find file
 
 - more explicit library acknowledgement sections
 - instructions on adding more files to format
 
-- plot options put label that states options are saved even whjen closing software
 
-- change asterisks to a dot
-
-- nDf should be n * Df (dot not asterisk)
 
 - modeling plots use normalized freq data and they shouldn't
 
@@ -205,6 +198,16 @@ if it is not, please comment out the 2 lines below
 
 
 ### CHANGE LOG
+
+6/5
+- when selecting file, there is now a button to select which opens windows file explorer for user to select their file
+    - removed code that called for separate file name and file path vars, replacing it with input.file which is simply the path/name.ext, vars that need just one of those are split as needed
+    - removed file name and directory entries and corresponding handlers for them
+    - refactored format_file.py to account for variable restructuring
+- plot options put label that states options are saved even when closing software
+- change asterisks to a dot
+- nDf should be n * Df (dot not asterisk)
+- thin film analysis y axis put proper fractions for labels
 
 5/25
 - bug fix, C calculations for calibration data

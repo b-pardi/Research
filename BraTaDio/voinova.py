@@ -23,9 +23,7 @@ def voinova_equation(n, delta3, mu1, h1):
     rho1 = 10e3 # (kg/m^3) density of adsorbed film CONSTANT
     eta1 = 10e-2 # (Pa.s) viscosity of adsorbed film CONSTANT
     f0 = 4998264.628859391 # (HZ) calibration fundamental frequency value (will be experimentally determined later)
-    print("vals", pi, n, f0)
     omega = 2 * pi * n * f0
-    print("omega", omega)
 
     Df = -1*( 1 / ( 2*pi*rho0*h0)) * ( (eta3 / delta3) +\
         ( h1*rho1*omega - 2*h1 * (eta3/delta3)**2 * \
@@ -35,11 +33,15 @@ def voinova_equation(n, delta3, mu1, h1):
     return Df
 
 def get_data():
-    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = pd.read_csv("raw_data/Fn at 75 ug per ml on func Au at 25C_STA.txt", delimiter='\t')
     df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
-    xdata = df['overtone'].values
-    xdata = [get_num_from_string(x) for x in xdata]
-    ydata = df['Dfreq_mean'].values
+    print(df.head)
+    #xdata = df['n'].values
+    #xdata = [get_num_from_string(x) for x in xdata]
+    #ydata = df['delF'].values
+    xdata = df.index.values
+    ydata = df.iloc[:,0]
+    print
     return xdata, ydata
 
 def model():
@@ -56,9 +58,10 @@ def model():
     delta3_fit, h1_fit, mu1_fit = params
 
     Df_fit = voinova_equation(n, delta3_fit, h1_fit, mu1_fit)
-    print('BANANA', Df_fit)
+    print('FIT', Df_fit)
+    print(f"delta3: {params[0]}, h1: {params[1]}, mu1: {params[2]}")
 
-    plt.scatter(n, Df, label='data')
+    plt.scatter(n, Df, label=f"delta3: {params[0]:.4e},\n h1: {params[1]:.4e},\n mu1: {params[2]:.4e}")
     plt.plot(n, Df_fit, label='fit')
     plt.title("Voinova Model")
     plt.xlabel("n")

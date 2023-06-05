@@ -234,17 +234,17 @@ def get_labels(label, type, subtype='', usetex=False):
     if type == 'film_liquid':
         data_label = None
         title = "Thin Film in Liquid " + r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + "  for range: " + f"{label}"
-        x = r"Overtone * Change in frequency, $\mathit{n\Delta}$$\mathit{f}$$_n$ (Hz)"
+        x = r"Overtone $\cdot$ Change in frequency, $\mathit{n\cdot\Delta}$$\mathit{f}$$_n$ (Hz)"
         y = r"Bandwidth shift, $\mathit{\Delta\Gamma}$$_n$"
 
     elif type == 'film_air':
         data_label = None
         title = "placeholder film in air" + f"for range: {label}"
         x = r"$\mathit{n^2}$"
-        if subtype == 'gamma':
-            y = r"Normalized Bandwidth shift, $\mathit{\Delta\Gamma/n}$ Hz"
+        if subtype == 'gamma': # $\frac{ng}{cm^2}$
+            y = r"Normalized Bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{n}}$ Hz"
         elif subtype == 'freq':
-            y = r"Normalized change in frequency, $\mathit{\Delta}$$\mathit{f/n}$ Hz"
+            y = r"Normalized change in frequency, $\frac{\mathit{\Delta}f}{\mathit{n}}$ Hz"
         else:
             y = 'placeholder'
     
