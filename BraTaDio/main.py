@@ -26,7 +26,7 @@ remove as many selfs as possible from classes (specifically col 1 and 4)
 '''Variable Initializations'''
 class Input:
     def __init__(self): 
-        self.file = ''
+        self.file = 'qcmi_sample.txt'
         self.will_plot_raw_data = False
         self.will_plot_clean_data = False
         self.will_overwrite_file = False # if user wants copy of data data saved after processing
@@ -274,7 +274,6 @@ class Col1(tk.Frame):
         self.calibration_vals_frame = calibrationValsFrame(self)
         self.calibration_vals_frame.grid(row=7, column=0)
 
-
         self.cleared_label = tk.Label(self, text="Cleared!")
         self.submitted_label = tk.Label(self, text="Submitted!")
         self.err_label = tk.Label(self, text="Error occured,\nplease see terminal for details", font=("Arial",14))
@@ -308,6 +307,8 @@ class Col1(tk.Frame):
         else:
             input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
 
+
+        input.file = "raw_data/qcmi_sample.txt" # REMOVE FOR RELEASE
         if input.first_run:
             format_raw_data(input.file_src_type, input.file)
         
@@ -460,6 +461,9 @@ class relTimeInputFrame(tk.Frame):
         self.tf_label.grid(row=2, column=0)
         self.tf_entry = tk.Entry(self, width=5)
         self.tf_entry.grid(row=2, column=1)
+
+        self.t0_entry.insert(0, '2') # REMOVE FOR RELEASE
+        self.tf_entry.insert(0, '120') # REMOVE FOR RELEASE
 
     def get_rel_time(self):
         try:
@@ -682,6 +686,7 @@ class Col4(tk.Frame):
         super().__init__(container)
 
         self.col_position = 3
+        self.model_window_open_flag = False
         self.is_visible = True
         self.parent = parent
         self.container = container
@@ -758,9 +763,9 @@ class Col4(tk.Frame):
             if self.which_time_scale_var.get() == 1:
                 input.x_timescale = 's'
             elif self.which_time_scale_var.get() == 2:
-                input.x_timescale = 'm'
+                input.x_timescale = 'min'
             elif self.which_time_scale_var.get() == 3:
-                input.x_timescale = 'h'
+                input.x_timescale = 'hr'
             else:
                 input.x_timescale= 'u'
         else:
@@ -795,13 +800,17 @@ class Col4(tk.Frame):
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.repack_frames()
-            self.parent.open_model_window()
+            if self.model_window_open_flag == False:
+                self.parent.open_model_window()
+                self.model_window_open_flag = True
             self.interactive_plot_opts.grid(row=7, column=4)
         else:
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.repack_frames()
-            self.parent.destroy_model_window()
+            if self.model_window_open_flag == True:
+                self.parent.destroy_model_window()
+                self.model_window_open_flag = False
             self.interactive_plot_opts.grid_forget()
 
     def submit(self):

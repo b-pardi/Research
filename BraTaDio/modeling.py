@@ -242,9 +242,9 @@ def get_labels(label, type, subtype='', usetex=False):
         title = "placeholder film in air" + f"for range: {label}"
         x = r"$\mathit{n^2}$"
         if subtype == 'gamma': # $\frac{ng}{cm^2}$
-            y = r"Normalized Bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{n}}$ Hz"
+            y = r"Normalized Bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma_{n}}}{\mathit{n}}$ Hz"
         elif subtype == 'freq':
-            y = r"Normalized change in frequency, $\frac{\mathit{\Delta}f}{\mathit{n}}$ Hz"
+            y = r"Normalized change in frequency, $\frac{\mathit{\Delta}f_{n}}{\mathit{n}}$ Hz"
         else:
             y = 'placeholder'
     
@@ -252,17 +252,17 @@ def get_labels(label, type, subtype='', usetex=False):
         data_label = f"average"
         title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = r'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
+        y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
 
     elif type == 'avgs':
         data_label = f"average"
         x = 'Overtone order, $\it{n}$'
         if subtype == 'freq':
             title = f"Average change in Frequency\nfor range: {label}"
-            y = r'Average change in frequency, $\it{Δf}$ ' + '(Hz)'
+            y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
         if subtype == 'dis':
             title = f"Average change in dissipation\nfor range: {label}"
-            y = r'Average change in dissipation, $\it{Δd}$'
+            y = r'Average change in dissipation, $\it{Δd_{n}}$'
     
     else:
         return None

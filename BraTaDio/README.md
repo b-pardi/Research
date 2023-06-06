@@ -128,86 +128,87 @@ if it is not, please comment out the 2 lines below
 
 ### WIP
 
-- report chi squared for voinova
+bug fixes:
+- when refactoring figure creating (opting for naming fig and ax of the fig instead of numbered figures) setup_plot function breaks
 
+format changes:
+- sauerbrey report to 1 decimal
+
+features:
+- sauerbrey mass overtone/linear fit
+- OPTION TO plot all selected overtones together
+- viscoelastic film modeling
+- gordon-kanazawa
+
+publication/documentation: 
 - more explicit library acknowledgement sections
 - instructions on adding more files to format
 
+optimizations/refactoring: 
+- remove unnecessary prints
+- check data dir for existing file conversion
+- make sauerbrey and avg df work for multiple ranges
+- refactor all figures in analysis.py to have names not just 'plt.figure(#)'
+    - adjust savefigs appropriately
+- error messages become window popups
+    - like when trying to submit with selections that there are no data for
+    - have all exceptions be custom exception classes that generate a popup window with the err msg
+- document and comment the hell out of the code
+- remove latex features
+- refactor analyze() to put each opt into its own function
 
-
-- modeling plots use normalized freq data and they shouldn't
-
-- suaerbrey mass overtone/linear fit
-
-- for normalized Df plot y axis put over n, and for for all y axis but subscript n
-
-- multi axis plot all overtones selected in one image
-
-- multi axis plot not saving different file types
-
-- temp v time x time scale bugged
-
-- if selecting normalized, all plot opts use normalized data, that should be indicated on the label
-
-- for int plot linear fit in dissipation, units should be 1/(time unit)
-- same area, make units of int plot axis match units reported in fit
-
-- for dissipation adjust label akin to other plots (just fundamental, 3rd, 5th, etc)
-
-- have all raw plots together as well
-
-- OPTION TO plot all selected overtones together
-
-- sauerbrey report to 1 decimal
-
+waiting on data: 
 - plot calibration values from data against overtone
-    - WAITING ON DATA
     - calibration values come from the flatlining of points that we normally removed before the baseline
     - will be receiving more data soon with this air stabilization
     - interactive plot for RAW data to select the pre baseline baseline
     - bring up new window to enter range selections for each baseline (considering Bernardo's temperature jumps)
 
-- viscoelastic film modeling
-
-- gordon-kanazawa
-
 - calibration data from file option will need file formatting akin to experimental data formatting done in 'format_file.py' 
-    - WAITING ON DATA
-
-- optimization to check data dir for existing file conversion
 
 - qsense will need option to add calibration freqs to values because qsense records just change in frequency, qcmi and open qcm next record actual frequency
     - prompt user to put absolute frequencies of measured overtones into separate file, than in formatting script add those to each of the delta freq values
 
-- make sauerbrey and avg df work for multiple ranges
-
-- ASK ROBERTO
-    - for calculating C using calibration data, do we want to report the error being the std dev of f0?
-    - check unit conversion calculating C and negative val?
-
-- long term
-    - error messages become window popups
-        - like when trying to submit with selections that there are no data for
-    - investigate declaring new window objects in the column classes
-    - document and comment the hell out of the code
-    - maybe add marker size/type customizations
-    - remove latex features
-    - refactor analyze() to put each opt into its own function
-
-- changed sauerbrey mass to do same thing as avg Df analysis, but add linear fit and multiply slope by -17.7 and report the mass
-
 
 ### CHANGE LOG
+
+6/6
+- fixed bug where if int plot in col 4 was checked, checking and unchecking other items in that column would open the model window 
+- fixed bug with temperature plot time scale, changing units of time generated incorrect figures. temp df was in for loop of freq/dis analysis repeatedly subtracting baseline start and divisor
+- adjusted multiaxis plot legend to report just the ordinal overtone number
+- y axis labels in visualizations now show Df_n instead of just Df
+    - adjustment made also to int plot and model plots
+- refactored generate_interactive_plot() condensing code that chooses user specified overtone for visualizations
+- changed units of dissipation linear fit in int plot to 1/{timescale}
+- bug fix where units int plot linear fit were only reporting first letter (i.e. min was only showing m)
+    - in main changed radio handler for time scale to set var to s, min, or hr, instead of just s, m, h and adjusting later
+    - refactored code to accommodate this change
+- raw plots now combined into 1 plot for all freq overtones and one for all dis overtones
+
 
 6/5
 - when selecting file, there is now a button to select which opens windows file explorer for user to select their file
     - removed code that called for separate file name and file path vars, replacing it with input.file which is simply the path/name.ext, vars that need just one of those are split as needed
     - removed file name and directory entries and corresponding handlers for them
     - refactored format_file.py to account for variable restructuring
+
+- visualization plots now show when f is normalized in the axis label
+- refactor s.t. normalized freq plot is not a separate chunk of code, rather just choosing labels for regular freq plot
+
+- multiaxis plots now save all plots into one figure instead of separate for each overtone
+- bug fix: legend placement was determined before all overtones plotted so it was misplaced
+- bug fix: modeling plots were normalized when they shouldn't be
+    - added unnormalized_df that is just a copy of the baseline shifted data_df but remultiplying the overtone ordinal value
+
 - plot options put label that states options are saved even when closing software
 - change asterisks to a dot
 - nDf should be n * Df (dot not asterisk)
 - thin film analysis y axis put proper fractions for labels
+- hard coded to load qcmi.txt initially to minimize time takes for testing (will be removed on release)
+- hard coded baseline time values for same purpose
+- dis vs freq plot cleaned up legend
+- fixed bug in multiaxis plot, now correctly save figure with user spec'd format
+- fixed bug where all options in col 4 were calling destroy model window even when model window wasn't opened
 
 5/25
 - bug fix, C calculations for calibration data
