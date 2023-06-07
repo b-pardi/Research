@@ -129,10 +129,8 @@ if it is not, please comment out the 2 lines below
 ### WIP
 
 bug fixes:
-- when refactoring figure creating (opting for naming fig and ax of the fig instead of numbered figures) setup_plot function breaks
 
 format changes:
-- sauerbrey report to 1 decimal
 
 features:
 - sauerbrey mass overtone/linear fit
@@ -148,8 +146,6 @@ optimizations/refactoring:
 - remove unnecessary prints
 - check data dir for existing file conversion
 - make sauerbrey and avg df work for multiple ranges
-- refactor all figures in analysis.py to have names not just 'plt.figure(#)'
-    - adjust savefigs appropriately
 - error messages become window popups
     - like when trying to submit with selections that there are no data for
     - have all exceptions be custom exception classes that generate a popup window with the err msg
@@ -171,6 +167,13 @@ waiting on data:
 
 
 ### CHANGE LOG
+
+6/7
+- refactor, made plot_customs a global variable since it is called in so many different functions
+- refactor, all plots are named figure/axis objects, instead of using plt.figure(#) selecting the figure to modify before modifications are made. This is much more explicit and easy to follow rather than keeping track of which number belongs to which figure
+    - adjust setup_plot functions accordingly
+- sauerbrey report to 1 decimal
+
 
 6/6
 - fixed bug where if int plot in col 4 was checked, checking and unchecking other items in that column would open the model window 

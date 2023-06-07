@@ -13,7 +13,7 @@ from tkinter import colorchooser
 import json
 
 import Exceptions
-from analyze import analyze_data, clear_figures, ordinal, select_calibration_data
+from analyze import analyze_data, ordinal, select_calibration_data
 from format_file import format_raw_data
 from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis
 
@@ -816,7 +816,6 @@ class Col4(tk.Frame):
     def submit(self):
         global input
         err_check()
-        clear_figures()
         if input.range_frame_flag:
             input.clean_interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
