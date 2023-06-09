@@ -233,8 +233,8 @@ class App(tk.Tk):
         self.modeling_window.open_modeling_window(self)
         self.modeling_window.fill_modeling_window(self)
 
-    def destroy_model_window(self):
-        self.modeling_window.destroy_modeling_window(self)
+    def test_model_window(self):
+        self.modeling_window.test_modeling_window(self)
 
     def choose_color(self, ov_num):
         self.plot_opts_window.choose_color(self, ov_num)
@@ -717,12 +717,14 @@ class Col4(tk.Frame):
         self.interactive_plot_overtone_label.grid(row=0, column=0)
         self.interactive_plot_overtone_select = tk.Entry(self.interactive_plot_opts, width=10)
         self.interactive_plot_overtone_select.grid(row=1, column=0)
+        self.open_model_window_button = tk.Button(self, text="Modeling", padx=8, pady=6, command=self.model_window_button)
+        self.open_model_window_button.grid(row=7, column=4, pady=8)
 
         # Options for changing the scale of x axis time
         self.scale_time_var = tk.IntVar()
         self.which_range_var = tk.IntVar()
         self.scale_time_check = tk.Checkbutton(self, text="Change scale of time? (default (s))", variable=self.scale_time_var, onvalue=1, offvalue=0, command=self.receive_scale_radios)
-        self.scale_time_check.grid(row=8, column=4, pady=(32,0))
+        self.scale_time_check.grid(row=9, column=4, pady=(32,0))
         # default to seconds
         self.time_scale_frame = tk.Frame(self)
         self.which_time_scale_var = tk.IntVar()
@@ -800,18 +802,19 @@ class Col4(tk.Frame):
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.repack_frames()
-            if self.model_window_open_flag == False:
-                self.parent.open_model_window()
-                self.model_window_open_flag = True
-            self.interactive_plot_opts.grid(row=7, column=4)
+            self.interactive_plot_opts.grid(row=10, column=4)
         else:
             input.will_interactive_plot = False
             input.range_frame_flag = False
             self.parent.repack_frames()
-            if self.model_window_open_flag == True:
-                self.parent.destroy_model_window()
-                self.model_window_open_flag = False
             self.interactive_plot_opts.grid_forget()
+
+    def model_window_button(self):
+        try:
+            self.parent.test_model_window()
+        except:
+            self.parent.open_model_window()
+
 
     def submit(self):
         global input
@@ -883,8 +886,8 @@ class ModelingWindow():
                                              command=lambda: thin_film_air_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed, input.fig_format)))
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
-    def destroy_modeling_window(self):
-        self.model_window.destroy()
+    def test_modeling_window(self):
+        self.model_window.deiconify()
         
     # when interactive plot window opens, grabs number of range from text field
     def confirm_range(self):

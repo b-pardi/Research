@@ -68,9 +68,8 @@ def get_num_from_string(string):
 # returns the ordinal suffix of number (i.e. the rd in 3rd)
 # instead of 'st' for 1st, will return 'fundamental'
 def ordinal(n):
-    overtone_ordinal = ("th" if 4<=n%100<=20 else {1:"Fundamental",2:"nd",3:"rd"}.get(n%10, "th"))
-    if n != 1:
-        overtone_ordinal = str(n) + overtone_ordinal
+    overtone_ordinal = ("th" if 4<=n%100<=20 else {1:"st",2:"nd",3:"rd"}.get(n%10, "th"))
+    overtone_ordinal = str(n) + overtone_ordinal
     return overtone_ordinal
 
 def determine_xlabel(x_timescale):
@@ -126,13 +125,14 @@ def find_nearest_time(time, my_df, time_col_name, is_relative_time):
 
     return base_t0_ind
 
-def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, ax2):
+def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, ax2, color):
+    plt.figure(fig.number)
     plot_customs = get_plot_preferences()
     ax1.set_xlabel(determine_xlabel(input.x_timescale), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax1.set_ylabel(determine_ylabel('freq', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax2.set_ylabel(determine_ylabel('dis', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
-    ax1.plot(x_time, y_rf, '.', markersize=1, label=freq_label, color='green')
-    ax2.plot(x_time, y_dis, '.', markersize=1, label=dis_label, color='blue')
+    ax1.plot(x_time, y_rf, 'v', markersize=1, label=freq_label, color=color)
+    ax2.plot(x_time, y_dis, '^', markersize=1, label=dis_label, color=color)
     ax1.tick_params(axis='both', direction=plot_customs['tick_dir'])
     ax2.tick_params(axis='both', direction=plot_customs['tick_dir'])
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
@@ -618,7 +618,7 @@ def analyze_data(input):
                 plot_multiaxis(input, x_time, y_rf, y_dis,
                                ordinal(get_num_from_string(clean_freqs[i])),
                                ordinal(get_num_from_string(clean_disps[i])),
-                               mult_fig, mult_ax1, mult_ax2)
+                               mult_fig, mult_ax1, mult_ax2,freq_color_map[clean_freqs[i]])
 
             print(f"rf mean: {rf_base_avg}; dis mean: {dis_base_avg}\n")
 

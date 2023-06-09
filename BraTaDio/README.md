@@ -131,9 +131,6 @@ if it is not, please comment out the 2 lines below
 bug fixes:
 
 format changes:
-- change fundamental to first everywhere
-- for multiaxis make overtones plot follow same color scheme, but differentiate with plot point symbol (circles and squares)
-- separate button to open modeling window
 
 features:
 - in interactive plot put in legend the range of x points currently selected
@@ -181,7 +178,11 @@ waiting on data:
     - setup_plot() now gets the passed in figure's number and selects it
     - figure saving now occurs outside of setup plot
 - fixed bug where plot format options were only grabbed when restarting software
-
+- replaced fundamental with 1st everywhere by altering the ordinal function
+- changed color scheme of multiaxis to use the same color mapping of overtones as other plots
+    - to help differentiate between freq and dis, freq uses right side up trianges, and dis uses upside down triangles
+- modeling window opens from a separate button in column 4 rather than with the int plot checkbox
+    - replaced destroy model window with test model window to check if it's already open when clicking button to not open duplicate windows
 
 6/7
 - refactor, made plot_customs a global variable since it is called in so many different functions
