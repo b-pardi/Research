@@ -131,8 +131,16 @@ if it is not, please comment out the 2 lines below
 bug fixes:
 
 format changes:
+- change fundamental to first everywhere
+- for multiaxis make overtones plot follow same color scheme, but differentiate with plot point symbol (circles and squares)
+- separate button to open modeling window
 
 features:
+- in interactive plot put in legend the range of x points currently selected
+    - investigate if int plot can take input fields
+- make modeling functions work for multiple ranges selected
+- for modeling plots, save the calculated values that are put on the plots into csv files
+
 - sauerbrey mass overtone/linear fit
 - OPTION TO plot all selected overtones together
 - viscoelastic film modeling
@@ -143,6 +151,7 @@ publication/documentation:
 - instructions on adding more files to format
 
 optimizations/refactoring: 
+- only rerun calculations if changes in ui made
 - remove unnecessary prints
 - check data dir for existing file conversion
 - make sauerbrey and avg df work for multiple ranges
@@ -167,6 +176,12 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/8
+- fixed bug where axis weren't being labelled and no formatting was ocurring except for the last generated figure
+    - setup_plot() now gets the passed in figure's number and selects it
+    - figure saving now occurs outside of setup plot
+- fixed bug where plot format options were only grabbed when restarting software
+
 
 6/7
 - refactor, made plot_customs a global variable since it is called in so many different functions

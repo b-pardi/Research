@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import PLOT_CUSTOMS, map_colors, get_num_from_string
+from analyze import get_plot_preferences, map_colors, get_num_from_string
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -216,17 +216,18 @@ def linearly_analyze(x, y, ax, label_prefix='', label_postfix=''):
     return m, b
 
 def format_plot(ax, x_label, y_label, title, xticks=np.asarray(None)):
-    font = PLOT_CUSTOMS['font']
+    plot_customs = get_plot_preferences()
+    font = plot_customs['font']
     if xticks.any():
         ax.set_xticks(xticks)
     plt.sca(ax)
-    plt.legend(loc='best', fontsize=PLOT_CUSTOMS['legend_text_size'], prop={'family': font}, framealpha=0.3)
-    plt.xticks(fontsize=PLOT_CUSTOMS['value_text_size'], fontfamily=font)
-    plt.yticks(fontsize=PLOT_CUSTOMS['value_text_size'], fontfamily=font) 
-    plt.xlabel(x_label, fontsize=PLOT_CUSTOMS['label_text_size'], fontfamily=font)
-    plt.ylabel(y_label, fontsize=PLOT_CUSTOMS['label_text_size'], fontfamily=font)
-    plt.tick_params(axis='both', direction=PLOT_CUSTOMS['tick_dir'])
-    plt.title(title, fontsize=PLOT_CUSTOMS['title_text_size'], fontfamily=font)
+    plt.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': font}, framealpha=0.3)
+    plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=font)
+    plt.yticks(fontsize=plot_customs['value_text_size'], fontfamily=font) 
+    plt.xlabel(x_label, fontsize=plot_customs['label_text_size'], fontfamily=font)
+    plt.ylabel(y_label, fontsize=plot_customs['label_text_size'], fontfamily=font)
+    plt.tick_params(axis='both', direction=plot_customs['tick_dir'])
+    plt.title(title, fontsize=plot_customs['title_text_size'], fontfamily=font)
 
 # grab plot labels determined by use of latex, and which function modeling
 def get_labels(label, type, subtype='', usetex=False):
