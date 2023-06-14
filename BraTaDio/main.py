@@ -802,7 +802,7 @@ class Col4(tk.Frame):
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.repack_frames()
-            self.interactive_plot_opts.grid(row=10, column=4)
+            self.interactive_plot_opts.grid(row=8, column=4)
         else:
             input.will_interactive_plot = False
             input.range_frame_flag = False

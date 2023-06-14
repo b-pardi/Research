@@ -10,6 +10,10 @@ from datetime import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')  # Set the backend to TkAgg
+import tkinter as tk
+from tkinter import ttk
 from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
 import sys
@@ -266,6 +270,29 @@ def map_colors():
 
     return freq_colors, dis_colors
 
+def set_x_entry():
+    def handle_focus_in(entry):
+        x_entry.delete(0,"end")
+        x_entry.config(foreground='black')
+
+    def handle_focus_out(entry):
+        if x_entry.get() == "":
+            x_entry.delete(0, tk.END)
+            x_entry.config(foreground='gray')
+            x_entry.insert(0, "xmin,xmax")
+
+    plot_win = tk.Tk() # init tk backend for having entry field
+    x_entry_label = ttk.Label(plot_win, text="Enter time range selection here or make selection below", font=('TkDefaultFont', 16, 'bold'))
+    x_entry_label.pack(pady=4)
+    x_entry = ttk.Entry(plot_win, width=20, font=('TkDefaultFont', 16)) # Create the text entry widget
+    x_entry.config(foreground='gray')
+    x_entry.insert(0, "xmin,xmax")
+    x_entry.bind('<FocusIn>', handle_focus_in)
+    x_entry.bind('<FocusOut>', handle_focus_out)
+    x_entry.pack()
+
+    return plot_win, x_entry
+
 def generate_interactive_plot(int_plot_overtone, time_scale, df, time_col):
     plt.close("all") # clear all previous plots
 
@@ -334,75 +361,119 @@ def generate_interactive_plot(int_plot_overtone, time_scale, df, time_col):
 
     return int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis
 
-def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
+def update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
+                              xmin, xmax, x_time, y_rf, y_dis, x_scale):
+    
     from modeling import linearly_analyze # import in function to avoid circular import
+    
+    for span in spans:
+        if span.active:
+            span.extents = (xmin, xmax)
+
+    # clear previous linear fit
+    int_ax1_zoom.cla()
+    int_ax2_zoom.cla()
+
+    # min and max indices are where elements should be inserted to maintain order
+    imin, imax = np.searchsorted(x_time, (xmin, xmax))
+    # range will be at most all elems in x, or imax
+    imax = min(len(x_time)-1, imax)
+
+    # cursor x and y for zoomed plot and data range
+    zoomx = x_time[imin:imax]
+    zoomy1 = y_rf[imin:imax]
+    zoomy2 = y_dis[imin:imax]
+
+    # update data to newly spec'd range
+    int_ax1_zoom.plot(zoomx, zoomy1, '.', color='green', markersize=1)
+    int_ax2_zoom.plot(zoomx, zoomy2, '.', color='blue', markersize=1)
+    
+    # linear regression on zoomed data
+    freq_units = f"Hz/{x_scale}"
+    dis_units = f"1/{x_scale}"
+    linearly_analyze(zoomx, zoomy1, int_ax1_zoom, "frequency drift: ", freq_units)
+    linearly_analyze(zoomx, zoomy2, int_ax2_zoom, "dissipation drift: ", dis_units)
+    int_ax1_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
+    int_ax2_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
+
+    # set limits of tick marks
+    int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
+    int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
+    int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
+    int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
+
+    int_plot.canvas.draw_idle()
+
+    return imin, imax
+
+def interactive_plot_analysis(fn, df, range, imin, imax, which_plot, is_normalized):
+    # prep and save data to file
+    # frequency stats for bandwidth shift
+    stats_out_fn = 'selected_ranges/all_stats_rf.csv'
+    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+    prepare_stats_file(header, range, fn, stats_out_fn)
+    
+    # dissipation stats for bandwidth shift
+    stats_out_fn = 'selected_ranges/all_stats_dis.csv'
+    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+    prepare_stats_file(header, range, fn, stats_out_fn)
+
+    # frequency values inserted into Sauerbrey equation
+    stats_out_fn = 'selected_ranges/Sauerbrey_stats.csv'                
+    header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
+    prepare_stats_file(header, range, fn, stats_out_fn)
+
+    # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
+    range_statistics(df, imin, imax, which_plot, range, fn, 17.7, is_normalized)
+    
+
+def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
     plot_customs = get_plot_preferences()
     int_plot_analysis = Analysis(input.file)
-        
+    spans = []        
     int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, input.x_timescale, cleaned_df, time_col)
+
+    def update_text(event):
+        if input.which_range_selecting == '':
+            print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
+            return
+        text = x_entry.get()
+        try:
+            xmin, xmax = map(float, text.split(','))
+            int_ax1_zoom.set_xlim(xmin, xmax)
+            int_plot.canvas.draw()
+        except ValueError:
+            print("Invalid input format. Please enter a valid range.")
+
+        imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
+                                  xmin, xmax, x_time, y_rf, y_dis, input.x_timescale)
+        interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
+                                  imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
+    
+    plot_win, x_entry = set_x_entry()
+    x_entry.bind('<Return>', update_text)
+
+    # draw initial figure
+    canvas = matplotlib.backends.backend_tkagg.FigureCanvasTkAgg(int_plot, master=plot_win)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
 
     def on_clean_select(xmin, xmax):
         if input.which_range_selecting == '':
             print("** WARNING: NO RANGE SELECTED VALUES WILL NOT BE ACCOUNTED FOR")
-        else:
-            # adjust other span to match the moved span
-            for span in spans:
-                if span.active:
-                    span.extents = (xmin, xmax)
-
-            # clear previous linear fit
-            int_ax1_zoom.cla()
-            int_ax2_zoom.cla()
-
-            # min and max indices are where elements should be inserted to maintain order
-            imin, imax = np.searchsorted(x_time, (xmin, xmax))
-            # range will be at most all elems in x, or imax
-            imax = min(len(x_time)-1, imax)
-
-            # cursor x and y for zoomed plot and data range
-            zoomx = x_time[imin:imax]
-            zoomy1 = y_rf[imin:imax]
-            zoomy2 = y_dis[imin:imax]
-
-            # update data to newly spec'd range
-            int_ax1_zoom.plot(zoomx, zoomy1, '.', color='green', markersize=1)
-            int_ax2_zoom.plot(zoomx, zoomy2, '.', color='blue', markersize=1)
-            
-            # linear regression on zoomed data
-            freq_units = f"Hz/{input.x_timescale}"
-            dis_units = f"1/{input.x_timescale}"
-            linearly_analyze(zoomx, zoomy1, int_ax1_zoom, "frequency drift: ", freq_units)
-            linearly_analyze(zoomx, zoomy2, int_ax2_zoom, "dissipation drift: ", dis_units)
-            int_ax1_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
-            int_ax2_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
-
-            # set limits of tick marks
-            int_ax1_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax1_zoom.set_ylim(zoomy1.min(), zoomy1.max())
-            int_ax2_zoom.set_xlim(zoomx.min(), zoomx.max())
-            int_ax2_zoom.set_ylim(zoomy2.min(), zoomy2.max())
-            int_plot.canvas.draw_idle()
-
-            # prep and save data to file
-            # frequency stats for bandwidth shift
-            stats_out_fn = 'selected_ranges/all_stats_rf.csv'
-            header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
-            
-            # dissipation stats for bandwidth shift
-            stats_out_fn = 'selected_ranges/all_stats_dis.csv'
-            header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
-
-            # frequency values inserted into Sauerbrey equation
-            stats_out_fn = 'selected_ranges/Sauerbrey_stats.csv'                
-            header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
-            prepare_stats_file(header, input.which_range_selecting, int_plot_analysis.formatted_fn, stats_out_fn)
-
-            # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
-            range_statistics(cleaned_df, imin, imax, input.which_plot['clean'].items(),
-                                input.which_range_selecting, int_plot_analysis.formatted_fn, 17.7, input.will_normalize_F)
+            return
         
+        imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
+                                  xmin, xmax, x_time, y_rf, y_dis, input.x_timescale)
+        interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
+                                  imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
+
+            
+        x_entry.delete(0,"end") # update text field to match
+        x_entry.insert(0,f"{xmin:.2f},{xmax:.2f}") 
+        canvas.draw()
+        canvas.get_tk_widget().pack()
+
     # using plt's span selector to select area of top plot
     span1 = SpanSelector(int_ax1, on_clean_select, 'horizontal', useblit=True,
                 props=dict(alpha=0.5, facecolor='blue'),
@@ -412,7 +483,10 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
                 props=dict(alpha=0.5, facecolor='blue'),
                 interactive=True, drag_from_anywhere=True)
     
+    
     spans = [span1, span2]
+    plot_win.mainloop()
+
     plt.show()
 
 def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, time_col):

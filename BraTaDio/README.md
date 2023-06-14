@@ -133,10 +133,9 @@ bug fixes:
 format changes:
 
 features:
-- in interactive plot put in legend the range of x points currently selected
-    - investigate if int plot can take input fields
 - make modeling functions work for multiple ranges selected
 - for modeling plots, save the calculated values that are put on the plots into csv files
+- integrate commented out sauerbrey code to find the mass both ways
 
 - sauerbrey mass overtone/linear fit
 - OPTION TO plot all selected overtones together
@@ -149,6 +148,7 @@ publication/documentation:
 
 optimizations/refactoring: 
 - only rerun calculations if changes in ui made
+- have a requirements to list install dependencies that way
 - remove unnecessary prints
 - check data dir for existing file conversion
 - make sauerbrey and avg df work for multiple ranges
@@ -173,6 +173,18 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/14
+- added capability to enter time range selection in interactive plot
+    - set TkAgg as backend for span selector window generation to allow for tkinter entry fields
+    - text entry has a focus in/out handler for temporary text
+    - update_text and onselect communicate with eachother
+        - if using span selector, text field is updated with xmin,xmax values
+        - if using text field, spans are set to match the entered values
+    - added update text function to perform all the same tasks as the onselect function
+    - refactored code so the above tasks are done in a separate function that onselect and update text both call
+        - split into 2 functions, one to update plot and one to calc and save stat data
+        
+
 6/8
 - fixed bug where axis weren't being labelled and no formatting was ocurring except for the last generated figure
     - setup_plot() now gets the passed in figure's number and selects it
