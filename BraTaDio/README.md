@@ -1,128 +1,92 @@
 ### MAIN README
+# File Information
 - Please execute 'install_packages.py' BEFORE running this script
-- when done with program, please click 'Abort' button instead of closing window
+- when done with program, please click 'Exit' button instead of closing window
     - can cause terminal to freeze sometimes if just closing windows
-- ensure sheets are in the 'raw_data' folder
-    - OR specify file directory in gui
-- consistency in data column placement and naming is required, however columns will be renamed
-- if error occurs, it will be displayed in the terminal
-- if uncaught error occurs, please notify developer asap and describe what was done to reproduce
-- specify in GUI:
-    - file name (with exetension)
-    - file path (if not in predefined raw_data directory)
-    - indicate if new clean data file should be created
-    - if plotting clean data, indicate baseline t0 and tf
-    - CLICK SUBMIT FILE INFO
-    - indicate which channels to plot for raw/clean data
-    - indicate which special plot options
-    - change scale of time if applicable
-    - change file format if applicable
+- to select the data file to analyze, simply click the select data file button
+    - this will open your machine's file explorer window to select the file
+    - by default it will show the 'raw_data' folder in the program directory, however you can select a file anywhere on your computer
+- once file is selected, specify which of the 3 supported apparatuses your data came from
+    - the program will convert the data file to a consistent format used by the remainder of program's execution
+    - do not alter the column names of the data file the experimental device outputs, as the formatting routine relies on the default output the device for reformatting
+    - once formatting is done, there will be a file saved in the raw_data directory that the software will read
+    - do not alter this file either
+    - support will be added in future releases for users to add new experimental devices to be formatted
+- Depending on which source selected, there will be a prompt to either enter absolute or relative baseline time
+- Next is to specify theoretical or calibration values for calculations in the modeling section
+    - if user selectes theoretical, it will use theoretical peak frequency values and theoretical C for Sauerbrey model
+    - if user selects calibration, there is the prompt to add a calibration data file to the software directory in the 'calibration_data' folder
+    - if user opts to make selections, they are prompted with a calibration data menu button
+        - this opens a window where the user is asked make overtone selections in the raw data section first before using this menu, as the calibration data does not baseline correct
+        - Next is to input crystal property values 
+        - Lastly the user is asked to enter the range being selected and the overtone to visualize
+        - Please see sections on 'Modeling Window' and 'Interactive Plot' below for further instruction
+- Once all information is entered, user can then click 'Submite File Information'
 
-- IF USING SPYDER
-    - by default, plt will show plots in console box and span selector will not work
-    - follow these steps to make selection plots open in new window:
-        Tools > Preferences > IPython console > Graphics > Graphics Backend > Apply & OK
-    - Also on line 15 in analyze.py there is code that reads 'matplotlib.use('TkAgg')'
-        - for use with spyder change 'TkAgg' to just 'Agg'
+# Plot Customization
+- At the bottom of the data file column, there is a 'customize plot options button'
+- Here you can specify the following:
+    - Font type
+    - Various font sizes
+    - Rick direction
+    - Colors of each overtone
+- When selections are confirmed, they are saved for all future executions of the program
+- There is also the option to load default values
 
-- For interactive plot:
-    - for whichever overtone is to be analyzed in the interactive plot, 
-    ensure that that overtone is selected in the baseline corrected data section as well, as it relies on the cleaned data processing done there
-    - indicate which overtone will be analyzed
-    - selected range is displayed in right side of figure, and data points written to files in selected_ranges folder for sauerbray equation, and statistical calculations written for linear regression modeling
-    - if analyzing new data file, be sure to clear range data selections via the button in column 4 before making new selections
-    - save multiple ranges
-        - if interactive plot selected, new column opens
-        - new column will show text entry to indiciate which range is being selected
-        - input and confirm the range BEFORE making selection in the plot window
-        - later analysis will use the range and file src for grouping and averaging data
-        - input from entry box will correlate to which file for which range is being selected
-    - when making selection in graph that already has data from that section, will overwrite data from ONLY that section
-        - i.e. if you select data for range 'x' in file 'data1.csv', but a selection for that was already made and data is already there,
-        even if there are other ranges in the file, only data for range 'x' file 'data1.csv' will be overwritten,
-        and data for range 'y' in 'data1.csv' and range 'x' in 'data2.csv' will remain untouched
-    - no matter which overtone is analyzed, the range selected there will apply to ALL overtones for statistical analysis
-    - to run the statistical analysis, click the button in the smaller window where the range was indicated, after all desired range selections are made, and after indicating to use theoretical or calibration/experimental values required in analysis
-        - indicating calibration/exerimental values will require additional input as specified in the application window
-    
-- For linear Analysis
-    - make sure that all frequencies desired to be in the linear regression, are selected in the 'baseline corrected data' section
-    - selections from interactive plot are calculated and will be exported to a csv file that are then used in the 'lin_reg.py' script
+# Overtone Selections
+- The middle 2 columns offer the user to plot the raw data for any overtone desire, as well as the shifted (baseline corrected) data
+- Please note that all plot options and modeling features require shifted data, raw data's only purpose is visualization, it is not used for anything other than just being plotted
 
-- For Sauerbrey equation
-    - 1 plot per overtone per range selected will be generated
-        - i.e. if you make a selection for range x and one for range y, and you have selected frequency overtones 3, 5, and 7, you will get a plot for range x overtone 3, range y overtone 3, range x overtone 5, and so on
-    - color map scheme for Sauerbray plots will match color map of baseline corrected data plots
-    - equation being applied for Sauerbray is Dm = -C * (Df/n) where Df is an individual change in frequency point in the range selected, n is the corresponding overtone of that point, and C is either experimentally calculated, or the theoretical value 17.7 as chosen in the window
+# Plot options
+- Users have the following options for plots beyond basic visualization:
+    - Multiaxis plot for change in frequency and change in dissipation together against time
+    - Normalize change in frequency for all data with their respective overtones
+        - Note, all plots in this section are normalized when selecting this, however interactive plot and all modeling plots will NOT be normalized unless the model dictates so
+        - all plots that are normalized will indicate on the y axis reading (Df/n)
+        - i.e. thin film in air model is normalized avg change in frequency of each overtone against the overtone number squared
+    - Plotting change in dissipation against change in frequency
+    - Plotting temperature against time
+    - Interactive plot (further detailed below)
+    - Modeling/further analysis (further detailed below)
+    - Change the scale of time on the x axis for ALL plots
+        - seconds (default), minutes, hours
+    - Change the format of image plots are saved in
+        - png (default), tiff, pdf
 
+# Modeling Window
+- Modeling Window is only relevant if the interactive plot is selected
+- Visit this window AFTER submitting when the interactive plot opens up
+- Before making your selection of data in the interactive plot, enter the range that is being selected in the entry field and click confirm
+    - The name of the range is arbitrary and can be called whatever the user desires, it will be used for identifying that selection's data in modeling sections, and be used for plot titles and file names
+- Once you have entered a name for range being selected, and made the selection in the interactive plot (detailed below), input and confirm the next range before making more selections
+    - The latest selection for each range will be saved. So if the user enters in 'baseline' for the range, then makes a selection, if another selection is done before inputting and confirming the next range, that first baseline selection will be overwritten
+     - i.e. if you select data for range 'x' in file 'data1.csv', but a selection for that was already made and data is already there, even if there are other ranges in the file, only data for range 'x' file 'data1.csv' will be overwritten, and data for range 'y' in 'data1.csv' and range 'x' in 'data2.csv' will remain untouched
+    - This means that the user is not committed to a selection once it's been made, as adjustments can be made
+- Once all selections made, the user can choose from any of the available modeling/further analysis options to execute on the selected data
+- These plots are saved to qcmd-plots/modeling
+- Remember to click the 'Clear Saved Range Data' when moving to a new experiment to remove all old selections
 
---------------------------------------------------------------
+# Interactive Plot
+- When checking the interactive plot box, an entry field appears to enter which overtone you would like to visulize in the plot
+    - Note that the overtone you select to visualize does not effect the output of any plots or analysis, as the software acts on selections made in the plot to ALL overtones in that range
+- For whichever overtone is to be analyzed in the interactive plot, ensure that that overtone is selected in the baseline corrected data section as well, as it relies on the cleaned data processing done there
+- Selections are made by clicking and dragging anywhere in either of the left 2 plots, OR inputting the x values into the text field above in the form of XMIN,XMAX and hitting enter
+- Selected range is zoomed in and displayed in right side of figure, and all calculations on the selections are save into csv files in the 'selected_ranges' folder
+- A linear regression will be done on the zoomed data as well to indicate the drift
 
+# Errors
+- Errors will be displayed in the terminal running the scripts
+- caught exceptions will have notes about what went wrong and how correct it. These exceptions are generally a user error
+    - if there is an error that is uncaught, it is likely a bug, or an exception that was missed
+    - please attempt to reproduce the error and explicitly outline the steps taken to do so and report them to the developer along with the traceback (what is output in the terminal when error occurs)
 
-### DATA ANALYSIS README
+# IF USING SPYDER
+- by default, plt will show plots in console box and span selector will not work
+- follow these steps to make selection plots open in new window:
+    Tools > Preferences > IPython console > Graphics > Graphics Backend > Apply & OK
+- On line 15 in analyze.py there is code that reads 'matplotlib.use('TkAgg')'
+    - for use with spyder change 'TkAgg' to just 'Agg'
 
-- sends user input info to 'analyze.py' for processing
-- opens defined data file and reads it into a dataframe
-- renames columns as dictated below in Variable Declarations section
-- checks which_plot to determine which channels are being analyzed, and adds to lists accordingly
-- plots are frequencies and dissipations of each channel specified in 'main.py'
-- if overwrite file selected, will create a copy of the data file with the baseline corrected points
-
-Baseline Corrected Data:
-    - find average resonant frequency of baseline, and lowers curve by that amount
-    - removes points before start of baseline
-
-Plot Options:
-- plots raw data individually as specified in gui
-- option for multi axis plot with change in frequency and dissipation vs time
-- option to normalize data by dividing frequency by its respective overtone
-- option to plot change in dissipation vs change in frequency
-- option to change scale of x axis (time) to minutes, hours, or remain at seconds
-- option to change saved figure file formats (png (default), tiff, pdf)
-
-Interactive Plot:
-- SPECIFY AND CONFIRM RANGE BEFORE MAKING SELECTION
-- option for interactive plot that opens figure of selected overtone to further analyze
-    - can select a range of points of plot to zoom in and save to file for later
-    - interactive plot range will be used to specify statistical data for linear analysis
-    - user indicates what range being selected, that range and the file containing current data,
-    are used to group ranges for analysis
-
-
---------------------------------------------------------------
-
-
-### LINEAR REGRESSION README
-
-- Data for this script is statistical data curated from the raw input data acquired in 'main.py'
-    - see README there for more information
-
-- For italicized variables to work, please install a LaTex distribution (like https://www.tug.org/texlive/acquire-netinstall.html)
-
-- script begins with various statistical data from 'all_stats_rf/dis.csv'
-- For peak frequency values needed for calculation, enter values into 'calibration_peak_frequencies.txt'
-    - otherwise indicate in GUI to use theoretical values, theoretical values will be used
-
-- LINEAR REGRESSION
-    - x axis is the overtone times its corresponding average change in frequency (n*Df)
-        - grabs the average Df values and multiplies each by its respective overtone
-        - also grabs the x_err, in this case just the std_dev of the mean
-    - y axis is the bandwidth shift Γ of each overtone (f*Dd)/2
-        - grabs average peak frequency and average change in dissipation values from calibration/theoretical data, and stats csv respectively
-            - note, frequency here refers to NOT baseline corrected frequency as it does in the x axis
-        - calculates bandwidth defined above
-        - propogates error of this calculation
-    - for x and y, values are grouped by ranges, and then data sources
-        - values are averaged across multiple experimental data sets, based on the range
-        - these averages are also propogated and the error calculated becomes the error bars in the plot
-    - plots the values with error bars and shows equation with slope
-    - NEED FORMULAS FOR Calculates G prime and JF (frequency dependent shear film compliance)
-
-    - for bandwidth calculation, only use fundamental overtone peak frequency for all overtones
-
-## ATTENTION:
-If you wish to have greek letters italicized, latex is required to be installed on your system
-if it is not, please comment out the 2 lines below
 
 
 --------------------------------------------------------------
@@ -139,6 +103,8 @@ features:
 - gordon-kanazawa
 
 publication/documentation: 
+- flowchart of workflow of software
+    - rough draft on whiteboard
 - more explicit library acknowledgement sections
 - instructions on adding more files to format
 
