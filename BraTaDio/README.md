@@ -22,6 +22,8 @@
     - by default, plt will show plots in console box and span selector will not work
     - follow these steps to make selection plots open in new window:
         Tools > Preferences > IPython console > Graphics > Graphics Backend > Apply & OK
+    - Also on line 15 in analyze.py there is code that reads 'matplotlib.use('TkAgg')'
+        - for use with spyder change 'TkAgg' to just 'Agg'
 
 - For interactive plot:
     - for whichever overtone is to be analyzed in the interactive plot, 
@@ -134,7 +136,6 @@ format changes:
 
 features:
 - make modeling functions work for multiple ranges selected
-- for modeling plots, save the calculated values that are put on the plots into csv files
 - integrate commented out sauerbrey code to find the mass both ways
 
 - sauerbrey mass overtone/linear fit
@@ -173,6 +174,12 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/15
+- fix sauerbrey saving ranges
+- reimplement old sauerbrey eqn
+- get sauerbrey and avgs to work with mult ranges
+- implement saving of those outputs to a csv file
+
 6/14
 - added capability to enter time range selection in interactive plot
     - set TkAgg as backend for span selector window generation to allow for tkinter entry fields
@@ -183,7 +190,15 @@ waiting on data:
     - added update text function to perform all the same tasks as the onselect function
     - refactored code so the above tasks are done in a separate function that onselect and update text both call
         - split into 2 functions, one to update plot and one to calc and save stat data
-        
+- thin film in liquid records output data used for plots into csv file "thin_film_liquid_output.csv"
+- thin film in air records output data used for plots into csv file "thin_film_air_output.csv"
+
+- Sauerbrey now has 2 methods of calculations
+    - current way takes average Df from rf_stats and fits linear function to those values, multiplying slope by a theoretical or calculated C
+    - additional way is being reimplemented where full freq range data is saved and picked up by sauerbrey function, and mass is plotted as a function of time by multiplying each df point by C
+
+- bug fix input file selection not being saved
+- updated readme for spyder users to make a modification to code
 
 6/8
 - fixed bug where axis weren't being labelled and no formatting was ocurring except for the last generated figure

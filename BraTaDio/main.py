@@ -17,16 +17,10 @@ from analyze import analyze_data, ordinal, select_calibration_data
 from format_file import format_raw_data
 from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis
 
-'''
-WIP
-func/class for range select window (maybe just in col 4)
-remove as many selfs as possible from classes (specifically col 1 and 4)
-'''
-
 '''Variable Initializations'''
 class Input:
     def __init__(self): 
-        self.file = 'qcmi_sample.txt'
+        self.file = ''
         self.will_plot_raw_data = False
         self.will_plot_clean_data = False
         self.will_overwrite_file = False # if user wants copy of data data saved after processing
@@ -74,6 +68,7 @@ def browse_files(label):
     
     input.file = fp
     label.configure(text=f"File Selected: {os.path.basename(fp)}")
+    print(input.file)
 
     return fp
 
@@ -308,8 +303,9 @@ class Col1(tk.Frame):
             input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
 
 
-        input.file = "raw_data/qcmi_sample.txt" # REMOVE FOR RELEASE
+        #input.file = "raw_data/qcmi_sample.txt" # REMOVE FOR RELEASE
         if input.first_run:
+            print(input.file)
             format_raw_data(input.file_src_type, input.file)
         
         self.submitted_label.grid(row=13, column=0)

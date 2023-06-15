@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 import Exceptions
-from analyze import get_plot_preferences, map_colors, get_num_from_string
+from analyze import get_plot_preferences, get_num_from_string, prepare_stats_file, range_statistics
 
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
@@ -307,7 +307,8 @@ def thin_film_liquid_analysis(user_input):
     
     # grab and analyze data for each range and indicated by the label
     for label in labels:
-        n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
+        n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(
+            which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
 
         # plot data
         data_label, x_label, y_label, title = get_labels(label, 'film_liquid', '', latex_installed)
@@ -318,7 +319,16 @@ def thin_film_liquid_analysis(user_input):
                                  sigma_delta_gamma, data_label, True)
         
         # take care of all linear fitting analysis    
-        linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
+        m, b = linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
+        delta_gamma_fit = linear(n_mean_delta_freqs, m, b)
+
+        # save calculations to file
+        stats_out_fn = 'selected_ranges/thin_film_liquid_output.csv'                
+        header = f"n*Df,bandwidth_shift,bandwidth_shift_FIT,range_used,data_source\n"
+        prepare_stats_file(header, label, sources[0], stats_out_fn)
+        with open(stats_out_fn, 'a') as stat_file:
+            for i in range(len(delta_gamma)):
+                stat_file.write(f"{n_mean_delta_freqs[i]:.16E},{delta_gamma[i]:.16E},{delta_gamma_fit[i]:.16E},{label},{sources[0]}\n")
 
         # save figure
         format_plot(ax, x_label, y_label, title)
@@ -368,7 +378,8 @@ def thin_film_air_analysis(user_input):
                                  sigma_delta_gamma_norm, data_label, True)
         
         # take care of all linear fitting analysis    
-        linearly_analyze(sq_overtones, delta_gamma_norm, ax) 
+        dG_m, dG_b = linearly_analyze(sq_overtones, delta_gamma_norm, ax) 
+        delta_gamma_norm_fit = linear(sq_overtones, dG_m, dG_b)
 
         # save figure
         format_plot(ax, x_label, y_label, title)
@@ -382,13 +393,21 @@ def thin_film_air_analysis(user_input):
         
         # take care of all linear fitting analysis    
         linearly_analyze(sq_overtones, delta_freqs_norm, ax) 
+        delta_freq_norm_fit = linear(sq_overtones, dG_m, dG_b)
+
+        # save calculations to file
+        stats_out_fn = 'selected_ranges/thin_film_air_output.csv'                
+        header = f"sq_overtones,delta_gamma_norm,delta_gamma_norm_fit,delta_freqs_norm,delta_freq_norm_fit,range_used,data_source\n"
+        prepare_stats_file(header, label, sources[0], stats_out_fn)
+        with open(stats_out_fn, 'a') as stat_file:
+            for i in range(len(sq_overtones)):
+                stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.16E},{delta_gamma_norm_fit[i]:.16E},{delta_gamma_norm[i]:.16E},{delta_gamma_norm_fit[i]:.16E},{label},{sources[0]}\n")
 
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
-        
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
 
@@ -454,6 +473,16 @@ def sauerbrey(user_input):
 
         # take care of all linear fitting analysis    
         m, b = linearly_analyze(overtones, mu_Df, ax)
+        mu_Df_fit = linear(overtones, m, b)
+
+        # save calculations to file
+        '''stats_out_fn = 'selected_ranges/thin_film_liquid_output.csv'                
+        header = f"overtone,bandwidth_shift,bandwidth_shift_FIT,range_used,data_source\n"
+        prepare_stats_file(header, label, sources[0], stats_out_fn)
+        with open(stats_out_fn, 'a') as stat_file:
+            for i in range(len(delta_gamma)):
+                stat_file.write(f"{n_mean_delta_freqs[i]:.16E},{delta_gamma[i]:.16E},{delta_gamma_fit[i]:.16E},{label},{sources[0]}\n")
+        '''
 
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()

@@ -9,11 +9,12 @@ import os
 from datetime import time
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('TkAgg')  # Set the backend to TkAgg
 import tkinter as tk
 from tkinter import ttk
+import matplotlib
+matplotlib.use('TkAgg')  # Set the backend to TkAgg
+
+import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
 import sys
@@ -172,7 +173,7 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
             save_flag = True
         if save_flag:
             temp_df.to_csv(stats_fn, float_format="%.16E", index=False)
-    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
+    except (FileNotFoundError, pd.errors.EmptyDataError, KeyError) as e:
         print(f"err 2: {e}")
         print("making new stats file...")
         with open(stats_fn, 'w') as new_file:
@@ -186,7 +187,6 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
         
     dis_stat_file = open(f"selected_ranges/all_stats_dis.csv", 'a')
     rf_stat_file = open(f"selected_ranges/all_stats_rf.csv", 'a')
-    saurbrey_stat_file = open(f"selected_ranges/Sauerbrey_stats.csv", 'a')
 
     # statistical analysis for all desired overtones using range of selection
     range_df = pd.DataFrame()
@@ -204,14 +204,14 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
                 
-                # stats for Sauerbray avgs
-                Df = y_sel.values
-                n = get_num_from_string(ov)
-                y_sel_Dm = -C *  Df if df_normalized else -C * (Df/n)
-                mean_y_sauerbray = np.average(y_sel_Dm)
-                std_dev_y_sauerbrey = np.std(y_sel_Dm)
-                median_y_sauerbrey = np.median(y_sel_Dm)
-                saurbrey_stat_file.write(f"{n},{mean_y_sauerbray:.16E},{std_dev_y_sauerbrey:.16E},{median_y_sauerbrey:.16E},{which_range},{fn}\n")
+                # ranges for method 1 of Sauerbrey mass (method 2 uses rf_stats)
+                temp_df = pd.DataFrame()
+                temp_df['freq'] = y_data
+                temp_df['time'] = df['Time']
+                temp_df['overtone'] = ov
+                temp_df['range_used'] = which_range
+                temp_df['data_source'] = fn
+                range_df = pd.concat([range_df, temp_df[imin:imax]], ignore_index=True)
 
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
@@ -249,8 +249,6 @@ def remove_axis_lines(ax):
     ax.spines['left'].set_color('none')
     ax.spines['right'].set_color('none')
     ax.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
-
-
 
 def map_colors():
     plot_customs = get_plot_preferences()
@@ -419,9 +417,9 @@ def interactive_plot_analysis(fn, df, range, imin, imax, which_plot, is_normaliz
     prepare_stats_file(header, range, fn, stats_out_fn)
 
     # frequency values inserted into Sauerbrey equation
-    stats_out_fn = 'selected_ranges/Sauerbrey_stats.csv'                
-    header = f"overtone,Dm_mean,Dm_std_dev,Dm_median,range_used,data_source\n"
-    prepare_stats_file(header, range, fn, stats_out_fn)
+    range_selection_out_fn = 'Sauerbrey_ranges.csv'
+    header = f"freq,time,overtone,range_used,data_source\n"
+    prepare_stats_file(header, range, fn, range_selection_out_fn)
 
     # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
     range_statistics(df, imin, imax, which_plot, range, fn, 17.7, is_normalized)
