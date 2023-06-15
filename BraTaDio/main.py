@@ -56,6 +56,15 @@ class Input:
                             '13th_freq': False, '13th_dis': False}}
 
 input = Input()
+
+INPUT_ALTERED_FLAG = False
+
+def set_input_altered_flag(flag, notif=True):
+    global input
+    global INPUT_ALTERED_FLAG
+    if not INPUT_ALTERED_FLAG and notif:
+        print("Input altered, will run calculations")
+    INPUT_ALTERED_FLAG = flag
     
 def browse_files(label):
     global input
@@ -295,7 +304,7 @@ class Col1(tk.Frame):
     def col_names_submit(self):
         global input
         input.first_run = True
-        
+        set_input_altered_flag(True)
         input.file_src_type = self.file_src_frame.file_src_type
         if input.is_relative_time:
             input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
@@ -374,6 +383,7 @@ class calibrationValsFrame(tk.Frame):
 
     def handle_radios(self):
         global input
+        set_input_altered_flag(True)
         input.will_use_theoretical_vals = self.theoretical_or_calibration_peak_freq_var.get()
         if not input.will_use_theoretical_vals:
             self.will_get_from_file_label.grid(row=2, column=0, pady=(2,4), columnspan=2, padx=6)
@@ -570,7 +580,7 @@ class Col2(tk.Frame):
 
     def receive_raw_checkboxes(self):
         global input
-
+        set_input_altered_flag(True)
         if self.plot_raw_data_var.get() == 1:
             input.will_plot_raw_data = True
             self.which_raw_channels_label.grid(row=1, column=0, pady=(0,26))
@@ -595,7 +605,6 @@ class Col2(tk.Frame):
 
             self.select_all_raw_checks_button.grid_forget()
             self.clear_raw_checks_button.grid_forget()
-            #self.calibration_data_button.grid_forget()
         
     def clear_raw_checks(self):
         global input
@@ -635,6 +644,7 @@ class Col3(tk.Frame):
 
     def receive_clean_checkboxes(self):
         global input
+        set_input_altered_flag(True)
         if self.plot_clean_data_var.get() == 1:
             input.will_plot_clean_data = True
             self.which_clean_channels_label.grid(row=1, column=0, pady=(0,12))
@@ -756,6 +766,7 @@ class Col4(tk.Frame):
 
     def receive_scale_radios(self):
         global input
+        set_input_altered_flag(True)
         if self.scale_time_var.get() == 1:
             self.time_scale_frame.grid(row=11, column=4)
             if self.which_time_scale_var.get() == 1:
@@ -772,6 +783,7 @@ class Col4(tk.Frame):
 
     def receive_file_format_radios(self):
         global input
+        set_input_altered_flag(True)
         if self.change_fig_format_var.get() == 1:
             self.file_format_frame.grid(row=15, column=4)
             if self.which_file_format_var.get() == 1:
@@ -788,7 +800,7 @@ class Col4(tk.Frame):
 
     def receive_optional_checkboxes(self):
         global input
-
+        set_input_altered_flag(True)
         input.will_plot_dF_dD_together = True if self.plot_dF_dD_together_var.get() == 1 else False
         input.will_normalize_F = True if self.normalize_F_var.get() == 1 else False
         input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
@@ -818,10 +830,16 @@ class Col4(tk.Frame):
         if input.range_frame_flag:
             input.clean_interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
 
-        analyze_data(input)
+        global INPUT_ALTERED_FLAG
+        if INPUT_ALTERED_FLAG:
+            analyze_data(input)
+        else:
+            print("No modifications made from previous iteration, no processing will be done")
+        set_input_altered_flag(False, False)
         input.first_run = False
 
     def clear_range_data(self):
+        set_input_altered_flag(True)
         rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
         dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
         sauerbray_stats = open("selected_ranges/Sauerbrey_stats.csv", 'w')
@@ -996,6 +1014,7 @@ class PlotOptsWindow():
         self.options['colors'] = default_opts['colors']
 
     def confirm_opts(self):
+        set_input_altered_flag(True)
         self.options['font'] = self.font_choice_entry.get()
         self.options['label_text_size'] = self.label_text_size_entry.get()
         self.options['title_text_size'] = self.title_text_size_entry.get()

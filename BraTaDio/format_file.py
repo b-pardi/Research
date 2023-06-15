@@ -88,6 +88,13 @@ def format_Qsense(df):
     return renamed_df
 
 def format_raw_data(src_type, file):
+    file_name, _ = os.path.splitext(file)
+    file_name = os.path.basename(file_name)
+    # check if file has already been formatted previously
+    if f"Formatted-{file_name}.csv" in os.listdir('raw_data') or file.__contains__("Formatted"):
+        print(f"{file_name} has been formatted previously, using previously formatted file...")
+        return
+    
     df = open_df_from_file(file)
     if src_type == 'QCM-d':
         formatted_df = format_QCMd(df)
@@ -99,11 +106,9 @@ def format_raw_data(src_type, file):
         print("invalid option selected")
         sys.exit(1)
     
-    file_name, _ = os.path.splitext(file)
-    file_name = os.path.basename(file_name)
     print(file_name)
     formatted_df.to_csv(f"raw_data/Formatted-{file_name}.csv", index=False)
 
 
 if __name__ == '__main__':
-    format_raw_data('Qsense', 'qsense_unprotected_copy.xls', '')
+    format_raw_data('Qsense', 'qsense_unprotected_copy.xls')

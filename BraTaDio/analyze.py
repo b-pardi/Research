@@ -27,7 +27,10 @@ class Analysis:
     def __init__(self, fn):
         file_name, _ = os.path.splitext(fn)
         file_name = os.path.basename(file_name)
-        self.formatted_fn = f"raw_data/Formatted-{file_name}.csv"
+        if fn.__contains__("Formatted"):
+            self.formatted_fn = f"raw_data/{file_name}.csv"
+        else:
+            self.formatted_fn = f"raw_data/Formatted-{file_name}.csv"
 
         self.time_col = 'Time' # relative time
         self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
@@ -179,7 +182,7 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
         with open(stats_fn, 'w') as new_file:
             new_file.write(header)
 
-def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normalized):
+def range_statistics(df, imin, imax, overtone_sel, which_range, fn):
     which_overtones = []
     for ov in overtone_sel:
         if ov[1]:
@@ -203,16 +206,6 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
         
             if ov.__contains__('freq'):
                 rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
-                
-                # ranges for method 1 of Sauerbrey mass (method 2 uses rf_stats)
-                temp_df = pd.DataFrame()
-                temp_df['freq'] = y_data
-                temp_df['time'] = df['Time']
-                temp_df['overtone'] = ov
-                temp_df['range_used'] = which_range
-                temp_df['data_source'] = fn
-                range_df = pd.concat([range_df, temp_df[imin:imax]], ignore_index=True)
-
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
         
@@ -224,7 +217,6 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn, C, df_normal
             elif ov.__contains__('dis'):
                 dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
     
-    range_df.to_csv(f"selected_ranges/Sauerbrey_ranges.csv", mode='a', index=False, header=None)
     
     dis_stat_file.close()
     rf_stat_file.close()
@@ -416,14 +408,7 @@ def interactive_plot_analysis(fn, df, range, imin, imax, which_plot, is_normaliz
     header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
     prepare_stats_file(header, range, fn, stats_out_fn)
 
-    # frequency values inserted into Sauerbrey equation
-    range_selection_out_fn = 'Sauerbrey_ranges.csv'
-    header = f"freq,time,overtone,range_used,data_source\n"
-    prepare_stats_file(header, range, fn, range_selection_out_fn)
-
-    # C WILL NEED INPUT TO DETERMINE IF THEORETICAL OR EXPERIMENTAL, CUR THEORETICAL 17.7
-    range_statistics(df, imin, imax, which_plot, range, fn, 17.7, is_normalized)
-    
+    range_statistics(df, imin, imax, which_plot, range, fn)
 
 def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
     plot_customs = get_plot_preferences()

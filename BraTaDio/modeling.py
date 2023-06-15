@@ -309,7 +309,7 @@ def thin_film_liquid_analysis(user_input):
     for label in labels:
         n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(
             which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
-
+    
         # plot data
         data_label, x_label, y_label, title = get_labels(label, 'film_liquid', '', latex_installed)
         
@@ -328,7 +328,7 @@ def thin_film_liquid_analysis(user_input):
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
             for i in range(len(delta_gamma)):
-                stat_file.write(f"{n_mean_delta_freqs[i]:.16E},{delta_gamma[i]:.16E},{delta_gamma_fit[i]:.16E},{label},{sources[0]}\n")
+                stat_file.write(f"{n_mean_delta_freqs[i]:.8E},{delta_gamma[i]:.8E},{delta_gamma_fit[i]:.8E},{label},{sources[0]}\n")
 
         # save figure
         format_plot(ax, x_label, y_label, title)
@@ -350,7 +350,7 @@ def thin_film_air_analysis(user_input):
     sources = rf_df['data_source'].unique()
     print(rf_df.index)
     overtones_df = rf_df[(rf_df!= 0).all(1)] # remove rows with 0 (unselected rows)
-    overtones = overtones_df.index
+    overtones = overtones_df.index.unique()
     overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
     print(f"*** found labels: {labels}\n\t from sources: {sources}\nfor overtones: {overtones}")
     
@@ -359,6 +359,7 @@ def thin_film_air_analysis(user_input):
         n_mean_delta_freqs, delta_gamma, sigma_n_mean_delta_freqs, sigma_delta_gamma = process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf_df, dis_df, label, use_theoretical_vals)
         
         # for thin film in air, Df and DGamma are normalized
+        print("AAA", delta_gamma, overtones)
         delta_gamma_norm = delta_gamma / overtones
         sigma_delta_gamma_norm = sigma_delta_gamma / overtones
         # Df is divided twice since process function returns n*DGamma
@@ -401,7 +402,7 @@ def thin_film_air_analysis(user_input):
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
             for i in range(len(sq_overtones)):
-                stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.16E},{delta_gamma_norm_fit[i]:.16E},{delta_gamma_norm[i]:.16E},{delta_gamma_norm_fit[i]:.16E},{label},{sources[0]}\n")
+                stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.8E},{delta_gamma_norm_fit[i]:.8E},{delta_gamma_norm[i]:.8E},{delta_freq_norm_fit[i]:.8E},{label},{sources[0]}\n")
 
         # save figure
         format_plot(ax, x_label, y_label, title)
@@ -411,28 +412,50 @@ def thin_film_air_analysis(user_input):
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
 
+def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
+    # method 2 avg rf * C for each overtone
+    mu_Dm = mu_Df * C / overtones
+    delta_mu_Dm = np.abs(delta_mu_Df * C / overtones)
+
+    if mu_Df.shape != overtones.shape:
+        raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
+    
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    avg_Dm_fig, avg_Dm_ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
+    format_plot(avg_Dm_ax, x_label, y_label, title, overtones)
+    avg_Dm_fig.tight_layout()
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_avgs_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+
+    return mu_Dm, delta_mu_Dm
+
+def sauerbrey_fit(df, overtones, label, C, fig_format):
+    # grabbing data from df
+    df_range = df.loc[df['range_used'] == label]
+    # method 1 of Sauerbrey mass (linear fit slope * C)
+    mu_Df = df_range['Dfreq_mean'].values # average change in frequency (y)
+    delta_mu_Df = df_range['Dfreq_std_dev'].values # std dev of y
+
+    if mu_Df.shape != overtones.shape:
+        raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
+    
+    # plotting average frequencies
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    avg_Df_fig, avg_Df_ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
+
+    # take care of all linear fitting analysis    
+    m, b = linearly_analyze(overtones, mu_Df, avg_Df_ax)
+    mu_Df_fit = linear(overtones, m, b)
+
+    format_plot(avg_Df_ax, x_label, y_label, title, overtones)
+    avg_Df_fig.tight_layout()
+    plt.legend().get_texts()[1].set_text("Sauerbrey mass: " + f"{m*C:.1f}" + r" ($\frac{ng}{cm^2}$)")
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_fit_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+
+    return mu_Df, delta_mu_Df, mu_Df_fit
+
 def sauerbrey(user_input):
     use_theoretical_vals, calibration_data_from_file, fig_format = user_input
     print("Analyzing Sauerbrey equation...")
-    '''df = pd.read_csv("selected_ranges/Sauerbrey_stats.csv")
-    labels = df['range_used'].unique()
-    overtones = df['overtone'].unique() # overtone number (x)
-    print(f"LABELS: {labels}; OVERTONES: {overtones}")
-    color_map, _ = map_colors(get_plot_preferences())
-
-    for label in labels:
-        df_range = df.loc[df['range_used'] == label]
-        mu_Dm = df['Dm_mean'].values # average Sauerbrey mass (y)
-        delta_mu_Dm = df['Dm_std_dev'].values # std dev of y
-        data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
-        if mu_Dm.shape != overtones.shape:
-            raise Exceptions.ShapeMismatchException((mu_Dm.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
-        
-        sauerbray_range_plot, ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
-        format_plot(ax, x_label, y_label, title, overtones)
-        sauerbray_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/equation/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
-    '''
 
     # grabbing df from csv
     df = pd.read_csv("selected_ranges/all_stats_rf.csv")
@@ -440,6 +463,7 @@ def sauerbrey(user_input):
     labels = df['range_used'].unique()
     overtones = df['overtone'].unique() # overtone number (x)
     overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
+    sources = df['data_source'].unique()
     print(f"LABELS: {labels}; OVERTONES: {overtones}")
 
     # calculate C for Sauerbrey mass formula if user opts to use calibration vals
@@ -456,39 +480,20 @@ def sauerbrey(user_input):
         quartz_density = 2650
         C = -1 * ( quarts_wave_velocity * quartz_density ) / ( 2 * ( f0 ** 2 )  )
         C *= 1e8
-        print(f"C: {C}")
+    print(f"C: {C}")
 
     for label in labels:
-        # grabbing data from df
-        df_range = df.loc[df['range_used'] == label]
-        mu_Df = df['Dfreq_mean'].values # average change in frequency (y)
-        delta_mu_Df = df['Dfreq_std_dev'].values # std dev of y
-
-        if mu_Df.shape != overtones.shape:
-            raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
-        
-        # plotting average frequencies
-        data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
-        avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
-
-        # take care of all linear fitting analysis    
-        m, b = linearly_analyze(overtones, mu_Df, ax)
-        mu_Df_fit = linear(overtones, m, b)
+        mu_Df, delta_mu_Df, mu_Df_fit = sauerbrey_fit(df, overtones, label, C, fig_format)
+        mu_Dm, delta_mu_Dm = sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format)
 
         # save calculations to file
-        '''stats_out_fn = 'selected_ranges/thin_film_liquid_output.csv'                
-        header = f"overtone,bandwidth_shift,bandwidth_shift_FIT,range_used,data_source\n"
+        stats_out_fn = 'selected_ranges/sauerbrey_output.csv'                
+        header = f"overtone,avg_Df,avg_Df_err,avg_Df_FIT,avg_Dm,avg_Dm_err,C,range_used,data_source\n"
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
-            for i in range(len(delta_gamma)):
-                stat_file.write(f"{n_mean_delta_freqs[i]:.16E},{delta_gamma[i]:.16E},{delta_gamma_fit[i]:.16E},{label},{sources[0]}\n")
-        '''
-
-        format_plot(ax, x_label, y_label, title, overtones)
-        avg_Df_range_plot.tight_layout()
-        plt.legend().get_texts()[1].set_text("Sauerbrey mass: " + f"{m*C:.1f}" + r" ($\frac{ng}{cm^2}$)")
-        plt.savefig(f"qcmd-plots/modeling/Sauerbrey_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
-
+            for i in range(len(mu_Df)):
+                stat_file.write(f"{overtones[i]},{mu_Df[i]:.8E},{delta_mu_Df[i]:.8E},{mu_Df_fit[i]:.8E},{mu_Dm[i]:.8E},{delta_mu_Dm[i]:.8E},{C:.8E},{label},{sources[0]}\n")
+        
     print("Sauerbrey analysis complete")
     plt.rc('text', usetex=False)
 
@@ -507,11 +512,12 @@ def avgs_analysis(fig_format):
 
     for label in labels:
         # grabbing data from df
-        df_range = rf_df.loc[rf_df['range_used'] == label]
-        mu_Df = rf_df['Dfreq_mean'].values # average change in frequency (y)
-        delta_mu_Df = rf_df['Dfreq_std_dev'].values # std dev of y
-        mu_Dd = dis_df['Ddis_mean'].values # average change in dissipation (y)
-        delta_mu_Dd = dis_df['Ddis_std_dev'].values # std dev of y
+        rf_df_range = rf_df.loc[rf_df['range_used'] == label]
+        dis_df_range = dis_df.loc[dis_df['range_used'] == label]
+        mu_Df = rf_df_range['Dfreq_mean'].values # average change in frequency (y)
+        delta_mu_Df = rf_df_range['Dfreq_std_dev'].values # std dev of y
+        mu_Dd = dis_df_range['Ddis_mean'].values # average change in dissipation (y)
+        delta_mu_Dd = dis_df_range['Ddis_std_dev'].values # std dev of y
 
         if mu_Df.shape != overtones.shape:
             raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
@@ -529,7 +535,6 @@ def avgs_analysis(fig_format):
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Dd_range_plot.tight_layout()
         plt.savefig(f"qcmd-plots/equation/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
-
 
     print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)

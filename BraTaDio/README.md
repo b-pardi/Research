@@ -135,11 +135,6 @@ bug fixes:
 format changes:
 
 features:
-- make modeling functions work for multiple ranges selected
-- integrate commented out sauerbrey code to find the mass both ways
-
-- sauerbrey mass overtone/linear fit
-- OPTION TO plot all selected overtones together
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -148,11 +143,7 @@ publication/documentation:
 - instructions on adding more files to format
 
 optimizations/refactoring: 
-- only rerun calculations if changes in ui made
-- have a requirements to list install dependencies that way
 - remove unnecessary prints
-- check data dir for existing file conversion
-- make sauerbrey and avg df work for multiple ranges
 - error messages become window popups
     - like when trying to submit with selections that there are no data for
     - have all exceptions be custom exception classes that generate a popup window with the err msg
@@ -175,10 +166,18 @@ waiting on data:
 
 ### CHANGE LOG
 6/15
-- fix sauerbrey saving ranges
-- reimplement old sauerbrey eqn
-- get sauerbrey and avgs to work with mult ranges
-- implement saving of those outputs to a csv file
+- remove saving of Sauerbrey stats/ranges, alt method of sauerbrey will also use rf_stats and multiply C to avg rf of each overtone
+- removed C from range statistics, opting for it to be done only in modeling.py
+- finished reimplementation of alternate Sauerbrey method
+    - main method calculated the mass via the slope of the fit of avgs freq of all overtones
+    - alt method plots the mass for each overtone
+- Sauerbrey now saves output of both methods to a file
+- avgs plotting works with multiple range selections
+- thin film air analysis now works for multiple range selections
+- optimization input altered flag added, caclculations only rerun if modification made in ui
+- added requirements list for packages and install_packages.py was condensed to utilize that txt file
+- optimization to check raw_data directory and see if file has already been formatted previously
+- bug fix where if selecting a formatted file (specifically the copy that 'format_file.py' makes with 'formatted' prepended to the name), it would still prepend 'formatted' again and look for the wrong file
 
 6/14
 - added capability to enter time range selection in interactive plot
