@@ -95,10 +95,17 @@
 ### WIP
 
 bug fixes:
+- qsense fmt does not do temperature
+    - temperature measure does not correspond to same time as used for overtones
+- thin film in air/water analysis breaks getting calibration values (line 106)
+- for file conv optim, if qsense calib data not entered when file converted, and then ran again adding calib data, it will think the file has already been processed and not convert and update
+    - adjust naming convention to account for if calib data added
+- remove old references to calibration data (before using new file sel feature)
 
 format changes:
 
 features:
+- add file selection for calibration
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -131,6 +138,35 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/20
+- moved file format options to plot customization window
+- moved x time scale option to plot customization window
+- updated json file for option storage to account for the above changes
+- x time scale and file format are now saved options that don't need to be selected every execution of the software
+- replaced all references of input.x_timescale and input.fig_format with the appropriate attributes in the plot customs dictionary
+
+- added plot preference to input how many points to plot (default 1 which is every point)
+    - i.e. if the data is too crowded, input can determine to plot every 5th point
+- updated json file for the above plot preference addition
+- updated all plotting in analyze.py to plot points based on the index (except interactive plot)
+
+- removed prompts and selections that followed selecting calibration values
+- added calibration data file selection button to col 1 (calibrationValsFrame)
+- added warning label regarding needing calibration data for modeling with qsense data
+- when formatting file with qsense, now adds calibration values from user spec'd calibration file to the data df
+
+
+- moved range selection of interactive plot to column 4 out of modeling window
+    - put modeling button below the int plot options frame
+- multiaxis changed to filled circles and empty circles
+- updated y axis label for avgs method of finding Sauerbrey mass to indicate that it is the mass of each overtone
+- changed run avg of... to plot avg of in modeling window
+- updated temp v time y label, Temperature, t(italic) (degreeC)
+- fixed bug that first submission would look for int plot overtone even if int plot checkbox was deselected
+
+6/16
+- changed avgs plots in modeling to go to modeling folder, removed equation folder
+
 6/15
 - remove saving of Sauerbrey stats/ranges, alt method of sauerbrey will also use rf_stats and multiply C to avg rf of each overtone
 - removed C from range statistics, opting for it to be done only in modeling.py

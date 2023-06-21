@@ -252,7 +252,10 @@ def get_labels(label, type, subtype='', usetex=False):
         data_label = f"average"
         title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
+        if subtype == 'fit':
+            y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
+        if subtype == 'avgs':
+            y = r'Sauerbrey Mass, $\it{m_{n}}$ ($\frac{ng}{cm^2}$)'
 
     elif type == 'avgs':
         data_label = f"average"
@@ -405,12 +408,35 @@ def thin_film_air_analysis(user_input):
                 stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.8E},{delta_gamma_norm_fit[i]:.8E},{delta_gamma_norm[i]:.8E},{delta_freq_norm_fit[i]:.8E},{label},{sources[0]}\n")
 
         # save figure
+        print(fig_format)
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
+
+def gordon_kanazawa(user_input):
+    which_plot, use_theoretical_vals, fig_format = user_input
+    print("Analyzing Gordon-Kanazawa Equation...")
+
+    # constants
+    pi = np.pi
+    rhoQ = 2650 # (kg/m^3) density of quartz CONSTANT
+    muQ = 3.3698e-4 # (m) thickness of quartz CONSTANT
+    rhoL = 0 # (kg/m^3) density of quartz CONSTANT
+    etaL = 0 # (m) thickness of quartz CONSTANT
+
+    if use_theoretical_vals:
+        f0 = 4998264.628859391 # (HZ) calibration fundamental frequency value (will be experimentally determined later)
+    else:
+        f0 = 1
+
+    Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (pi * muQ * rhoQ) )
+
+    print("Gordon-Kanazawa Analysis Complete")
+
+
 
 def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     # method 2 avg rf * C for each overtone
@@ -420,7 +446,7 @@ def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     if mu_Df.shape != overtones.shape:
         raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
     
-    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey', 'avgs')
     avg_Dm_fig, avg_Dm_ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
     format_plot(avg_Dm_ax, x_label, y_label, title, overtones)
     avg_Dm_fig.tight_layout()
@@ -439,7 +465,7 @@ def sauerbrey_fit(df, overtones, label, C, fig_format):
         raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
     
     # plotting average frequencies
-    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey', 'fit')
     avg_Df_fig, avg_Df_ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
 
     # take care of all linear fitting analysis    
@@ -523,18 +549,19 @@ def avgs_analysis(fig_format):
             raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
         # plotting average frequencies
+        print(fig_format)
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'freq')
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/equation/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
         # plotting average dissipations
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'dis')
         avg_Dd_range_plot, ax = plot_data(overtones, mu_Dd, None, delta_mu_Dd, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Dd_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/equation/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
     print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)

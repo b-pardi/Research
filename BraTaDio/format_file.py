@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import sys
 
@@ -71,37 +72,52 @@ def format_QCMi(df):
 
     return fmt_df
 
-def format_Qsense(df):
+def format_Qsense(data_df, calibration_df):
     print("Qsense selected")
-    df = df.iloc[:, :-2]
+    data_df = data_df.iloc[:, :-2]
 
-    if 'F_1:1' in df.columns:
-        renamed_df = df.rename(columns={'Time_1':'Time',
+    if 'F_1:1' in data_df.columns:
+        fmt_df = data_df.rename(columns={'Time_1':'Time',
         'F_1:1':freqs[0], 'D_1:1':disps[0],
         'F_1:3':freqs[1], 'D_1:3':disps[1],
         'F_1:5':freqs[2], 'D_1:5':disps[2],
         'F_1:7':freqs[3], 'D_1:7':disps[3],
         'F_1:9':freqs[4], 'D_1:9':disps[4],
         'F_1:11':freqs[5], 'D_1:11':disps[5],
-        'F_1:13':freqs[6], 'D_1:13':disps[6]}, inplace=True)
+        'F_1:13':freqs[6], 'D_1:13':disps[6]})
+    
+    if calibration_df.empty:
+        return fmt_df
 
-    return renamed_df
+    print(fmt_df.head())
+    print(calibration_df.head())
+    calibration_vals = calibration_df.values.flatten()
+    calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
+    for col_i, val in enumerate(calibration_vals):
+        fmt_df.iloc[:, col_i] += val
 
-def format_raw_data(src_type, file):
-    file_name, _ = os.path.splitext(file)
+    print(fmt_df.head())
+    return fmt_df
+
+def format_raw_data(src_type, data_file, calibration_file):
+    file_name, _ = os.path.splitext(data_file)
     file_name = os.path.basename(file_name)
     # check if file has already been formatted previously
-    if f"Formatted-{file_name}.csv" in os.listdir('raw_data') or file.__contains__("Formatted"):
+    '''if f"Formatted-{file_name}.csv" in os.listdir('raw_data') or data_file.__contains__("Formatted"):
         print(f"{file_name} has been formatted previously, using previously formatted file...")
-        return
+        return'''
     
-    df = open_df_from_file(file)
+    data_df = open_df_from_file(data_file)
     if src_type == 'QCM-d':
-        formatted_df = format_QCMd(df)
+        formatted_df = format_QCMd(data_df)
     elif src_type == 'QCM-i':
-        formatted_df = format_QCMi(df)
+        formatted_df = format_QCMi(data_df)
     elif src_type == 'Qsense':
-        formatted_df = format_Qsense(df)
+        if calibration_file != '':
+            calibration_df = open_df_from_file(calibration_file)
+        else:
+            calibration_df = pd.DataFrame()
+        formatted_df = format_Qsense(data_df, calibration_df)
     else:
         print("invalid option selected")
         sys.exit(1)
