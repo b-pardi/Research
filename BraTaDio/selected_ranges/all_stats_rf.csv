@@ -1,8 +1,8 @@
 overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source
-fundamental_freq,-1.7484169919975102E+01,4.2564319350833220E-02,-1.7503297550138086E+01,qsenseY,raw_data/Formatted-qsense_sample.csv
-3rd_freq,8.9184198076470511E-01,8.4444028268213345E-02,9.0195954684168100E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-5th_freq,1.4172006936722927E+00,9.3005507413692720E-02,1.4282390326261520E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
-7th_freq,2.0086455518861164E+00,8.9637789578066909E-02,2.0195169746875763E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
-9th_freq,1.1927327313617375E+00,6.1936027886162946E-02,1.2021910957992077E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
-11th_freq,2.0799301373824646E+00,9.8527935117876608E-02,2.0911752656102180E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
-13th_freq,2.1134974754760774E+00,1.1303803882072760E-01,2.1235919408500195E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
+fundamental_freq,-1.7486069112602209E+01,4.2010608654741849E-02,-1.7505251977592707E+01,qsenseY,raw_data/Formatted-qsense_sample.csv
+3rd_freq,8.9976628223266553E-01,8.7935593699976389E-02,9.0872150100767612E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+5th_freq,1.4259589360780502E+00,9.6895001442008688E-02,1.4347831718623638E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
+7th_freq,2.0170040171613137E+00,9.3264786829823476E-02,2.0262154564261436E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
+9th_freq,1.1978348220388095E+00,6.3515105522287715E-02,1.2099144607782364E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
+11th_freq,2.0890135790699373E+00,1.0236555759006080E-01,2.1007866784930229E+00,qsenseY,raw_data/Formatted-qsense_sample.csv
+13th_freq,2.1240874469359086E+00,1.1768523764693466E-01,2.1344757527112961E+00,qsenseY,raw_data/Formatted-qsense_sample.csv

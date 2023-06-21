@@ -1,7 +1,2 @@
-4.93418E+06
-1.48415E+07
-2.47410E+07
-3.46394E+07
-4.45374E+07
-5.44352E+07
-6.43330E+07
+fundamental_freq,fundamental_dis,3rd_freq,3rd_dis,5th_freq,5th_dis,7th_freq,7th_dis,9th_freq,9th_dis,11th_freq,11th_dis,13th_freq,13th_dis
+4.93E+06,3.39E-05,1.48E+07,1.43E-05,2.47E+07,1.07E-05,3.46E+07,8.63E-06,4.45E+07,8.26E-06,5.44E+07,8.62E-06,6.43E+07,8.28E-06

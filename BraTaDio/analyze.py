@@ -12,7 +12,11 @@ import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 import matplotlib
-#matplotlib.use('Agg')  # Set the backend to TkAgg
+try:
+    matplotlib.use('TkAgg')  # Set the backend to TkAgg
+except:
+    matplotlib.use('Agg')  # Set the backend to default
+
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector

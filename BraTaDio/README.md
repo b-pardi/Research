@@ -95,9 +95,9 @@
 ### WIP
 
 bug fixes:
+- ASK ROBERTO bout proper theoretical values
 - qsense fmt does not do temperature
     - temperature measure does not correspond to same time as used for overtones
-- thin film in air/water analysis breaks getting calibration values (line 106)
 - for file conv optim, if qsense calib data not entered when file converted, and then ran again adding calib data, it will think the file has already been processed and not convert and update
     - adjust naming convention to account for if calib data added
 - remove old references to calibration data (before using new file sel feature)
@@ -105,7 +105,6 @@ bug fixes:
 format changes:
 
 features:
-- add file selection for calibration
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -138,6 +137,13 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/21
+- adjusted theoretical values df to match bratadio format
+- adjusted how get_calibration_values() grabs theoretical values to match the file format conversion for calibration data from qsense
+- fixed bug in calibration vals where values were not being grabbed and program crashed for thin film models
+- fixed bug when not modeling all overtones, first overtone not selected would lead to no overtones after it being analyzed even if they were selected
+- 
+
 6/20
 - moved file format options to plot customization window
 - moved x time scale option to plot customization window

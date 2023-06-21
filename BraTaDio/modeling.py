@@ -78,41 +78,39 @@ def get_calibration_values(which_plot, use_theoretical_vals):
     if use_theoretical_vals:        
         # theoretical calibration values for experiment, used in calculating bandwidth shift
         theoretical_values_df = pd.read_csv("calibration_data/theoretical_frequencies.csv", index_col=False)
-        theoretical_values = theoretical_values_df.iloc[:,0].values
-        
-        # for items in which plot, if true,
-        # insert the value from theoretical values
-        # and 0 if false
-        for i, ov in enumerate(which_freq_plots.items()):
-            if ov[1]:
+        theoretical_values = theoretical_values_df.filter(like="freq").values.flatten()
+        print(f"theo vals: {theoretical_values}")
+
+        for i, ov in enumerate(which_freq_plots.items()): # for items in which plot,
+            if ov[1]:  # if true, insert the value from theoretical values
                 calibration_freq.append(theoretical_values[i])
-            else:
+            else: # and 0 if false
                 calibration_freq.append(0)
             sigma_calibration_freq.append(0) # theoretical values will have no error
 
-        print(f"Calibration Frequencies: {calibration_freq}")
+        print(f"*** Theoretical Calibration Frequencies: {calibration_freq}")
         
     else:
         # grab peak frequency values from calibration file as specified in gui
         all_overtones = [get_num_from_string(ov) for ov in which_freq_plots.keys()] # get all overtones to insert 0s into overtones not selected\
-        selected_overtones = [get_num_from_string(ov[0]) for ov in which_freq_plots.items() if ov[1]]
-        print(all_overtones, selected_overtones)
-        exp_vals_df = pd.read_csv("calibration_data/calibration_data.csv")
+        selected_overtones = [get_num_from_string(ov[0]) if ov[1] else 0 for ov in which_freq_plots.items()]
+        exp_vals_df = pd.read_csv("calibration_data/Formatted_calibration_data.csv", index_col=False).filter(like="freq")
         i = 0
         while(i < len(all_overtones)): # all ovs always >= selected overtones
-            #print(all_overtones[i], selected_overtones[i])
+            print(selected_overtones, all_overtones[i], selected_overtones[i])
             if i < len(selected_overtones) and all_overtones[i] == selected_overtones[i]:
-                print('match')
-                calibration_freq.append(exp_vals_df.iloc[i,1])
-                sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
+                print(exp_vals_df.head())
+                print(exp_vals_df.iloc[1,i])
+                calibration_freq.append(exp_vals_df.iloc[1,i])
+                #sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
             else:
                 print('not')
                 calibration_freq.append(0)
-                sigma_calibration_freq.append(0)
+            sigma_calibration_freq.append(0) # calibration vals have no err
             i+=1
 
-        print(f"*** peak frequencies: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n")
-
+        print(f"*** Experimental Calibration Frequencies: {calibration_freq}")
+        
     return (calibration_freq, sigma_calibration_freq)
 
 # plot will be mean of bandwidth shift vs overtone * mean of change in frequency
