@@ -103,8 +103,10 @@ bug fixes:
 - remove old references to calibration data (before using new file sel feature)
 
 format changes:
+- capital Select overtone to visualize
 
 features:
+- plot opts ability to adjust scale of plots for time, freq, disp
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -160,7 +162,6 @@ waiting on data:
 - added calibration data file selection button to col 1 (calibrationValsFrame)
 - added warning label regarding needing calibration data for modeling with qsense data
 - when formatting file with qsense, now adds calibration values from user spec'd calibration file to the data df
-
 
 - moved range selection of interactive plot to column 4 out of modeling window
     - put modeling button below the int plot options frame

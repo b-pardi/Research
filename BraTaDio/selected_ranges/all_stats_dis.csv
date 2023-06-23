@@ -1,8 +1,8 @@
 overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source
-fundamental_dis,-4.1239559076634219E-01,1.1124771433933753E-03,-4.1245814563295163E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-3rd_dis,-1.9304982723287634E-01,1.8214096784629039E-03,-1.9308377817650735E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-5th_dis,-2.0830110109305239E-01,8.5989544095745355E-04,-2.0831090291146179E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-7th_dis,-2.1824813399590162E-01,8.5646121282581577E-04,-2.1833513277392597E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-9th_dis,2.5859358839630819E-01,1.4944933743224158E-02,2.5923372725810429E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
-11th_dis,5.1590449687912099E-02,1.3925567954180302E-02,5.1985477654006712E-02,qsenseY,raw_data/Formatted-qsense_sample.csv
-13th_dis,-6.5231205413068963E-03,9.3962004365195102E-03,-5.8993907608293327E-03,qsenseY,raw_data/Formatted-qsense_sample.csv
+fundamental_dis,-4.1858862305334937E-01,1.1487343103434651E-03,-4.1855248609291146E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+3rd_dis,-2.0290939375278974E-01,8.4494545493537013E-04,-2.0281363429651433E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+5th_dis,-1.9274933956665161E-01,2.9673118983636073E-03,-1.9342998837617534E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+7th_dis,-2.1585028907881443E-01,9.5553263169132342E-04,-2.1585586374596585E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+9th_dis,3.1046852633773242E-01,7.0196147564600608E-03,3.1059359165292283E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+11th_dis,1.0237145857079104E-01,1.0575998909890735E-02,1.0305580736033930E-01,qsenseY,raw_data/Formatted-qsense_sample.csv
+13th_dis,5.4620266025507000E-02,7.4637557511364324E-03,5.4824641494949568E-02,qsenseY,raw_data/Formatted-qsense_sample.csv
