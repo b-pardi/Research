@@ -95,15 +95,12 @@
 ### WIP
 
 bug fixes:
-- ASK ROBERTO bout proper theoretical values
-- qsense fmt does not do temperature
-    - temperature measure does not correspond to same time as used for overtones
+- ASK ROBERTO bout proper theoretical values ( do we need code to take averages, and if so how to structure )
 - for file conv optim, if qsense calib data not entered when file converted, and then ran again adding calib data, it will think the file has already been processed and not convert and update
     - adjust naming convention to account for if calib data added
 - remove old references to calibration data (before using new file sel feature)
 
 format changes:
-- capital Select overtone to visualize
 
 features:
 - plot opts ability to adjust scale of plots for time, freq, disp
@@ -139,6 +136,19 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/23
+- added temperature and temp_time columns to qsense file conversion
+- qsense data can now plot temperature vs time
+
+- removed button to select calibration file as it will now only reference one file
+    - this file can be directly copy pasted to by the user, or fill out entries via a popup window in the UI
+- removed file conversion for calibration values, opting for alternate method below
+- calibration values now can be copy pasted directly into csv file entitled 'COPY-PASTE_CALIBRATION_VALUES_HERE.csv' in calibration_data folder, OR
+- other option to bring up window to enter values into UI
+    - UI contains labelled entries for all freq and disp values that are then grabbed and written to a csv file for later use
+    - empty or incorrect values are written as a 0 (user is also warned)
+    - when selecting calibration data, button to open calibration data shows, as well as label to copy paste values into a csv file directly
+
 6/21
 - adjusted theoretical values df to match bratadio format
 - adjusted how get_calibration_values() grabs theoretical values to match the file format conversion for calibration data from qsense

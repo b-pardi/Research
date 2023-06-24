@@ -41,6 +41,7 @@ class Analysis:
         self.time_col = 'Time' # relative time
         self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
         self.temp_col = 'Temp'
+        self.temp_time_col = 'Temp_Time'
 
         self.freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
         self.disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
@@ -613,6 +614,8 @@ def analyze_data(input):
         
         if input.will_plot_temp_v_time:
             try:
+                if input.file_src_type == 'Qsense':
+                    analysis.time_col = analysis.temp_time_col
                 temperature_df = df[[analysis.time_col, analysis.temp_col]].copy()
                 temperature_df = temperature_df.dropna(axis=0, how='any', inplace=False)
             except Exception as e:

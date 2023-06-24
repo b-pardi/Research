@@ -72,26 +72,22 @@ def format_QCMi(df):
 
     return fmt_df
 
-def format_Qsense(data_df, calibration_df):
+def format_Qsense(fmt_df, calibration_df):
     print("Qsense selected")
-    data_df = data_df.iloc[:, :-2]
-    dfs = data_df, calibration_df
 
-    for df in dfs:
-        if 'F_1:1' in df.columns:
-            df.rename(columns={'Time_1':'Time',
-            'F_1:1':freqs[0], 'D_1:1':disps[0],
-            'F_1:3':freqs[1], 'D_1:3':disps[1],
-            'F_1:5':freqs[2], 'D_1:5':disps[2],
-            'F_1:7':freqs[3], 'D_1:7':disps[3],
-            'F_1:9':freqs[4], 'D_1:9':disps[4],
-            'F_1:11':freqs[5], 'D_1:11':disps[5],
-            'F_1:13':freqs[6], 'D_1:13':disps[6]}, inplace=True)
-
-    fmt_df, calibration_df = dfs
+    if 'F_1:1' in fmt_df.columns:
+        fmt_df.rename(columns={'Time_1':'Time',
+        'F_1:1':freqs[0], 'D_1:1':disps[0],
+        'F_1:3':freqs[1], 'D_1:3':disps[1],
+        'F_1:5':freqs[2], 'D_1:5':disps[2],
+        'F_1:7':freqs[3], 'D_1:7':disps[3],
+        'F_1:9':freqs[4], 'D_1:9':disps[4],
+        'F_1:11':freqs[5], 'D_1:11':disps[5],
+        'F_1:13':freqs[6], 'D_1:13':disps[6],
+        'Meas. Temp. Time':'Temp_Time', 'Tact':'Temp'}, inplace=True)
     
     if calibration_df.empty:
-        return fmt_df, calibration_df
+        return fmt_df
 
     print(fmt_df.head())
     print(calibration_df.head())
@@ -101,7 +97,7 @@ def format_Qsense(data_df, calibration_df):
         fmt_df.iloc[:, col_i] += val
 
     print(fmt_df.head())
-    return fmt_df, calibration_df
+    return fmt_df
 
 def format_raw_data(src_type, data_file, calibration_file):
     file_name, _ = os.path.splitext(data_file)
@@ -121,10 +117,7 @@ def format_raw_data(src_type, data_file, calibration_file):
             calibration_df = open_df_from_file(calibration_file)
         else:
             calibration_df = pd.DataFrame()
-        formatted_df, formatted_calibration_df = format_Qsense(data_df, calibration_df)
-        if not formatted_calibration_df.empty:
-            formatted_calibration_df.to_csv(f"calibration_data/Formatted_calibration_data.csv", index=False)
-
+        formatted_df = format_Qsense(data_df, calibration_df)
     else:
         print("invalid option selected")
         sys.exit(1)

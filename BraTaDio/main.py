@@ -11,6 +11,7 @@ import os
 from datetime import time
 from tkinter import colorchooser
 import json
+import pandas as pd
 
 import Exceptions
 from analyze import analyze_data, ordinal, select_calibration_data
@@ -117,6 +118,21 @@ def create_checkboxes(frame, cleanliness):
         checks.append(check)
 
     return checks
+
+def generate_labelled_entries(frame):
+    keys = list(input.which_plot['clean'].keys())
+    labelled_entries = []
+    for i in range(14): # 7 different overtones each with freq and dis
+        overtone = (i+1) % 2
+        key = keys[i]
+        overtone = i+1 if overtone == 1 else i
+        f_or_d = 'frequency' if overtone == i+1 else 'dissipation'
+        text = ordinal(overtone) + ' ' + f_or_d
+        label = tk.Label(frame, text=text)
+        entry = tk.Entry(frame)
+        labelled_entries.append(LabelledEntry(label, entry))
+
+    return labelled_entries
 
 def err_check():
     global input
@@ -232,15 +248,15 @@ class App(tk.Tk):
         self.plot_opts_window.open_opts_window(self)
         self.plot_opts_window.fill_opts_window(self)
 
-    def open_calibration_data_window(self):
+    def open_calibration_window(self):
         self.calibration_window.open_calibration_window(self)
         self.calibration_window.fill_calibration_window(self)
 
-    def run_calibration(self):
-        self.calibration_window.run_calibration_input(self)
-
-    def clear_ranges(self):
+    def clear_selections(self):
         self.calibration_window.clear_selections(self)
+
+    def confirm_values(self):
+        self.calibration_window.confirm_values(self)
 
     def open_model_window(self):
         self.modeling_window.open_modeling_window(self)
@@ -374,9 +390,9 @@ class srcFileFrame(tk.Frame):
         self.container.blit_time_input_frame(input.is_relative_time)
 
 class calibrationValsFrame(tk.Frame):
-    def __init__(self, container):
-        super().__init__(container)
-        self.container = container
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
         # prompt to use theoretical or calibration values for peak frequency
         self.theoretical_or_calibration_peak_freq_frame = tk.Frame(self)
         self.theoretical_or_calibration_peak_freq_frame.grid(row=7, column=0, columnspan=1, pady=(16,0))
@@ -390,19 +406,25 @@ class calibrationValsFrame(tk.Frame):
         self.calibration_peak_freq_radio = tk.Radiobutton(self.theoretical_or_calibration_peak_freq_frame, text='calibration', variable=self.theoretical_or_calibration_peak_freq_var, value=0, command=self.handle_radios)
         self.calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
-        self.filename_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Calibration File")
-        self.browse_files_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Select Calibration File", command=lambda: select_calibration_file(self.filename_label))
+        #self.filename_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Calibration File")
+        #self.browse_files_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Select Calibration File", command=lambda: select_calibration_file(self.filename_label))
+        
+        self.calibration_file_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Copy/paste values\ndirectly into file in \n'calibration_data' folder\n\nOR")
+        self.calibration_vals_window_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Enter Values Here", command=self.open_calibration_window)
+
+    def open_calibration_window(self):
+        self.parent.parent.open_calibration_window()
 
     def handle_radios(self):
         global input
         set_input_altered_flag(True)
         input.will_use_theoretical_vals = self.theoretical_or_calibration_peak_freq_var.get()
         if not input.will_use_theoretical_vals:
-            self.browse_files_button.grid(row=3, column=0, columnspan=2, pady=(2,4))
-            self.filename_label.grid(row=4, column=0, columnspan=2, pady=(8,4))
+            self.calibration_file_label.grid(row=3, column=0, columnspan=2, pady=(2,4))
+            self.calibration_vals_window_button.grid(row=4, column=0, columnspan=2, pady=(8,4))
         else:
-            self.browse_files_button.grid_forget()
-            self.filename_label.grid_forget()
+            self.calibration_file_label.grid_forget()
+            self.calibration_vals_window_button.grid_forget()
 
 class absTimeInputFrame(tk.Frame):
     def __init__(self, container):
@@ -491,6 +513,11 @@ class CheckBox:
         self.checkbutton = checkbutton
         self.key = key 
     
+class LabelledEntry:
+    def __init__(self, label, entry):
+        self.label = label
+        self.entry = entry
+
 class CalibrationWindow():
     def __init__(self, parent, container):
         super().__init__(container) # initialize parent class for the child
@@ -501,67 +528,47 @@ class CalibrationWindow():
         calibration_window.title('Input/Select Calibration Data')
         self.calibration_frame = tk.Frame(calibration_window)
         self.calibration_frame.pack(anchor='n')
-        self.constants_frame = tk.Frame(calibration_window)
-        self.constants_frame.pack(anchor='n')
-        self.int_plot_frame = tk.Frame(calibration_window)
-        self.int_plot_frame.pack(anchor='n')
 
     def fill_calibration_window(self):
         self.calibration_label = tk.Label(self.calibration_frame, text="Calibration Data", font=('TkDefaultFont', 12, 'bold'))
-        self.calibration_label.grid(row=1, column=0, columnspan=3, padx=16, pady=12)
-        instructions = "SELECT RAW OVERTONES BEING ANALYZED FIRST\nIn this menu, enter crystal constants below,\nas well as make your selection of the\ncalibration range data with the button below"
+        self.calibration_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
+        instructions = "Input calibration frequency values here\nthese values will be used for modelling purposes\n" +\
+                        "\nfor Qsense, these values will be added\nto all data points for full frequency values"
         self.instruction_label = tk.Label(self.calibration_frame, text=instructions)
-        self.instruction_label.grid(row=2, column=0, padx=16, pady=12)
+        self.instruction_label.grid(row=2, column=0, columnspan=2, padx=16, pady=12)
 
-        # crystal constant entries and labels
-        self.rho_label = tk.Label(self.constants_frame, text="ρq: ")
-        self.rho_label.grid(row=0, column=0, pady=(2,4), padx=4)
-        self.rho_entry = tk.Entry(self.constants_frame, width=10)
-        self.rho_entry.grid(row=0, column=1, pady=(2,4))
-        self.mu_label = tk.Label(self.constants_frame, text="µq: ")
-        self.mu_label.grid(row=0, column=2, pady=(2,4), padx=4)
-        self.mu_entry = tk.Entry(self.constants_frame, width=10)
-        self.mu_entry.grid(row=0, column=3, pady=(2,4))
-        self.kappa_label = tk.Label(self.constants_frame, text="κ: ")
-        self.kappa_label.grid(row=1, column=0, pady=(2,4), padx=4)
-        self.kappa_entry = tk.Entry(self.constants_frame, width=10)
-        self.kappa_entry.grid(row=1, column=1, pady=(2,4))
-        self.epsilon_label = tk.Label(self.constants_frame, text="ϵ: ")
-        self.epsilon_label.grid(row=1, column=2, pady=(2,4), padx=4)
-        self.epsilon_entry = tk.Entry(self.constants_frame, width=10)
-        self.epsilon_entry.grid(row=1, column=3, pady=(2,4), padx=4)
+        self.labelled_entries = generate_labelled_entries(self.calibration_frame)
+        print(self.labelled_entries)
+        for i, labelled_entry in enumerate(self.labelled_entries):
+            labelled_entry.label.grid(row=i+3, column=0)
+            labelled_entry.entry.grid(row=i+3, column=1)
 
-        # raw data interactive plot
-        self.raw_int_plot_overtone_label = tk.Label(self.int_plot_frame, text="select overtone to visualize:")
-        self.raw_int_plot_overtone_label.grid(row=0, column=0, pady=(16,2))
-        self.raw_int_plot_overtone_select = tk.Entry(self.int_plot_frame, width=10)
-        self.raw_int_plot_overtone_select.grid(row=0, column=1, pady=(16,2))
-        self.which_range_label = tk.Label(self.int_plot_frame, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
-        self.which_range_label.grid(row=1, column=0, pady=(2,12), padx=8)
-        self.which_range_entry = tk.Entry(self.int_plot_frame, width=10)
-        self.which_range_entry.grid(row=1, column=1, pady=(2,12))
-
-        self.clear_selections_button = tk.Button(self.int_plot_frame, text="Clear All Selections", padx=6, pady=4, width=20, command=self.clear_ranges)
-        self.clear_selections_button.grid(row=2, column=0, columnspan=2, pady=12)  
-
-        self.raw_int_plot_button = tk.Button(self.int_plot_frame, text="Calibration Data Selection", padx=6, pady=4, width=20, command=self.run_calibration)
-        self.raw_int_plot_button.grid(row=3, column=0, columnspan=2, pady=12)
-
-    def run_calibration_input(self):
-        overtone_select = self.raw_int_plot_overtone_select.get()
-        which_range = self.which_range_entry.get()
-        print(f"opening calibration thingy: {overtone_select}")
-        select_calibration_data(input, overtone_select, which_range)
+        self.clear_selections_button = tk.Button(self.calibration_frame, text="Clear All Selections", padx=6, pady=4, width=20, command=self.clear_selections)
+        self.clear_selections_button.grid(row=30, column=0, columnspan=2, pady=12)  
+        self.confirm_selections_button = tk.Button(self.calibration_frame, text="Confirm Selections", padx=6, pady=4, width=20, command=self.confirm_values)
+        self.confirm_selections_button.grid(row=31, column=0, columnspan=2, pady=12)  
 
     def clear_selections(self):
-        with open("calibration_data/calibration_data.csv", 'w') as fp:
-            fp.write('')
-
-        self.rho_entry.delete(0,tk.END)
-        self.mu_entry.delete(0,tk.END)
-        self.kappa_entry.delete(0,tk.END)
-        self.epsilon_entry.delete(0,tk.END)
+        for le in self.labelled_entries:
+            le.entry.delete(0,tk.END)
+        print("CLEARED")
         
+    def confirm_values(self):
+        calibration_vals = []
+        warned_flag = False
+        for le in self.labelled_entries:
+            try:
+                calibration_vals.append(float(le.entry.get()))
+            except ValueError as ve:
+                if not warned_flag:
+                    print("WARNING: AT LEAST ONE ENTRY EXISTS WITH A MISSING OR INVALID INPUT\nWILL CONVERT THESE ENTRIES TO 0")
+                    warned_flag = True
+                calibration_vals.append(0.0)
+            
+        calibration_df = pd.read_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv")
+        calibration_df.loc[0] = calibration_vals
+        calibration_df.to_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv")
+        print(f"Calibration values written succesfully\n: {calibration_df.head()}")
 
 class Col2(tk.Frame):
     def __init__(self, parent, container):
@@ -721,7 +728,7 @@ class Col4(tk.Frame):
         
         # options for the int plot
         self.interactive_plot_opts = tk.Frame(self)
-        self.interactive_plot_overtone_label = tk.Label(self.interactive_plot_opts, text="select overtone to visualize:")
+        self.interactive_plot_overtone_label = tk.Label(self.interactive_plot_opts, text="Select overtone to visualize:")
         self.interactive_plot_overtone_label.grid(row=0, column=0)
         self.interactive_plot_overtone_select = tk.Entry(self.interactive_plot_opts, width=10)
         self.interactive_plot_overtone_select.grid(row=1, column=0)
