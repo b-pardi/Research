@@ -94,14 +94,14 @@ def get_calibration_values(which_plot, use_theoretical_vals):
         # grab peak frequency values from calibration file as specified in gui
         all_overtones = [get_num_from_string(ov) for ov in which_freq_plots.keys()] # get all overtones to insert 0s into overtones not selected\
         selected_overtones = [get_num_from_string(ov[0]) if ov[1] else 0 for ov in which_freq_plots.items()]
-        exp_vals_df = pd.read_csv("calibration_data/Formatted_calibration_data.csv", index_col=False).filter(like="freq")
+        exp_vals_df = pd.read_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv", index_col=False).filter(like="freq")
         i = 0
         while(i < len(all_overtones)): # all ovs always >= selected overtones
             print(selected_overtones, all_overtones[i], selected_overtones[i])
             if i < len(selected_overtones) and all_overtones[i] == selected_overtones[i]:
                 print(exp_vals_df.head())
-                print(exp_vals_df.iloc[1,i])
-                calibration_freq.append(exp_vals_df.iloc[1,i])
+                print(exp_vals_df.iloc[0,i])
+                calibration_freq.append(exp_vals_df.iloc[0,i])
                 #sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
             else:
                 print('not')

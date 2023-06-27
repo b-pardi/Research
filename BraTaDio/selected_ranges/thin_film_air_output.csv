@@ -11,10 +11,10 @@ sq_overtones,delta_gamma_norm,delta_gamma_norm_fit,delta_freqs_norm,delta_freq_n
 4.9000000000000000E+01,5.2719004700000003E+00,6.9768586700000004E+00,5.2719004700000003E+00,6.9768586700000004E+00,y,raw_data/Formatted-qcmi_sample.csv
 8.1000000000000000E+01,4.5377608900000004E+00,5.3206315799999997E+00,4.5377608900000004E+00,5.3206315799999997E+00,y,raw_data/Formatted-qcmi_sample.csv
 1.2100000000000000E+02,4.9064882699999997E+00,3.2503477099999998E+00,4.9064882699999997E+00,3.2503477099999998E+00,y,raw_data/Formatted-qcmi_sample.csv
-1,-1.01655513E+06,-6.31917429E+05,-1.01655513E+06,-6.31917429E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
-9,-4.76189574E+05,-5.84997311E+05,-4.76189574E+05,-5.84997311E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
-25,-5.14503720E+05,-4.91157074E+05,-5.14503720E+05,-4.91157074E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
-49,-5.39384674E+05,-3.50396719E+05,-5.39384674E+05,-3.50396719E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
-81,6.39300816E+05,-1.62716246E+05,6.39300816E+05,-1.62716246E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
-121,1.27569112E+05,7.18843454E+04,1.27569112E+05,7.18843454E+04,qsenseY,raw_data/Formatted-qsense_sample.csv
-169,-1.61321789E+04,3.53405055E+05,-1.61321789E+04,3.53405055E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+1,-1.03170645E+06,-6.45499837E+05,-1.03170645E+06,-6.45499837E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+9,-5.01340948E+05,-5.89080359E+05,-5.01340948E+05,-5.89080359E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+25,-4.79972475E+05,-4.76241401E+05,-4.79972475E+05,-4.76241401E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+49,-5.34463346E+05,-3.06982965E+05,-5.34463346E+05,-3.06982965E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+81,7.76661553E+05,-8.13050494E+04,7.76661553E+05,-8.13050494E+04,qsenseY,raw_data/Formatted-qsense_sample.csv
+121,2.67006249E+05,2.00792345E+05,2.67006249E+05,2.00792345E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
+169,1.44807394E+05,5.39309217E+05,1.44807394E+05,5.39309217E+05,qsenseY,raw_data/Formatted-qsense_sample.csv
