@@ -16,7 +16,7 @@ formula originates from Voinova paper, however we are ignoring the sum for now a
 we are replacing omega with 2pi * nf0
 '''
 
-def voinova_equation(n, delta3, mu1, h1):
+def voinova_equation(n, delta3, h1, mu1):
     rho0 = 2650 # (kg/m^3) density of quartz CONSTANT
     h0 = 3.3698e-4 # (m) thickness of quartz CONSTANT
     eta3 = 10e-2 # (Pa.s) viscosity of bulk fluid CONSTANT
@@ -33,15 +33,12 @@ def voinova_equation(n, delta3, mu1, h1):
     return Df
 
 def get_data():
-    df = pd.read_csv("raw_data/Fn at 75 ug per ml on func Au at 25C_STA.txt", delimiter='\t')
+    df = pd.read_csv("raw_data/Fn at 75 ug per ml on func Au at 25C_STA.txt", sep='\t')
     df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
     print(df.head)
-    #xdata = df['n'].values
-    #xdata = [get_num_from_string(x) for x in xdata]
-    #ydata = df['delF'].values
     xdata = df.index.values
-    ydata = df.iloc[:,0]
-    print
+    #xdata = [get_num_from_string(x) for x in xdata]
+    ydata = df.iloc[:,0].values
     return xdata, ydata
 
 def model():
@@ -57,12 +54,13 @@ def model():
     params, _ = curve_fit(voinova_equation, n, Df, p0=p0)
     delta3_fit, h1_fit, mu1_fit = params
 
-    Df_fit = voinova_equation(n, delta3_fit, h1_fit, mu1_fit)
-    print('FIT', Df_fit)
-    print(f"delta3: {params[0]}, h1: {params[1]}, mu1: {params[2]}")
+    Df_fit = []
+    for ov in n:
+        Df_fit.append(voinova_equation(ov, delta3_fit, h1_fit, mu1_fit))
+    print('BANANA', Df_fit)
 
-    plt.scatter(n, Df, label=f"delta3: {params[0]:.4e},\n h1: {params[1]:.4e},\n mu1: {params[2]:.4e}")
-    plt.plot(n, Df_fit, label='fit')
+    plt.scatter(n, Df, label='data')
+    plt.plot(n, Df_fit, label=f'delta3: {delta3:.4e}\nh1: {h1_fit:.4e}\nmu1:{mu1_fit:.4e}')
     plt.title("Voinova Model")
     plt.xlabel("n")
     plt.ylabel("Df")

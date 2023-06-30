@@ -221,6 +221,11 @@ waiting on data:
 - fixed bug in multiaxis plot, now correctly save figure with user spec'd format
 - fixed bug where all options in col 4 were calling destroy model window even when model window wasn't opened
 
+5/26
+- began implementation for voinova model in separate script 'voinova.py'
+- voinova model runs and produces an accurate plot when compared to the one done manually, however numbers are off
+    - need to meet next week to discuss units/orders of magnitude of values
+
 5/25
 - bug fix, C calculations for calibration data
 
