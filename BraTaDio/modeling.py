@@ -78,41 +78,39 @@ def get_calibration_values(which_plot, use_theoretical_vals):
     if use_theoretical_vals:        
         # theoretical calibration values for experiment, used in calculating bandwidth shift
         theoretical_values_df = pd.read_csv("calibration_data/theoretical_frequencies.csv", index_col=False)
-        theoretical_values = theoretical_values_df.iloc[:,0].values
-        
-        # for items in which plot, if true,
-        # insert the value from theoretical values
-        # and 0 if false
-        for i, ov in enumerate(which_freq_plots.items()):
-            if ov[1]:
+        theoretical_values = theoretical_values_df.filter(like="freq").values.flatten()
+        print(f"theo vals: {theoretical_values}")
+
+        for i, ov in enumerate(which_freq_plots.items()): # for items in which plot,
+            if ov[1]:  # if true, insert the value from theoretical values
                 calibration_freq.append(theoretical_values[i])
-            else:
+            else: # and 0 if false
                 calibration_freq.append(0)
             sigma_calibration_freq.append(0) # theoretical values will have no error
 
-        print(f"Calibration Frequencies: {calibration_freq}")
+        print(f"*** Theoretical Calibration Frequencies: {calibration_freq}")
         
     else:
         # grab peak frequency values from calibration file as specified in gui
         all_overtones = [get_num_from_string(ov) for ov in which_freq_plots.keys()] # get all overtones to insert 0s into overtones not selected\
-        selected_overtones = [get_num_from_string(ov[0]) for ov in which_freq_plots.items() if ov[1]]
-        print(all_overtones, selected_overtones)
-        exp_vals_df = pd.read_csv("calibration_data/calibration_data.csv")
+        selected_overtones = [get_num_from_string(ov[0]) if ov[1] else 0 for ov in which_freq_plots.items()]
+        exp_vals_df = pd.read_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv", index_col=False).filter(like="freq")
         i = 0
         while(i < len(all_overtones)): # all ovs always >= selected overtones
-            #print(all_overtones[i], selected_overtones[i])
+            print(selected_overtones, all_overtones[i], selected_overtones[i])
             if i < len(selected_overtones) and all_overtones[i] == selected_overtones[i]:
-                print('match')
-                calibration_freq.append(exp_vals_df.iloc[i,1])
-                sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
+                print(exp_vals_df.head())
+                print(exp_vals_df.iloc[0,i])
+                calibration_freq.append(exp_vals_df.iloc[0,i])
+                #sigma_calibration_freq.append(exp_vals_df.iloc[i,2])
             else:
                 print('not')
                 calibration_freq.append(0)
-                sigma_calibration_freq.append(0)
+            sigma_calibration_freq.append(0) # calibration vals have no err
             i+=1
 
-        print(f"*** peak frequencies: {calibration_freq}; sigma_peak_freq: {sigma_calibration_freq};\n")
-
+        print(f"*** Experimental Calibration Frequencies: {calibration_freq}")
+        
     return (calibration_freq, sigma_calibration_freq)
 
 # plot will be mean of bandwidth shift vs overtone * mean of change in frequency
@@ -252,7 +250,10 @@ def get_labels(label, type, subtype='', usetex=False):
         data_label = f"average"
         title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
         x = 'Overtone order, $\it{n}$'
-        y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
+        if subtype == 'fit':
+            y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
+        if subtype == 'avgs':
+            y = r'Sauerbrey Mass, $\it{m_{n}}$ ($\frac{ng}{cm^2}$)'
 
     elif type == 'avgs':
         data_label = f"average"
@@ -405,12 +406,35 @@ def thin_film_air_analysis(user_input):
                 stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.8E},{delta_gamma_norm_fit[i]:.8E},{delta_gamma_norm[i]:.8E},{delta_freq_norm_fit[i]:.8E},{label},{sources[0]}\n")
 
         # save figure
+        print(fig_format)
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
 
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
+
+def gordon_kanazawa(user_input):
+    which_plot, use_theoretical_vals, fig_format = user_input
+    print("Analyzing Gordon-Kanazawa Equation...")
+
+    # constants
+    pi = np.pi
+    rhoQ = 2650 # (kg/m^3) density of quartz CONSTANT
+    muQ = 3.3698e-4 # (m) thickness of quartz CONSTANT
+    rhoL = 0 # (kg/m^3) density of quartz CONSTANT
+    etaL = 0 # (m) thickness of quartz CONSTANT
+
+    if use_theoretical_vals:
+        f0 = 4998264.628859391 # (HZ) calibration fundamental frequency value (will be experimentally determined later)
+    else:
+        f0 = 1
+
+    Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (pi * muQ * rhoQ) )
+
+    print("Gordon-Kanazawa Analysis Complete")
+
+
 
 def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     # method 2 avg rf * C for each overtone
@@ -420,7 +444,7 @@ def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     if mu_Df.shape != overtones.shape:
         raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
     
-    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey', 'avgs')
     avg_Dm_fig, avg_Dm_ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
     format_plot(avg_Dm_ax, x_label, y_label, title, overtones)
     avg_Dm_fig.tight_layout()
@@ -439,7 +463,7 @@ def sauerbrey_fit(df, overtones, label, C, fig_format):
         raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
     
     # plotting average frequencies
-    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey')
+    data_label, x_label, y_label, title = get_labels(label, 'sauerbrey', 'fit')
     avg_Df_fig, avg_Df_ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
 
     # take care of all linear fitting analysis    
@@ -523,18 +547,19 @@ def avgs_analysis(fig_format):
             raise Exceptions.ShapeMismatchException((mu_Df.shape, overtones.shape),"ERROR: Different number of overtones selected in UI than found in stats file")
         
         # plotting average frequencies
+        print(fig_format)
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'freq')
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/equation/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
         # plotting average dissipations
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'dis')
         avg_Dd_range_plot, ax = plot_data(overtones, mu_Dd, None, delta_mu_Dd, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Dd_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/equation/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
 
     print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)

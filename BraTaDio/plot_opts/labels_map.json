@@ -1,0 +1,11 @@
+{
+    "font_options": {
+        "Enter font selection:": "font",
+        "Enter Label font size:": "label_text_size",
+        "Enter Title font size:": "title_text_size",
+        "Enter Value font size:": "value_text_size",
+        "Enter Legend font size:": "legend_text_size",
+        "Choose tick direction:": "tick_dir"
+    },
+    
+}

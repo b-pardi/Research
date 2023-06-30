@@ -12,7 +12,11 @@ import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 import matplotlib
-matplotlib.use('TkAgg')  # Set the backend to TkAgg
+try:
+    matplotlib.use('TkAgg')  # Set the backend to TkAgg
+except:
+    matplotlib.use('Agg')  # Set the backend to default
+
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
@@ -31,10 +35,13 @@ class Analysis:
             self.formatted_fn = f"raw_data/{file_name}.csv"
         else:
             self.formatted_fn = f"raw_data/Formatted-{file_name}.csv"
+        
+        print(f"Using formatted file: {self.formatted_fn}")
 
         self.time_col = 'Time' # relative time
         self.abs_time_col = 'abs_time' # for qcmd with abs and rel time
         self.temp_col = 'Temp'
+        self.temp_time_col = 'Temp_Time'
 
         self.freqs = ['fundamental_freq', '3rd_freq', '5th_freq', '7th_freq', '9th_freq', '11th_freq', '13th_freq']
         self.disps = ['fundamental_dis', '3rd_dis', '5th_dis', '7th_dis', '9th_dis', '11th_dis', '13th_dis']
@@ -99,11 +106,34 @@ def determine_ylabel(ydata_type, is_normalized):
         else:
             return r"Change in frequency, $\mathit{Δf_{n}}$ (Hz)"
 
-def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, fig_format, will_save=False, legend=True):
+def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, will_save=False, legend=True):
     plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
     plt.figure(fig.number)
+
     if legend:
         ax.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.1)
+    
+    # set the bounds of data plotted, based on user input, looking at axis label to determine with bound inputted to use
+    if fig_y.__contains__('frequency'):
+        y_bound = (plot_customs['frequency_lower_bound'], plot_customs['frequency_upper_bound'])
+    elif fig_y.__contains__('dissipation'):
+        y_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+    else:
+        y_bound = ('auto','auto')
+    
+    if fig_x.__contains__('Time'):
+        x_bound = (plot_customs['time_lower_bound'], plot_customs['time_upper_bound'])
+    elif fig_x.__contains__('dissipation'):
+        x_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+    else:
+        x_bound = ('auto','auto')
+
+    if x_bound[0] != x_bound[1]:
+        plt.xlim(int(x_bound[0]), int(x_bound[1]))
+    if y_bound[0] != y_bound[1]:
+        plt.ylim(float(y_bound[0]), float(y_bound[1]))
+
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
     plt.yticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
     plt.xlabel(fig_x, fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
@@ -136,11 +166,24 @@ def find_nearest_time(time, my_df, time_col_name, is_relative_time):
 def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, ax2, color):
     plt.figure(fig.number)
     plot_customs = get_plot_preferences()
-    ax1.set_xlabel(determine_xlabel(input.x_timescale), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
+    points_idx = plot_customs['points_plotted_index']
+
+    x_bound = (plot_customs['time_lower_bound'], plot_customs['time_upper_bound'])
+    y1_bound = (plot_customs['frequency_lower_bound'], plot_customs['frequency_upper_bound'])
+    y2_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+
+    if x_bound[0] != x_bound[1]:
+        plt.xlim(int(x_bound[0]), int(x_bound[1]))
+    if y1_bound[0] != y1_bound[1]:
+        plt.ylim(int(y1_bound[0]), int(y1_bound[1]))
+    if y2_bound[0] != y2_bound[1]:
+        plt.ylim(int(y2_bound[0]), int(y2_bound[1]))
+
+    ax1.set_xlabel(determine_xlabel(plot_customs['time_scale']), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax1.set_ylabel(determine_ylabel('freq', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax2.set_ylabel(determine_ylabel('dis', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
-    ax1.plot(x_time, y_rf, 'v', markersize=1, label=freq_label, color=color)
-    ax2.plot(x_time, y_dis, '^', markersize=1, label=dis_label, color=color)
+    ax1.plot(x_time[::points_idx], y_rf[::points_idx], 'o', markersize=1, label=freq_label, color=color)
+    ax2.plot(x_time[::points_idx], y_dis[::points_idx], 'o', markersize=2, label=dis_label, markerfacecolor='none', markeredgecolor=color, markeredgewidth=0.32)
     ax1.tick_params(axis='both', direction=plot_customs['tick_dir'])
     ax2.tick_params(axis='both', direction=plot_customs['tick_dir'])
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
@@ -148,8 +191,10 @@ def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, 
     plt.title("Change in Frequency vs Change in Dissipation", fontsize=plot_customs['title_text_size'], fontfamily=plot_customs['font'])
 
 def plot_temp_v_time(fig, ax, time, temp, x_scale, fig_format):
-    ax.plot(time, temp, '.', markersize=1)
-    setup_plot(fig, ax, determine_xlabel(x_scale), "Temperature °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", fig_format, True, False)
+    plot_prefs = get_plot_preferences()
+    points_idx = plot_prefs['points_plotted_index']
+    ax.plot(time[::points_idx], temp[::points_idx], '.', markersize=1)
+    setup_plot(fig, ax, determine_xlabel(x_scale), r"Temperature, $\it{t}$ °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", True, False)
 
 # check if label and file already exists and remove if it does before writing new data for that range
 # this allows for overwriting of only the currently selected file and frequency,
@@ -414,7 +459,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
     plot_customs = get_plot_preferences()
     int_plot_analysis = Analysis(input.file)
     spans = []        
-    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, input.x_timescale, cleaned_df, time_col)
+    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, plot_customs['time_scale'], cleaned_df, time_col)
 
     def update_text(event):
         if input.which_range_selecting == '':
@@ -429,7 +474,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
             print("Invalid input format. Please enter a valid range.")
 
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
-                                  xmin, xmax, x_time, y_rf, y_dis, input.x_timescale)
+                                  xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
         interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
                                   imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
     
@@ -447,7 +492,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
             return
         
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
-                                  xmin, xmax, x_time, y_rf, y_dis, input.x_timescale)
+                                  xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
         interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
                                   imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
 
@@ -473,7 +518,8 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
     plt.show()
 
 def raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, time_col):
-    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(overtone_select, input.x_timescale, raw_df, time_col)
+    plot_customs = get_plot_preferences()
+    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(overtone_select, plot_customs['time_scale'], raw_df, time_col)
     int_plot_analysis = Analysis(input.file)
     def on_raw_select(xmin, xmax):
         if which_range == '':
@@ -544,6 +590,7 @@ def analyze_data(input):
     freq_color_map, dis_color_map = map_colors()
 
     plot_customs = get_plot_preferences()
+    points_idx = plot_customs['points_plotted_index']
 
     '''Cleaning Data and plotting clean data'''
     if input.will_plot_clean_data:
@@ -603,6 +650,8 @@ def analyze_data(input):
         
         if input.will_plot_temp_v_time:
             try:
+                if input.file_src_type == 'Qsense':
+                    analysis.time_col = analysis.temp_time_col
                 temperature_df = df[[analysis.time_col, analysis.temp_col]].copy()
                 temperature_df = temperature_df.dropna(axis=0, how='any', inplace=False)
             except Exception as e:
@@ -611,9 +660,9 @@ def analyze_data(input):
                 temperature_df[analysis.temp_col] = 0
 
         # choose appropriate divisor for x scale of time
-        if input.x_timescale == 'min':
+        if plot_customs['time_scale'] == 'min':
             divisor = 60
-        elif input.x_timescale == 'hr':
+        elif plot_customs['time_scale'] == 'hr':
             divisor = 3600
         else:
             divisor = 1
@@ -660,15 +709,16 @@ def analyze_data(input):
             # PLOTTING
             
             # don't plot data for channels not selected
+            
             if i < freq_plot_cap:
-                freq_ax.plot(x_time, y_rf, '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])), color=freq_color_map[clean_freqs[i]])
+                freq_ax.plot(x_time[::points_idx], y_rf[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])), color=freq_color_map[clean_freqs[i]])
         
             if i < disp_plot_cap:
-                dis_ax.plot(x_time, y_dis, '.', markersize=1, label=ordinal(get_num_from_string(clean_disps[i])), color=dis_color_map[clean_disps[i]])
+                dis_ax.plot(x_time[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_disps[i])), color=dis_color_map[clean_disps[i]])
 
             # plotting change in disp vs change in freq
             if input.will_plot_dD_v_dF:
-                disVfreq_ax.plot(y_rf, y_dis, '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])))
+                disVfreq_ax.plot(y_rf[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])))
             
             # multi axis plot for change in freq and change in dis vs time
             if input.will_plot_dF_dD_together:
@@ -695,7 +745,7 @@ def analyze_data(input):
             temperature_df[analysis.time_col] /= divisor
             tempVtime_fig = plt.figure()
             tempVtime_ax = tempVtime_fig.add_subplot(111)
-            plot_temp_v_time(tempVtime_fig, tempVtime_ax, temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, input.x_timescale, input.fig_format)    
+            plot_temp_v_time(tempVtime_fig, tempVtime_ax, temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, plot_customs['time_scale'], plot_customs['fig_format'])    
 
         if input.will_overwrite_file:
             df.to_csv(f"raw_data/CLEANED-{analysis.formatted_fn}", index=False)
@@ -703,25 +753,25 @@ def analyze_data(input):
         # Titles, lables, etc. for plots
         rf_fig_title = "QCM-D Resonant Frequency"
         rf_fn = "qcmd-plots/resonant-freq-plot"
-        fig_x = determine_xlabel(input.x_timescale)
+        fig_x = determine_xlabel(plot_customs['time_scale'])
 
         dis_fig_title = "QCM-D Dissipation"
         dis_fn = f"qcmd-plots/dissipation-plot"
 
         # format and save figures
         setup_plot(freq_fig, freq_ax, fig_x, determine_ylabel('freq', input.will_normalize_F),
-                   rf_fig_title, rf_fn, input.fig_format)
+                   rf_fig_title, rf_fn)
         setup_plot(dis_fig, dis_ax, fig_x, determine_ylabel('dis', input.will_normalize_F),
-                   dis_fig_title, dis_fn, input.fig_format)
+                   dis_fig_title, dis_fn)
         
-        freq_fig.savefig(f"qcmd-plots/frequency_plot.{input.fig_format}", format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
-        dis_fig.savefig(f"qcmd-plots/dissipation_plot.{input.fig_format}", format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        freq_fig.savefig(f"qcmd-plots/frequency_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
+        dis_fig.savefig(f"qcmd-plots/dissipation_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
         
         if input.will_plot_dD_v_dF:
             dVf_fn = f"qcmd-plots/disp_V_freq-plot"
             setup_plot(disVfreq_fig, disVfreq_ax, determine_ylabel('freq', input.will_normalize_F), determine_ylabel('dis', input.will_normalize_F),
-                       dis_fig_title, dVf_fn, input.fig_format)
-            disVfreq_fig.savefig(f"qcmd-plots/disp_V_freq_plot.{input.fig_format}", format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+                       dis_fig_title, dVf_fn)
+            disVfreq_fig.savefig(f"qcmd-plots/disp_V_freq_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
             
 
         # saving multiaxis plot.
@@ -729,22 +779,20 @@ def analyze_data(input):
             box = mult_ax1.get_position()
             mult_ax1.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
             mult_fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.1), ncol=2, fancybox=True, shadow=True, fontsize=plot_customs['legend_text_size'], prop={'family': 'Arial'}, framealpha=0.1)
-            mult_fig.savefig(f"qcmd-plots/freq_dis_V_time.{input.fig_format}", format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
-        
-
+            mult_fig.savefig(f"qcmd-plots/freq_dis_V_time.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=800)
 
     # Gathering raw data for individual plots
     if input.will_plot_raw_data:
         # plot definitions
         rf_fig_title = "RAW QCM-D Resonant Frequency"
-        fig_x = determine_xlabel(input.x_timescale)
+        fig_x = determine_xlabel(plot_customs['time_scale'])
         dis_fig_title = "RAW QCM-D Dissipation"
 
         # choose appropriate divisor for x scale of time
         time_scale_divisor = 1
-        if input.x_timescale == 'min':
+        if plot_customs['time_scale'] == 'min':
             time_scale_divisor = 60
-        elif input.x_timescale == 'hr':
+        elif plot_customs['time_scale'] == 'hr':
             time_scale_divisor = 3600
 
         raw_freqs, raw_disps = get_channels(input.which_plot['raw'].items())
@@ -757,7 +805,7 @@ def analyze_data(input):
             x_time = rf_data_df[analysis.time_col] / time_scale_divisor
             y_rf = rf_data_df[raw_freqs[i]]
         
-            raw_freq_ax.plot(x_time, y_rf, '.', markersize=1, label=ordinal(get_num_from_string(raw_freqs[i])), color=freq_color_map[raw_freqs[i]])
+            raw_freq_ax.plot(x_time[::points_idx], y_rf[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(raw_freqs[i])), color=freq_color_map[raw_freqs[i]])
             
         # gather and plot raw dissipation data
         raw_dis_fig = plt.figure()
@@ -767,17 +815,17 @@ def analyze_data(input):
             dis_data_df = dis_data_df.dropna(axis=0, how='any', inplace=False)
             x_time = dis_data_df[analysis.time_col] / time_scale_divisor
             y_dis = dis_data_df[raw_disps[i]]
-            raw_dis_ax.plot(x_time, y_dis, '.', markersize=1, label=ordinal(get_num_from_string(raw_disps[i])), color=dis_color_map[raw_disps[i]])
+            raw_dis_ax.plot(x_time[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(raw_disps[i])), color=dis_color_map[raw_disps[i]])
             
         # save raw frequency plots
         rf_fn = f"qcmd-plots/RAW-resonant-freq-plot"
-        setup_plot(raw_freq_fig, raw_freq_ax, fig_x, determine_ylabel('freq', False), rf_fig_title, rf_fn, input.fig_format)
-        raw_freq_fig.savefig(rf_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        setup_plot(raw_freq_fig, raw_freq_ax, fig_x, determine_ylabel('freq', False), rf_fig_title, rf_fn, plot_customs['fig_format'])
+        raw_freq_fig.savefig(rf_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
 
         # save raw dissipation plots
         dis_fn = f"qcmd-plots/RAW-dissipation-plot"
-        setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False), dis_fig_title, dis_fn,  input.fig_format)
-        raw_dis_fig.savefig(dis_fn + '.' + input.fig_format, format=input.fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False), dis_fig_title, dis_fn,  plot_customs['fig_format'])
+        raw_dis_fig.savefig(dis_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
 
 
     # interactive plot

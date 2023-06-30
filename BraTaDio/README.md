@@ -95,10 +95,21 @@
 ### WIP
 
 bug fixes:
+- ASK ROBERTO bout proper theoretical values ( do we need code to take averages, and if so how to structure )
+- for file conv optim, if qsense calib data not entered when file converted, and then ran again adding calib data, it will think the file has already been processed and not convert and update
+    - adjust naming convention to account for if calib data added
+- remove old references to calibration data (before using new file sel feature)
 
 format changes:
 
 features:
+- when confirming selections if field is empty, default to whatever was originally in the plot opts json instead of throwing an error
+    - add label to notify user of this feature
+    - put all widgets into a dictionary with they value as the widget and key is the same key in plot_opts.json
+    - function to grid all items handled separately depending on type of widget
+    - iterate through all widgets in frame looking for empty strings or empty radio buttons
+    - when empty found, warn user once, and set the widget to the value to the corresponding previous opts value
+    - set the current opts dict value to the corresponding previous opts value
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -109,6 +120,7 @@ publication/documentation:
 - instructions on adding more files to format
 
 optimizations/refactoring: 
+- plot ops, if blank values are entered, just use default values in their place, and label to notify user
 - remove unnecessary prints
 - error messages become window popups
     - like when trying to submit with selections that there are no data for
@@ -131,6 +143,62 @@ waiting on data:
 
 
 ### CHANGE LOG
+6/30
+- added to UI plot customization options input fields and labels for adjusting the bounds of each axis for visualization (time, freq, disp)
+- updated plot opts json file for these new customization options
+- adjusted setup_plot function to accommodate this customization
+    - function looks at what label is being passed in to determine which bounds to set the axis to
+- multi axis now works for the bounds adjustment (needed to independently set axis bounds)
+- bug fix, tick direction in and out intvars were backwards
+
+6/23
+- added temperature and temp_time columns to qsense file conversion
+- qsense data can now plot temperature vs time
+
+- removed button to select calibration file as it will now only reference one file
+    - this file can be directly copy pasted to by the user, or fill out entries via a popup window in the UI
+- removed file conversion for calibration values, opting for alternate method below
+- calibration values now can be copy pasted directly into csv file entitled 'COPY-PASTE_CALIBRATION_VALUES_HERE.csv' in calibration_data folder, OR
+- other option to bring up window to enter values into UI
+    - UI contains labelled entries for all freq and disp values that are then grabbed and written to a csv file for later use
+    - empty or incorrect values are written as a 0 (user is also warned)
+    - when selecting calibration data, button to open calibration data shows, as well as label to copy paste values into a csv file directly
+
+6/21
+- adjusted theoretical values df to match bratadio format
+- adjusted how get_calibration_values() grabs theoretical values to match the file format conversion for calibration data from qsense
+- fixed bug in calibration vals where values were not being grabbed and program crashed for thin film models
+- fixed bug when not modeling all overtones, first overtone not selected would lead to no overtones after it being analyzed even if they were selected
+- 
+
+6/20
+- moved file format options to plot customization window
+- moved x time scale option to plot customization window
+- updated json file for option storage to account for the above changes
+- x time scale and file format are now saved options that don't need to be selected every execution of the software
+- replaced all references of input.x_timescale and input.fig_format with the appropriate attributes in the plot customs dictionary
+
+- added plot preference to input how many points to plot (default 1 which is every point)
+    - i.e. if the data is too crowded, input can determine to plot every 5th point
+- updated json file for the above plot preference addition
+- updated all plotting in analyze.py to plot points based on the index (except interactive plot)
+
+- removed prompts and selections that followed selecting calibration values
+- added calibration data file selection button to col 1 (calibrationValsFrame)
+- added warning label regarding needing calibration data for modeling with qsense data
+- when formatting file with qsense, now adds calibration values from user spec'd calibration file to the data df
+
+- moved range selection of interactive plot to column 4 out of modeling window
+    - put modeling button below the int plot options frame
+- multiaxis changed to filled circles and empty circles
+- updated y axis label for avgs method of finding Sauerbrey mass to indicate that it is the mass of each overtone
+- changed run avg of... to plot avg of in modeling window
+- updated temp v time y label, Temperature, t(italic) (degreeC)
+- fixed bug that first submission would look for int plot overtone even if int plot checkbox was deselected
+
+6/16
+- changed avgs plots in modeling to go to modeling folder, removed equation folder
+
 6/15
 - remove saving of Sauerbrey stats/ranges, alt method of sauerbrey will also use rf_stats and multiply C to avg rf of each overtone
 - removed C from range statistics, opting for it to be done only in modeling.py
