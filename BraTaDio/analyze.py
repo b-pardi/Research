@@ -106,11 +106,34 @@ def determine_ylabel(ydata_type, is_normalized):
         else:
             return r"Change in frequency, $\mathit{Δf_{n}}$ (Hz)"
 
-def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, fig_format, will_save=False, legend=True):
+def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, will_save=False, legend=True):
     plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
     plt.figure(fig.number)
+
     if legend:
         ax.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.1)
+    
+    # set the bounds of data plotted, based on user input, looking at axis label to determine with bound inputted to use
+    if fig_y.__contains__('frequency'):
+        y_bound = (plot_customs['frequency_lower_bound'], plot_customs['frequency_upper_bound'])
+    elif fig_y.__contains__('dissipation'):
+        y_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+    else:
+        y_bound = ('auto','auto')
+    
+    if fig_x.__contains__('Time'):
+        x_bound = (plot_customs['time_lower_bound'], plot_customs['time_upper_bound'])
+    elif fig_x.__contains__('dissipation'):
+        x_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+    else:
+        x_bound = ('auto','auto')
+
+    if x_bound[0] != x_bound[1]:
+        plt.xlim(int(x_bound[0]), int(x_bound[1]))
+    if y_bound[0] != y_bound[1]:
+        plt.ylim(float(y_bound[0]), float(y_bound[1]))
+
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
     plt.yticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
     plt.xlabel(fig_x, fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
@@ -144,6 +167,18 @@ def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, 
     plt.figure(fig.number)
     plot_customs = get_plot_preferences()
     points_idx = plot_customs['points_plotted_index']
+
+    x_bound = (plot_customs['time_lower_bound'], plot_customs['time_upper_bound'])
+    y1_bound = (plot_customs['frequency_lower_bound'], plot_customs['frequency_upper_bound'])
+    y2_bound = (plot_customs['dissipation_lower_bound'], plot_customs['dissipation_upper_bound'])
+
+    if x_bound[0] != x_bound[1]:
+        plt.xlim(int(x_bound[0]), int(x_bound[1]))
+    if y1_bound[0] != y1_bound[1]:
+        plt.ylim(int(y1_bound[0]), int(y1_bound[1]))
+    if y2_bound[0] != y2_bound[1]:
+        plt.ylim(int(y2_bound[0]), int(y2_bound[1]))
+
     ax1.set_xlabel(determine_xlabel(plot_customs['time_scale']), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax1.set_ylabel(determine_ylabel('freq', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax2.set_ylabel(determine_ylabel('dis', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
@@ -156,9 +191,10 @@ def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, 
     plt.title("Change in Frequency vs Change in Dissipation", fontsize=plot_customs['title_text_size'], fontfamily=plot_customs['font'])
 
 def plot_temp_v_time(fig, ax, time, temp, x_scale, fig_format):
-    points_idx = get_plot_preferences()['points_plotted_index']
+    plot_prefs = get_plot_preferences()
+    points_idx = plot_prefs['points_plotted_index']
     ax.plot(time[::points_idx], temp[::points_idx], '.', markersize=1)
-    setup_plot(fig, ax, determine_xlabel(x_scale), r"Temperature, $\it{t}$ °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", fig_format, True, False)
+    setup_plot(fig, ax, determine_xlabel(x_scale), r"Temperature, $\it{t}$ °C", "QCM-D Temperature vs Time", "qcmd-plots/temp_vs_time_plot", True, False)
 
 # check if label and file already exists and remove if it does before writing new data for that range
 # this allows for overwriting of only the currently selected file and frequency,
@@ -724,9 +760,9 @@ def analyze_data(input):
 
         # format and save figures
         setup_plot(freq_fig, freq_ax, fig_x, determine_ylabel('freq', input.will_normalize_F),
-                   rf_fig_title, rf_fn, plot_customs['fig_format'])
+                   rf_fig_title, rf_fn)
         setup_plot(dis_fig, dis_ax, fig_x, determine_ylabel('dis', input.will_normalize_F),
-                   dis_fig_title, dis_fn, plot_customs['fig_format'])
+                   dis_fig_title, dis_fn)
         
         freq_fig.savefig(f"qcmd-plots/frequency_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
         dis_fig.savefig(f"qcmd-plots/dissipation_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
@@ -734,7 +770,7 @@ def analyze_data(input):
         if input.will_plot_dD_v_dF:
             dVf_fn = f"qcmd-plots/disp_V_freq-plot"
             setup_plot(disVfreq_fig, disVfreq_ax, determine_ylabel('freq', input.will_normalize_F), determine_ylabel('dis', input.will_normalize_F),
-                       dis_fig_title, dVf_fn, plot_customs['fig_format'])
+                       dis_fig_title, dVf_fn)
             disVfreq_fig.savefig(f"qcmd-plots/disp_V_freq_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
             
 

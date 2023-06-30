@@ -68,6 +68,16 @@ def set_input_altered_flag(flag, notif=True):
         print("Input altered, will run calculations")
     INPUT_ALTERED_FLAG = flag
     
+def check_entries(frame, data):
+    for widget in frame.winfo_children():
+        if isinstance(widget, tk.Entry):
+            entry_text = widget.get()
+            if not entry_text.strip():  # Check if the entry is empty or contains only whitespace
+                key = widget.cget("text")  # Assuming the Entry's text corresponds to a key in the dictionary
+                if key in data:
+                    widget.delete(0, tk.END)
+                    widget.insert(tk.END, data[key])
+
 def browse_files(file_dir, btn_title):
     fp = filedialog.askopenfilename(initialdir=os.path.join(os.getcwd(), file_dir),
                                           title=btn_title,
@@ -910,9 +920,9 @@ class PlotOptsWindow():
         self.tick_direction_label.grid(row=9, column=0, columnspan=6, pady=0)
         self.tick_direction_var = tk.IntVar()
         self.tick_direction_var.set(-1)
-        self.tick_direction_in_radio = tk.Radiobutton(self.opts_frame, text="in", variable=self.tick_direction_var, value=1)
+        self.tick_direction_in_radio = tk.Radiobutton(self.opts_frame, text="in", variable=self.tick_direction_var, value=0)
         self.tick_direction_in_radio.grid(row=10, column=0, columnspan=2)
-        self.tick_direction_out_radio = tk.Radiobutton(self.opts_frame, text="out", variable=self.tick_direction_var, value=0)
+        self.tick_direction_out_radio = tk.Radiobutton(self.opts_frame, text="out", variable=self.tick_direction_var, value=1)
         self.tick_direction_out_radio.grid(row=10, column=2, columnspan=2)
         self.tick_direction_inout_radio = tk.Radiobutton(self.opts_frame, text="both", variable=self.tick_direction_var, value=2)
         self.tick_direction_inout_radio.grid(row=10, column=4, columnspan=2)
@@ -952,6 +962,43 @@ class PlotOptsWindow():
         self.points_plotted_index_entry = tk.Entry(self.opts_frame, width=10)
         self.points_plotted_index_entry.grid(row=20, column=3, columnspan=3, pady=8)
 
+        # option to set bounds of time, frequency, and dissipation
+        self.bounds_frame = tk.Frame(self.opts_frame)
+        bounds_label_text = "Enter bounds for data to be plotted\nenter 'auto' to use the default for that bound\n\n" \
+        + "Note: units of time rely on units specified above,\n" \
+        + "frequency bounds are in terms of Δf (Hz), not f,\n" \
+        + "and dissipation bounds are in terms of (your number) E-6"
+        self.bounds_label = tk.Label(self.bounds_frame, text=bounds_label_text)
+        self.bounds_label.grid(row=0, column=0, columnspan=4, pady=8)
+        self.time_lower_bound_label = tk.Label(self.bounds_frame, text="Time Lower: ")
+        self.time_lower_bound_label.grid(row=1, column=0, padx=4, pady=4)
+        self.time_lower_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.time_lower_bound_entry.grid(row=1, column=1, padx=4, pady=4)
+        self.time_upper_bound_label = tk.Label(self.bounds_frame, text="Time Upper: ")
+        self.time_upper_bound_label.grid(row=1, column=2, padx=4, pady=4)
+        self.time_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.time_upper_bound_entry.grid(row=1, column=3, padx=4, pady=4)
+
+        self.frequency_lower_bound_label = tk.Label(self.bounds_frame, text="Frequency Lower: ")
+        self.frequency_lower_bound_label.grid(row=2, column=0, padx=4, pady=4)
+        self.frequency_lower_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.frequency_lower_bound_entry.grid(row=2, column=1, padx=4, pady=4)
+        self.frequency_upper_bound_label = tk.Label(self.bounds_frame, text="Frequency Upper: ")
+        self.frequency_upper_bound_label.grid(row=2, column=2, padx=4, pady=4)
+        self.frequency_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.frequency_upper_bound_entry.grid(row=2, column=3, padx=4, pady=4)
+
+        self.dissipation_lower_bound_label = tk.Label(self.bounds_frame, text="Dissipation Lower: ")
+        self.dissipation_lower_bound_label.grid(row=3, column=0, padx=4, pady=4)
+        self.dissipation_lower_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.dissipation_lower_bound_entry.grid(row=3, column=1, padx=4, pady=4)
+        self.dissipation_upper_bound_label = tk.Label(self.bounds_frame, text="Dissipation Upper: ")
+        self.dissipation_upper_bound_label.grid(row=3, column=2, padx=4, pady=4)
+        self.dissipation_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
+        self.dissipation_upper_bound_entry.grid(row=3, column=3, padx=4, pady=4)
+        
+        self.bounds_frame.grid(row=21, column=0, columnspan=6, pady=(12,0))
+
         # second column color customizer
         self.ov_color_label = tk.Label(self.opts_frame, text="Customize Overtone Plot Colors", font=('TkDefaultFont', 12, 'bold'))
         self.ov_color_label.grid(row=1, column=6, padx=16, pady=12)
@@ -971,6 +1018,7 @@ class PlotOptsWindow():
         self.ov13_color_button = tk.Button(self.opts_frame, text="13th overtone", width=10, command=lambda: self.choose_color(13))
         self.ov13_color_button.grid(row=9, column=6, pady=4)
 
+        self.empty_entries_notif_label = tk.Label(self.opts_frame, text="WARNING: Empty entries to default to\npreviously entered options", font=('TkDefaultFont', 10, 'bold'))
         self.options_saved_label = tk.Label(self.opts_frame, text="Confirming selections\nsaves preferences\neven when software\nis closed")
         self.options_saved_label.grid(row=28, column=6, pady=(24,4))
         self.default_button = tk.Button(self.opts_frame, text="Default Values", width=14, command=self.set_default_values)
@@ -1029,6 +1077,13 @@ class PlotOptsWindow():
         self.set_text(self.value_text_size_entry, default_opts['value_text_size'])
         self.set_text(self.legend_text_size_entry, default_opts['legend_text_size'])
         self.set_text(self.points_plotted_index_entry, default_opts['points_plotted_index'])
+
+        self.set_text(self.dissipation_upper_bound_entry, default_opts['dissipation_upper_bound'])
+        self.set_text(self.dissipation_lower_bound_entry, default_opts['dissipation_lower_bound'])
+        self.set_text(self.frequency_upper_bound_entry, default_opts['frequency_upper_bound'])
+        self.set_text(self.frequency_lower_bound_entry, default_opts['frequency_lower_bound'])
+        self.set_text(self.time_upper_bound_entry, default_opts['time_upper_bound'])
+        self.set_text(self.time_lower_bound_entry, default_opts['time_lower_bound'])
         
         self.tick_direction_var.set(1)
         self.time_scale_frame.grid(row=13, column=0, columnspan=6)
@@ -1040,17 +1095,33 @@ class PlotOptsWindow():
             self.scale_time_var.set(1)
         self.which_time_scale_var.set(1)
         
-        
         self.options = default_opts
 
     def confirm_opts(self):
         set_input_altered_flag(True)
-        self.options['font'] = self.font_choice_entry.get()
+        
+        with open('plot_opts/plot_customizations.json', 'r') as fp:
+            prev_opts = json.load(fp)
+
+
+
+        # check empty entries
+        #check_entries(self.opts_frame, prev_opts)
+
+
+        self.options['font'] = self.font_choice_entry.get()# if self.font_choice_entry.get() != '' else prev_opts['font']
         self.options['label_text_size'] = self.label_text_size_entry.get()
         self.options['title_text_size'] = self.title_text_size_entry.get()
         self.options['value_text_size'] = self.value_text_size_entry.get()
         self.options['legend_text_size'] = self.legend_text_size_entry.get()
-        
+
+        self.options['time_lower_bound'] = self.time_lower_bound_entry.get()
+        self.options['time_upper_bound'] = self.time_upper_bound_entry.get()
+        self.options['frequency_lower_bound'] = self.frequency_lower_bound_entry.get()
+        self.options['frequency_upper_bound'] = self.frequency_upper_bound_entry.get()
+        self.options['dissipation_lower_bound'] = self.dissipation_lower_bound_entry.get()
+        self.options['dissipation_upper_bound'] = self.dissipation_upper_bound_entry.get()
+
         if self.which_time_scale_var.get() == 1:
             self.options['time_scale'] = 's'
         if self.which_time_scale_var.get() == 2:
@@ -1074,10 +1145,17 @@ class PlotOptsWindow():
 
         self.options['points_plotted_index'] = int(self.points_plotted_index_entry.get())
 
+        
+        warned_flag = False
         for key in self.options.keys():
             if self.options[key] == '':
+                self.options[key] = prev_opts[key]
+                if not warned_flag:
+                    self.empty_entries_notif_label.grid(row=31, column=6, pady=6)
+                    warned_flag = True
                 raise Exceptions.MissingPlotCustomizationException(key, "Please Specify Missing field. ")
-
+        self.empty_entries_notif_label.after(5000, lambda: self.empty_entries_notif_label.grid_forget())
+        warned_flag = False
         with open('plot_opts/plot_customizations.json', 'w') as fp:
             json.dump(self.options, fp)
 
