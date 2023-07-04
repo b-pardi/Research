@@ -244,6 +244,7 @@ class App(tk.Tk):
         self.plot_opts_window = PlotOptsWindow
         with open('plot_opts/plot_customizations.json', 'r') as fp:
             self.options = json.load(fp)
+        self.prev_opts = self.options
 
     def repack_frames(self):
         for frame in self.frames:
@@ -887,6 +888,9 @@ class PlotOptsWindow():
         self.opts_confirm.pack(side='bottom', anchor='e')'''
 
     def fill_opts_window(self):
+        self.widgets = {}
+        print(self.prev_opts)
+
         # first column contains most plot customizations
         self.customize_label = tk.Label(self.opts_frame, text="Plot Customization Options", font=('TkDefaultFont', 12, 'bold'))
         self.customize_label.grid(row=1, column=0, columnspan=6, padx=16, pady=12)
@@ -895,26 +899,31 @@ class PlotOptsWindow():
         self.font_choice_label.grid(row=3, column=0, columnspan=3, pady=(20,4))
         self.font_choice_entry = tk.Entry(self.opts_frame, width=10)
         self.font_choice_entry.grid(row=3, column=3, columnspan=3, pady=(20,4))
+        self.widgets['font'] = self.font_choice_entry
 
         self.label_text_size_label = tk.Label(self.opts_frame, text="Enter Label font size:")
         self.label_text_size_label.grid(row=4, column=0, columnspan=3, pady=(16,0))
         self.label_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.label_text_size_entry.grid(row=4, column=3, columnspan=3, pady=(16,0))
+        self.widgets['label_text_size'] = self.label_text_size_entry
 
         self.title_text_size_label = tk.Label(self.opts_frame, text="Enter Title font size:")
         self.title_text_size_label.grid(row=5, column=0, columnspan=3, pady=(16,0))
         self.title_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.title_text_size_entry.grid(row=5, column=3, columnspan=3, pady=(16,0))
+        self.widgets['title_text_size'] = self.title_text_size_entry
 
         self.value_text_size_label = tk.Label(self.opts_frame, text="Enter Value font size:")
         self.value_text_size_label.grid(row=6, column=0, columnspan=3, pady=(16,0))
         self.value_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.value_text_size_entry.grid(row=6, column=3, columnspan=3, pady=(16,0))
+        self.widgets['value_text_size'] = self.value_text_size_entry
 
         self.legend_text_size_label = tk.Label(self.opts_frame, text="Enter Legend font size:")
         self.legend_text_size_label.grid(row=7, column=0, columnspan=3, pady=(16,0))
         self.legend_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.legend_text_size_entry.grid(row=7, column=3, columnspan=3, pady=(16,0))
+        self.widgets['legend_text_size'] = self.legend_text_size_entry
 
         self.tick_direction_label = tk.Label(self.opts_frame, text="Choose tick direction:")
         self.tick_direction_label.grid(row=9, column=0, columnspan=6, pady=0)
@@ -926,12 +935,14 @@ class PlotOptsWindow():
         self.tick_direction_out_radio.grid(row=10, column=2, columnspan=2)
         self.tick_direction_inout_radio = tk.Radiobutton(self.opts_frame, text="both", variable=self.tick_direction_var, value=2)
         self.tick_direction_inout_radio.grid(row=10, column=4, columnspan=2)
+        self.widgets['tick_dir'] = self.tick_direction_var
 
         # Options for changing the scale of x axis time
         self.scale_time_var = tk.IntVar()
         self.which_range_var = tk.IntVar()
         self.scale_time_check = tk.Checkbutton(self.opts_frame, text="Change scale of time? (default (s))", variable=self.scale_time_var, onvalue=1, offvalue=0, command=self.receive_scale_radios)
         self.scale_time_check.grid(row=12, column=0, columnspan=6, pady=(32,0))
+        
         # default to seconds
         self.time_scale_frame = tk.Frame(self.opts_frame)
         self.which_time_scale_var = tk.IntVar()
@@ -941,6 +952,7 @@ class PlotOptsWindow():
         self.minutes_scale_check.grid(row=0, column=2, columnspan=2)
         self.hours_scale_check = tk.Radiobutton(self.time_scale_frame, text="Hours", variable=self.which_time_scale_var, value=3, command=self.receive_scale_radios)
         self.hours_scale_check.grid(row=0, column=4, columnspan=2)
+        self.widgets['time_scale'] = self.which_time_scale_var
 
         # Options for changing file format of saved scatter plot figures
         self.change_fig_format_var = tk.IntVar()
@@ -955,12 +967,14 @@ class PlotOptsWindow():
         self.tiff_check.grid(row=0, column=2, columnspan=2)
         self.pdf_check = tk.Radiobutton(self.file_format_frame, text=".pdf", variable=self.which_file_format_var, value=3, command=self.receive_file_format_radios)
         self.pdf_check.grid(row=0, column=4, columnspan=2)
+        self.widgets['fig_format'] = self.which_file_format_var
 
         # option to index how many points user would like to plot (i.e. every 5th point)
         self.points_plotted_index_label = tk.Label(self.opts_frame, text="Points to plot index:\ni.e. plot every 5th point")
         self.points_plotted_index_label.grid(row=20, column=0, columnspan=3, pady=8)
         self.points_plotted_index_entry = tk.Entry(self.opts_frame, width=10)
         self.points_plotted_index_entry.grid(row=20, column=3, columnspan=3, pady=8)
+        self.widgets['points_plotted_index'] = self.points_plotted_index_entry
 
         # option to set bounds of time, frequency, and dissipation
         self.bounds_frame = tk.Frame(self.opts_frame)
@@ -978,6 +992,8 @@ class PlotOptsWindow():
         self.time_upper_bound_label.grid(row=1, column=2, padx=4, pady=4)
         self.time_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.time_upper_bound_entry.grid(row=1, column=3, padx=4, pady=4)
+        self.widgets['time_lower_bound'] = self.time_lower_bound_entry
+        self.widgets['time_upper_bound'] = self.time_upper_bound_entry
 
         self.frequency_lower_bound_label = tk.Label(self.bounds_frame, text="Frequency Lower: ")
         self.frequency_lower_bound_label.grid(row=2, column=0, padx=4, pady=4)
@@ -987,6 +1003,8 @@ class PlotOptsWindow():
         self.frequency_upper_bound_label.grid(row=2, column=2, padx=4, pady=4)
         self.frequency_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.frequency_upper_bound_entry.grid(row=2, column=3, padx=4, pady=4)
+        self.widgets['frequency_lower_bound'] = self.frequency_lower_bound_entry
+        self.widgets['frequency_upper_bound'] = self.frequency_upper_bound_entry
 
         self.dissipation_lower_bound_label = tk.Label(self.bounds_frame, text="Dissipation Lower: ")
         self.dissipation_lower_bound_label.grid(row=3, column=0, padx=4, pady=4)
@@ -996,6 +1014,8 @@ class PlotOptsWindow():
         self.dissipation_upper_bound_label.grid(row=3, column=2, padx=4, pady=4)
         self.dissipation_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.dissipation_upper_bound_entry.grid(row=3, column=3, padx=4, pady=4)
+        self.widgets['dissipation_lower_bound'] = self.dissipation_lower_bound_entry
+        self.widgets['dissipation_upper_bound'] = self.dissipation_upper_bound_entry
         
         self.bounds_frame.grid(row=21, column=0, columnspan=6, pady=(12,0))
 
@@ -1071,20 +1091,11 @@ class PlotOptsWindow():
     def set_default_values(self):
         with open('plot_opts/default_opts.json', 'r') as fp:
             default_opts = json.load(fp)
-        self.set_text(self.font_choice_entry, default_opts['font'])
-        self.set_text(self.label_text_size_entry, default_opts['label_text_size'])
-        self.set_text(self.title_text_size_entry, default_opts['title_text_size'])
-        self.set_text(self.value_text_size_entry, default_opts['value_text_size'])
-        self.set_text(self.legend_text_size_entry, default_opts['legend_text_size'])
-        self.set_text(self.points_plotted_index_entry, default_opts['points_plotted_index'])
 
-        self.set_text(self.dissipation_upper_bound_entry, default_opts['dissipation_upper_bound'])
-        self.set_text(self.dissipation_lower_bound_entry, default_opts['dissipation_lower_bound'])
-        self.set_text(self.frequency_upper_bound_entry, default_opts['frequency_upper_bound'])
-        self.set_text(self.frequency_lower_bound_entry, default_opts['frequency_lower_bound'])
-        self.set_text(self.time_upper_bound_entry, default_opts['time_upper_bound'])
-        self.set_text(self.time_lower_bound_entry, default_opts['time_lower_bound'])
-        
+        for key in list(default_opts.keys())[1:]:
+            if isinstance(self.widgets[key], tk.Entry):
+                self.set_text(self.widgets[key], default_opts[key])
+
         self.tick_direction_var.set(1)
         self.time_scale_frame.grid(row=13, column=0, columnspan=6)
         if self.change_fig_format_var.get() == 0:
@@ -1099,29 +1110,57 @@ class PlotOptsWindow():
 
     def confirm_opts(self):
         set_input_altered_flag(True)
+        print(self.prev_opts)
         
-        with open('plot_opts/plot_customizations.json', 'r') as fp:
-            prev_opts = json.load(fp)
+        # put widget values into dict
+        warned_flag = False
+        for key in list(self.options.keys())[1:]:
+            if isinstance(self.widgets[key], tk.Entry):
+                entry = self.widgets[key].get()
+                if entry == '':
+                    if not warned_flag:
+                        self.empty_entries_notif_label.grid(row=31, column=6, pady=6)
+                        warned_flag = True
+                    self.options[key] = self.prev_opts[key]
+                else:
+                    try:
+                        entry = int(entry)
+                        self.options[key] = entry
+                    except ValueError:
+                        self.options[key] = entry
+
+            elif isinstance(self.widgets[key], tk.IntVar):
+                if key == 'time_scale':
+                    if self.widgets[key].get() == 1:
+                        self.options['time_scale'] = 's'
+                    if self.widgets[key].get() == 2:
+                        self.options['time_scale'] = 'min'
+                    if self.widgets[key].get() == 3:
+                        self.options['time_scale'] = 'hr'
+                
+                elif key == 'fig_format':
+                    if self.widgets[key].get() == 1:
+                        self.options['fig_format'] = 'png'
+                    if self.widgets[key].get() == 2:
+                        self.options['fig_format'] = 'tiff'
+                    if self.widgets[key].get() == 3:
+                        self.options['fig_format'] = 'pdf'
+
+                elif key == 'tick_dir':
+                    if self.widgets[key].get() == 0:
+                        self.options['tick_dir'] = 'in'
+                    if self.widgets[key].get() == 1:
+                        self.options['tick_dir'] = 'out'
+                    if self.widgets[key].get() == 2:
+                        self.options['tick_dir'] = 'inout'
+
+        if warned_flag:
+            self.empty_entries_notif_label.after(5000, lambda: self.empty_entries_notif_label.grid_forget())
+            warned_flag = False
 
 
-
-        # check empty entries
-        #check_entries(self.opts_frame, prev_opts)
-
-
-        self.options['font'] = self.font_choice_entry.get()# if self.font_choice_entry.get() != '' else prev_opts['font']
-        self.options['label_text_size'] = self.label_text_size_entry.get()
-        self.options['title_text_size'] = self.title_text_size_entry.get()
-        self.options['value_text_size'] = self.value_text_size_entry.get()
-        self.options['legend_text_size'] = self.legend_text_size_entry.get()
-
-        self.options['time_lower_bound'] = self.time_lower_bound_entry.get()
-        self.options['time_upper_bound'] = self.time_upper_bound_entry.get()
-        self.options['frequency_lower_bound'] = self.frequency_lower_bound_entry.get()
-        self.options['frequency_upper_bound'] = self.frequency_upper_bound_entry.get()
-        self.options['dissipation_lower_bound'] = self.dissipation_lower_bound_entry.get()
-        self.options['dissipation_upper_bound'] = self.dissipation_upper_bound_entry.get()
-
+            
+        '''
         if self.which_time_scale_var.get() == 1:
             self.options['time_scale'] = 's'
         if self.which_time_scale_var.get() == 2:
@@ -1144,9 +1183,9 @@ class PlotOptsWindow():
             self.options['tick_dir'] = 'inout'
 
         self.options['points_plotted_index'] = int(self.points_plotted_index_entry.get())
-
+        '''
         
-        warned_flag = False
+        '''warned_flag = False
         for key in self.options.keys():
             if self.options[key] == '':
                 self.options[key] = prev_opts[key]
@@ -1155,7 +1194,7 @@ class PlotOptsWindow():
                     warned_flag = True
                 raise Exceptions.MissingPlotCustomizationException(key, "Please Specify Missing field. ")
         self.empty_entries_notif_label.after(5000, lambda: self.empty_entries_notif_label.grid_forget())
-        warned_flag = False
+        warned_flag = False'''
         with open('plot_opts/plot_customizations.json', 'w') as fp:
             json.dump(self.options, fp)
 

@@ -103,13 +103,6 @@ bug fixes:
 format changes:
 
 features:
-- when confirming selections if field is empty, default to whatever was originally in the plot opts json instead of throwing an error
-    - add label to notify user of this feature
-    - put all widgets into a dictionary with they value as the widget and key is the same key in plot_opts.json
-    - function to grid all items handled separately depending on type of widget
-    - iterate through all widgets in frame looking for empty strings or empty radio buttons
-    - when empty found, warn user once, and set the widget to the value to the corresponding previous opts value
-    - set the current opts dict value to the corresponding previous opts value
 - viscoelastic film modeling
 - gordon-kanazawa
 
@@ -120,7 +113,6 @@ publication/documentation:
 - instructions on adding more files to format
 
 optimizations/refactoring: 
-- plot ops, if blank values are entered, just use default values in their place, and label to notify user
 - remove unnecessary prints
 - error messages become window popups
     - like when trying to submit with selections that there are no data for
@@ -143,6 +135,15 @@ waiting on data:
 
 
 ### CHANGE LOG
+7/3
+- when confirming selections if field is empty, default to whatever was originally in the plot opts json instead of throwing an error
+    - add label to notify user of this feature
+    - put all widgets into a dictionary with they value as the widget and key is the same key in plot_opts.json
+    - function to grid all items handled separately depending on type of widget
+    - iterate through all widgets in frame looking for empty strings or empty radio buttons
+    - when empty found, warn user once, and set the widget to the value to the corresponding previous opts value
+    - set the current opts dict value to the corresponding previous opts value
+
 6/30
 - added to UI plot customization options input fields and labels for adjusting the bounds of each axis for visualization (time, freq, disp)
 - updated plot opts json file for these new customization options

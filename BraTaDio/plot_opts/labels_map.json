@@ -1,11 +1,17 @@
 {
-    "font_options": {
-        "Enter font selection:": "font",
-        "Enter Label font size:": "label_text_size",
-        "Enter Title font size:": "title_text_size",
-        "Enter Value font size:": "value_text_size",
-        "Enter Legend font size:": "legend_text_size",
-        "Choose tick direction:": "tick_dir"
-    },
-    
+    "font": "",
+    "label_text_size": "",
+    "title_text_size": "",
+    "value_text_size": "",
+    "legend_text_size": "",
+    "tick_dir": "",
+    "time_scale": "",
+    "fig_format": "",
+    "points_plotted_index": "1",
+    "time_lower_bound": "",
+    "time_upper_bound": "",
+    "frequency_lower_bound": "",
+    "frequency_upper_bound": "",
+    "dissipation_lower_bound": "",
+    "dissipation_upper_bound": ""
 }
