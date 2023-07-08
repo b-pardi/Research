@@ -77,7 +77,7 @@ def get_calibration_values(which_plot, use_theoretical_vals):
 
     if use_theoretical_vals:        
         # theoretical calibration values for experiment, used in calculating bandwidth shift
-        theoretical_values_df = pd.read_csv("calibration_data/theoretical_frequencies.csv", index_col=False)
+        theoretical_values_df = pd.read_csv("offset_data/theoretical_frequencies.csv", index_col=False)
         theoretical_values = theoretical_values_df.filter(like="freq").values.flatten()
         print(f"theo vals: {theoretical_values}")
 
@@ -94,7 +94,7 @@ def get_calibration_values(which_plot, use_theoretical_vals):
         # grab peak frequency values from calibration file as specified in gui
         all_overtones = [get_num_from_string(ov) for ov in which_freq_plots.keys()] # get all overtones to insert 0s into overtones not selected\
         selected_overtones = [get_num_from_string(ov[0]) if ov[1] else 0 for ov in which_freq_plots.items()]
-        exp_vals_df = pd.read_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv", index_col=False).filter(like="freq")
+        exp_vals_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=False).filter(like="freq")
         i = 0
         while(i < len(all_overtones)): # all ovs always >= selected overtones
             print(selected_overtones, all_overtones[i], selected_overtones[i])
@@ -334,7 +334,7 @@ def thin_film_liquid_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
         print("Thin film in liquid analysis complete")
         plt.rc('text', usetex=False)
 
@@ -386,7 +386,7 @@ def thin_film_air_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_air_GAMMA_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_GAMMA_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
         
         # repeat above plotting/saving for Df/n v n^2
         data_label, x_label, y_label, title = get_labels(label, 'film_air', 'freq', latex_installed)     
@@ -409,7 +409,7 @@ def thin_film_air_analysis(user_input):
         print(fig_format)
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
 
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
@@ -432,7 +432,8 @@ def gordon_kanazawa(user_input):
 
     Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (pi * muQ * rhoQ) )
 
-    print("Gordon-Kanazawa Analysis Complete")
+    #print("Gordon-Kanazawa Analysis Complete")
+    print("Gordon-Kanazawa Analysis is a Work in Progress, the button is currently a placeholder")
 
 
 
@@ -448,7 +449,7 @@ def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     avg_Dm_fig, avg_Dm_ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
     format_plot(avg_Dm_ax, x_label, y_label, title, overtones)
     avg_Dm_fig.tight_layout()
-    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_avgs_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_avgs_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     return mu_Dm, delta_mu_Dm
 
@@ -473,7 +474,7 @@ def sauerbrey_fit(df, overtones, label, C, fig_format):
     format_plot(avg_Df_ax, x_label, y_label, title, overtones)
     avg_Df_fig.tight_layout()
     plt.legend().get_texts()[1].set_text("Sauerbrey mass: " + f"{m*C:.1f}" + r" ($\frac{ng}{cm^2}$)")
-    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_fit_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_fit_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     return mu_Df, delta_mu_Df, mu_Df_fit
 
@@ -496,8 +497,8 @@ def sauerbrey(user_input):
         if calibration_data_from_file: # if user opted to put in their own calibration values from the machine 
             pass
         else: # if user made selection data
-            calibration_df = pd.read_csv("calibration_data/calibration_data.csv")
-            f0 = calibration_df.loc[0]['calibration_freq']
+            calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
+            f0 = calibration_df.loc[0]['fundamental_freq']
             print(f"f0: {f0}")
 
         quarts_wave_velocity = 3340
@@ -552,14 +553,14 @@ def avgs_analysis(fig_format):
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
         # plotting average dissipations
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'dis')
         avg_Dd_range_plot, ax = plot_data(overtones, mu_Dd, None, delta_mu_Dd, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Dd_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
 
     print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)

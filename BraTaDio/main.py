@@ -45,6 +45,7 @@ class Input:
         self.will_use_theoretical_vals = True
         self.calibration_data_from_file = False
         self.will_plot_temp_v_time = False
+        self.will_correct_slope = False
         self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
         self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
@@ -97,7 +98,7 @@ def select_data_file(label):
 
 def select_calibration_file(label):
     global input
-    fp = browse_files('calibration_data', 'Select Calibration File')
+    fp = browse_files('offset_data', 'Select Calibration File')
     input.calibration_file = fp
     label.configure(text=f"File Selected: {os.path.basename(fp)}")
     print(input.calibration_file)
@@ -297,80 +298,6 @@ class App(tk.Tk):
     def confirm_range(self):
         self.modeling_window.confirm_range(self)
 
-class Col1(tk.Frame):
-    def __init__(self, parent, container):
-        super().__init__(container)
-        self.col_position = 0
-        self.is_visible = True
-        self.parent = parent
-        file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
-        file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
-
-        self.filename_label = tk.Label(self, text="Data File")
-        self.filename_label.grid(row=2, column=0, pady=(8,4))
-        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: select_data_file(self.filename_label))
-        self.browse_files_button.grid(row=1, column=0)
-
-        self.file_src_frame = srcFileFrame(self)
-        self.file_src_frame.grid(row=4, column=0, pady=(16,8))
-        self.rel_time_input = relTimeInputFrame(self)
-        self.abs_time_input = absTimeInputFrame(self)
-        self.abs_time_input.grid(row=6, column=0)
-
-        self.calibration_vals_frame = calibrationValsFrame(self)
-        self.calibration_vals_frame.grid(row=7, column=0)
-
-        self.cleared_label = tk.Label(self, text="Cleared!")
-        self.submitted_label = tk.Label(self, text="Submitted!")
-        self.err_label = tk.Label(self, text="Error occured,\nplease see terminal for details", font=("Arial",14))
-
-        self.file_data_submit_button = tk.Button(self, text="Submit file information", padx=8, pady=6, width=20, command=self.col_names_submit)
-        self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
-        self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
-        self.file_data_clear_button.grid(row=11, column=0, pady=4)
-
-        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
-        self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
-
-    def open_plot_opts(self):
-        self.parent.open_plot_opts_window()
-
-    def blit_time_input_frame(self, is_relative_time):
-        if is_relative_time:
-            self.abs_time_input.grid_forget()
-            self.rel_time_input.grid(row=6, column=0)
-        else:
-            self.rel_time_input.grid_forget()
-            self.abs_time_input.grid(row=6, column=0)
-
-    def col_names_submit(self):
-        global input
-        input.first_run = True
-        set_input_altered_flag(True)
-        input.file_src_type = self.file_src_frame.file_src_type
-        if input.is_relative_time:
-            input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
-        else:
-            input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
-
-        if input.first_run:
-            print(f"formatting {input.file} to BraTaDio convention...")
-            format_raw_data(input.file_src_type, input.file, input.calibration_file)
-            print("Format completed")
-        
-        self.submitted_label.grid(row=13, column=0)
-        self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
-
-    def clear_file_data(self):
-        global input
-        input.abs_base_t0 = time(0, 0, 0)
-        input.abs_base_tf = time(0, 0, 0)
-        self.cleared_label.grid(row=12, column=0)
-        self.filename_label.configure(text="Data File")
-        self.abs_time_input.clear()
-        self.rel_time_input.clear()
-        self.submitted_label.grid_forget()
-
 class srcFileFrame(tk.Frame):
     def __init__(self, container):
         super().__init__(container)
@@ -409,18 +336,19 @@ class calibrationValsFrame(tk.Frame):
         self.theoretical_or_calibration_peak_freq_frame.grid(row=7, column=0, columnspan=1, pady=(16,0))
         self.theoretical_or_calibration_peak_freq_var = tk.IntVar()
         self.theoretical_or_calibration_peak_freq_var.set(-1)
-        self.theoretical_or_calibration_peak_freq_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame,
-                                                text="Use theoretical or calibration\npeak frequency values for calculations")
-        self.theoretical_or_calibration_peak_freq_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
+        theoretical_or_calibration_peak_freq_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame,
+                                                text="Use theoretical or offset\npeak frequency values for calculations")
+        theoretical_or_calibration_peak_freq_label.grid(row=0, column=0, pady=(2,4), columnspan=2, padx=6)
+        
         self.theoretical_peak_freq_radio = tk.Radiobutton(self.theoretical_or_calibration_peak_freq_frame, text='theoretical', variable=self.theoretical_or_calibration_peak_freq_var, value=1, command=self.handle_radios)
         self.theoretical_peak_freq_radio.grid(row=1, column=0, pady=(2,4))
-        self.calibration_peak_freq_radio = tk.Radiobutton(self.theoretical_or_calibration_peak_freq_frame, text='calibration', variable=self.theoretical_or_calibration_peak_freq_var, value=0, command=self.handle_radios)
+        self.calibration_peak_freq_radio = tk.Radiobutton(self.theoretical_or_calibration_peak_freq_frame, text='offset', variable=self.theoretical_or_calibration_peak_freq_var, value=0, command=self.handle_radios)
         self.calibration_peak_freq_radio.grid(row=1, column=1, pady=(2,4))
 
         #self.filename_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Calibration File")
         #self.browse_files_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Select Calibration File", command=lambda: select_calibration_file(self.filename_label))
         
-        self.calibration_file_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Copy/paste values\ndirectly into file in \n'calibration_data' folder\n\nOR")
+        self.calibration_file_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Copy/paste values\ndirectly into file in \n'offset_data' folder\n\nOR")
         self.calibration_vals_window_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Enter Values Here", command=self.open_calibration_window)
 
     def open_calibration_window(self):
@@ -536,15 +464,16 @@ class CalibrationWindow():
 
     def open_calibration_window(self):
         calibration_window = tk.Toplevel(self)
-        calibration_window.title('Input/Select Calibration Data')
+        calibration_window.title('Input/Select Offset Data')
         self.calibration_frame = tk.Frame(calibration_window)
         self.calibration_frame.pack(anchor='n')
 
     def fill_calibration_window(self):
-        self.calibration_label = tk.Label(self.calibration_frame, text="Calibration Data", font=('TkDefaultFont', 12, 'bold'))
+        self.calibration_label = tk.Label(self.calibration_frame, text="Offset Data", font=('TkDefaultFont', 12, 'bold'))
         self.calibration_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
-        instructions = "Input calibration frequency values here\nthese values will be used for modelling purposes\n" +\
-                        "\nfor Qsense, these values will be added\nto all data points for full frequency values"
+        instructions = "Input offset frequency values here\nthese values will be used for modeling purposes\n" +\
+                        "\nfor Qsense, these values will be added\nto all data points for full frequency values\n" +\
+                        "Supports exponential format. i.e. 2.5e-6 or 1.34e7"
         self.instruction_label = tk.Label(self.calibration_frame, text=instructions)
         self.instruction_label.grid(row=2, column=0, columnspan=2, padx=16, pady=12)
 
@@ -576,10 +505,84 @@ class CalibrationWindow():
                     warned_flag = True
                 calibration_vals.append(0.0)
             
-        calibration_df = pd.read_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv")
+        calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
         calibration_df.loc[0] = calibration_vals
-        calibration_df.to_csv("calibration_data/COPY-PASTE_CALIBRATION_VALUES_HERE.csv")
-        print(f"Calibration values written succesfully\n: {calibration_df.head()}")
+        calibration_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
+        print(f"Offset values written succesfully\n: {calibration_df.head()}")
+
+class Col1(tk.Frame):
+    def __init__(self, parent, container):
+        super().__init__(container)
+        self.col_position = 0
+        self.is_visible = True
+        self.parent = parent
+        file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
+        file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
+
+        self.filename_label = tk.Label(self, text="Data File")
+        self.filename_label.grid(row=2, column=0, pady=(8,4))
+        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: select_data_file(self.filename_label))
+        self.browse_files_button.grid(row=1, column=0)
+
+        self.file_src_frame = srcFileFrame(self)
+        self.file_src_frame.grid(row=4, column=0, pady=(16,8))
+        self.rel_time_input = relTimeInputFrame(self)
+        self.abs_time_input = absTimeInputFrame(self)
+        self.abs_time_input.grid(row=6, column=0)
+
+        self.calibration_vals_frame = calibrationValsFrame(self)
+        self.calibration_vals_frame.grid(row=7, column=0)
+
+        self.cleared_label = tk.Label(self, text="Cleared!")
+        self.submitted_label = tk.Label(self, text="Submitted!")
+        self.err_label = tk.Label(self, text="Error occured,\nplease see terminal for details", font=("Arial",14))
+
+        self.file_data_submit_button = tk.Button(self, text="Submit file information", padx=8, pady=6, width=20, command=self.col_names_submit)
+        self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
+        self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
+        self.file_data_clear_button.grid(row=11, column=0, pady=4)
+
+        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
+        self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
+
+    def open_plot_opts(self):
+        self.parent.open_plot_opts_window()
+
+    def blit_time_input_frame(self, is_relative_time):
+        if is_relative_time:
+            self.abs_time_input.grid_forget()
+            self.rel_time_input.grid(row=6, column=0)
+        else:
+            self.rel_time_input.grid_forget()
+            self.abs_time_input.grid(row=6, column=0)
+
+    def col_names_submit(self):
+        global input
+        input.first_run = True
+        set_input_altered_flag(True)
+        input.file_src_type = self.file_src_frame.file_src_type
+        if input.is_relative_time:
+            input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
+        else:
+            input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
+
+        if input.first_run:
+            print(f"formatting {input.file} to BraTaDio convention...")
+            format_raw_data(input.file_src_type, input.file, input.will_use_theoretical_vals)
+            print("Format completed")
+        
+        self.submitted_label.grid(row=13, column=0)
+        self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
+
+    def clear_file_data(self):
+        global input
+        input.abs_base_t0 = time(0, 0, 0)
+        input.abs_base_tf = time(0, 0, 0)
+        self.cleared_label.grid(row=12, column=0)
+        self.filename_label.configure(text="Data File")
+        self.abs_time_input.clear()
+        self.rel_time_input.clear()
+        self.submitted_label.grid_forget()
 
 class Col2(tk.Frame):
     def __init__(self, parent, container):
@@ -588,7 +591,7 @@ class Col2(tk.Frame):
         self.col_position = 1
         self.is_visible = True
         self.plot_raw_data_var = tk.IntVar()
-        self.plot_raw_data_check = tk.Checkbutton(self, text="Plot raw data", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
+        self.plot_raw_data_check = tk.Checkbutton(self, text="Plot raw data\n(f and d)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
         self.plot_raw_data_check.grid(row=0, column=0, pady=(12,8), padx=(16,32))
         self.which_raw_channels_label = tk.Label(self, text="Select overtones for full data")
 
@@ -651,7 +654,7 @@ class Col3(tk.Frame):
         self.col_position = 2
         self.is_visible = True
         self.plot_clean_data_var = tk.IntVar()
-        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
+        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data\n(Δf and Δd)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
         self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
         self.which_clean_channels_label = tk.Label(self, text="Select overtones for\nbaseline corrected data")
 
@@ -733,9 +736,12 @@ class Col4(tk.Frame):
         self.plot_temp_v_time_var = tk.IntVar()
         self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_temp_v_time_check.grid(row=5, column=4)
+        self.correct_slope_var = tk.IntVar()
+        self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.correct_slope_check.grid(row=6, column=4)
         self.interactive_plot_var = tk.IntVar()
         self.interactive_plot_check = tk.Checkbutton(self, text="Interactive plot", variable=self.interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.interactive_plot_check.grid(row=6, column=4)
+        self.interactive_plot_check.grid(row=7, column=4)
         
         # options for the int plot
         self.interactive_plot_opts = tk.Frame(self)
@@ -773,12 +779,13 @@ class Col4(tk.Frame):
         input.will_normalize_F = True if self.normalize_F_var.get() == 1 else False
         input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
         input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
+        input.will_correct_slope = True if self.correct_slope_var.get() == 1 else False
 
         if self.interactive_plot_var.get() == 1:
             input.will_interactive_plot = True
             input.range_frame_flag = True
             self.parent.repack_frames()
-            self.interactive_plot_opts.grid(row=7, column=4)
+            self.interactive_plot_opts.grid(row=8, column=4)
         else:
             input.will_interactive_plot = False
             input.range_frame_flag = False

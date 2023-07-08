@@ -58,6 +58,10 @@
         - i.e. thin film in air model is normalized avg change in frequency of each overtone against the overtone number squared.
     - Plotting change in dissipation against change in frequency.
     - Plotting temperature against time.
+    - Slope correction.
+        - Takes the shifted data 1 step further.
+        - Finds slope of baseline time range, and 'rotates' all points by that amount
+        - will ensure slope of baseline is ~0
     - Interactive plot (further detailed below).
     - Modeling/further analysis (further detailed below).
     - Change the scale of time on the x axis for ALL plots.
@@ -85,6 +89,8 @@
 - Selections are made by clicking and dragging anywhere in either of the left 2 plots, OR inputting the x values into the text field above in the form of XMIN,XMAX and hitting enter.
 - Selected range is zoomed in and displayed in right side of figure, and all calculations on the selections are save into csv files in the 'selected_ranges' folder.
 - A linear regression will be done on the zoomed data as well to indicate the drift.
+- note, if you normalized your data via one of the options being selected, this data will NOT be normalized for the sake of modeling functions used after.
+- if you opted to correct the slope however, this option WILL be applied.
 
 ## Errors
 - Errors will be displayed in the terminal running the scripts.
@@ -149,10 +155,6 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
-- ASK ROBERTO bout proper theoretical values ( do we need code to take averages, and if so how to structure )
-- for file conv optim, if qsense calib data not entered when file converted, and then ran again adding calib data, it will think the file has already been processed and not convert and update
-    - adjust naming convention to account for if calib data added
-- remove old references to calibration data (before using new file sel feature)
 
 format changes:
 
@@ -189,6 +191,27 @@ waiting on data:
 
 
 ### CHANGE LOG
+7/8
+- added functionality to do slope correction of drift in baseline
+    - takes slope of baseline data and 'rotates' points based on the angle given by the arctan of that slope
+    - added the OPTION for this in UI (since sometimes that drift may be sought after)
+    - incorporated this into the interactive plot as well
+
+7/7
+- bug fix, some modeling functions looking for wrong column name for calibration values
+- all dissipation values for qsense are now multiplied by 10e-6 as per Biolin being ridiculously difficult to work with
+- bug fix, qsense offset values were not being added to qsense data, since renaming file for calibration data, and having user paste values into file
+- removed 'change in' and 'delta' for frequency and dissipation RAW plots
+- added label to calibration values window to indicate scientific notation format accepted
+- removed references to old method of attaining calibration data
+- removed optimization for formatting file, as it conflicts with qsense calibration data formatting
+- changed 'calibration data' to 'offset data' in all user seen areas (file name, UI references, etc)
+    - did not change variable names
+- changed range saving from interactive plot to include x range selected solely for viewing purposes (has no effect on modeling functionality)
+- modeling plots now save transparent backgrounds
+- indicated in column headers for overtone selection that raw data plots f and d, shifted data plots Δf and Δd
+
+
 7/3
 - when confirming selections if field is empty, default to whatever was originally in the plot opts json instead of throwing an error
     - add label to notify user of this feature

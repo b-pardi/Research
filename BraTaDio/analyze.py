@@ -16,8 +16,6 @@ try:
     matplotlib.use('TkAgg')  # Set the backend to TkAgg
 except:
     matplotlib.use('Agg')  # Set the backend to default
-
-
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 from scipy.optimize import curve_fit
@@ -87,6 +85,27 @@ def ordinal(n):
     overtone_ordinal = str(n) + overtone_ordinal
     return overtone_ordinal
 
+def rotate_point(x, y, theta):
+    x_rot = x * np.cos(theta) - y * np.sin(theta)
+    y_rot = x * np.sin(theta) + y * np.cos(theta)
+    return x_rot, y_rot
+
+def shift_by_slope(x_time, y_data, baseline_df, time_col, freq):
+    from modeling import linear # import in function to avoid circular import
+
+    # slope accounted baseline correction
+    params, _ = curve_fit(linear, baseline_df[time_col], baseline_df[freq])
+    m, b = params
+    theta = -np.arctan(m) # negate the angle s.t. the baseline will have a slope of 0
+
+    x_time_adjsuted, y_data_adjusted = rotate_point(x_time, y_data, theta)
+    x_time_adjsuted = np.asarray(x_time_adjsuted)
+    y_data_adjusted = np.asarray(y_data_adjusted)
+
+    print(f"*****SLOPE: {m}; y-intercept: {b}")
+
+    return x_time_adjsuted, y_data_adjusted
+
 def determine_xlabel(x_timescale):
     if x_timescale == 's':
         return "Time, " + '$\it{t}$' + " (s)"
@@ -97,10 +116,15 @@ def determine_xlabel(x_timescale):
     else:
         return "placeholder"
     
-def determine_ylabel(ydata_type, is_normalized):
+def determine_ylabel(ydata_type, is_normalized, is_raw_data=False):
     if ydata_type == 'dis':
-        return r"Change in dissipation, $\mathit{Δd_{n}}$ ($10^{-6}$)"
+        if is_raw_data:
+            return r"Dissipation, $\mathit{d_{n}}$"
+        else:
+            return r"Change in dissipation, $\mathit{Δd_{n}}$ ($10^{-6}$)"
     if ydata_type == 'freq':
+        if is_raw_data:
+            return r"Frequency, $\mathit{f_{n}}$ (Hz)"
         if is_normalized:
             return r"Change in frequency, $\frac{\mathit{Δf_{n}}}{\mathit{n}}$ (Hz)"
         else:
@@ -167,6 +191,7 @@ def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, 
     plt.figure(fig.number)
     plot_customs = get_plot_preferences()
     points_idx = plot_customs['points_plotted_index']
+    x_time_freq, x_time_dis = x_time
 
     x_bound = (plot_customs['time_lower_bound'], plot_customs['time_upper_bound'])
     y1_bound = (plot_customs['frequency_lower_bound'], plot_customs['frequency_upper_bound'])
@@ -182,8 +207,8 @@ def plot_multiaxis(input, x_time, y_rf, y_dis, freq_label, dis_label, fig, ax1, 
     ax1.set_xlabel(determine_xlabel(plot_customs['time_scale']), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax1.set_ylabel(determine_ylabel('freq', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
     ax2.set_ylabel(determine_ylabel('dis', input.will_normalize_F), fontsize=plot_customs['label_text_size'], fontfamily=plot_customs['font'])
-    ax1.plot(x_time[::points_idx], y_rf[::points_idx], 'o', markersize=1, label=freq_label, color=color)
-    ax2.plot(x_time[::points_idx], y_dis[::points_idx], 'o', markersize=2, label=dis_label, markerfacecolor='none', markeredgecolor=color, markeredgewidth=0.32)
+    ax1.plot(x_time_freq[::points_idx], y_rf[::points_idx], 'o', markersize=1, label=freq_label, color=color)
+    ax2.plot(x_time_dis[::points_idx], y_dis[::points_idx], 'o', markersize=2, label=dis_label, markerfacecolor='none', markeredgecolor=color, markeredgewidth=0.32)
     ax1.tick_params(axis='both', direction=plot_customs['tick_dir'])
     ax2.tick_params(axis='both', direction=plot_customs['tick_dir'])
     plt.xticks(fontsize=plot_customs['value_text_size'], fontfamily=plot_customs['font'])
@@ -210,12 +235,12 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
             with open(stats_fn) as creating_new_modeling_file: 
                 creating_new_modeling_file.write('')
             temp_df = pd.read_csv(stats_fn)
-        if '' in temp_df['range_used'].unique(): # remove potentially erroneous range inputs
-            temp_df = temp_df.loc[temp_df['range_used'] != '']
+        if '' in temp_df['range_name'].unique(): # remove potentially erroneous range inputs
+            temp_df = temp_df.loc[temp_df['range_name'] != '']
             save_flag = True
-        if which_range in temp_df['range_used'].unique()\
+        if which_range in temp_df['range_name'].unique()\
         and src_fn in temp_df['data_source'].unique():
-            to_drop = temp_df.loc[((temp_df['range_used'] == which_range)\
+            to_drop = temp_df.loc[((temp_df['range_name'] == which_range)\
                                 & (temp_df['data_source'] == src_fn))].index.values
             temp_df = temp_df.drop(index=to_drop)
             save_flag = True
@@ -238,6 +263,8 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn):
 
     # statistical analysis for all desired overtones using range of selection
     range_df = pd.DataFrame()
+    x_data = df["Time"]
+    x_sel = x_data[imin:imax]
     for overtone in overtone_sel:
         ov = overtone[0] # label of current overtone
         if overtone[1]: # if current overtone selected for plotting
@@ -250,17 +277,17 @@ def range_statistics(df, imin, imax, overtone_sel, which_range, fn):
             median_y = np.median(y_sel)
         
             if ov.__contains__('freq'):
-                rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
+                rf_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{np.min(x_sel)},{np.max(x_sel)},{fn}\n")
             elif ov.__contains__('dis'):
-                dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{fn}\n")
+                dis_stat_file.write(f"{ov},{mean_y:.16E},{std_dev_y:.16E},{median_y:.16E},{which_range},{np.min(x_sel)},{np.max(x_sel)},{fn}\n")
         
         else:
             print(f"\n{ov} not selected\n")
             if ov.__contains__('freq'):
-                rf_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
+                rf_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{0:.16E},{0:.16E},{fn}\n")
 
             elif ov.__contains__('dis'):
-                dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{fn}\n")
+                dis_stat_file.write(f"{ov},{0:.16E},{0:.16E},{0:.16E},{which_range},{0:.16E},{0:.16E},{fn}\n")
     
     
     dis_stat_file.close()
@@ -410,12 +437,12 @@ def update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_cu
     int_ax2_zoom.cla()
 
     # min and max indices are where elements should be inserted to maintain order
-    imin, imax = np.searchsorted(x_time, (xmin, xmax))
+    imin, imax = np.searchsorted(x_time[0], (xmin, xmax))
     # range will be at most all elems in x, or imax
-    imax = min(len(x_time)-1, imax)
+    imax = min(len(x_time[0])-1, imax)
 
     # cursor x and y for zoomed plot and data range
-    zoomx = x_time[imin:imax]
+    zoomx = x_time[0][imin:imax]
     zoomy1 = y_rf[imin:imax]
     zoomy2 = y_dis[imin:imax]
 
@@ -441,22 +468,23 @@ def update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_cu
 
     return imin, imax
 
-def interactive_plot_analysis(fn, df, range, imin, imax, which_plot, is_normalized):
+def interactive_plot_analysis(fn, df, range, imin, imax, which_plot):
     # prep and save data to file
     # frequency stats for bandwidth shift
     stats_out_fn = 'selected_ranges/all_stats_rf.csv'
-    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_used,data_source\n"
+    header = f"overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_name,x_lower,x_upper,data_source\n"
     prepare_stats_file(header, range, fn, stats_out_fn)
     
     # dissipation stats for bandwidth shift
     stats_out_fn = 'selected_ranges/all_stats_dis.csv'
-    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_used,data_source\n"
+    header = f"overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_name,x_lower,x_upper,data_source\n"
     prepare_stats_file(header, range, fn, stats_out_fn)
 
     range_statistics(df, imin, imax, which_plot, range, fn)
 
 def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
     plot_customs = get_plot_preferences()
+
     int_plot_analysis = Analysis(input.file)
     spans = []        
     int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, plot_customs['time_scale'], cleaned_df, time_col)
@@ -476,7 +504,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
                                   xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
         interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
-                                  imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
+                                  imin, imax, input.which_plot['clean'].items())
     
     plot_win, x_entry = set_x_entry()
     x_entry.bind('<Return>', update_text)
@@ -494,7 +522,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
                                   xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
         interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
-                                  imin, imax, input.which_plot['clean'].items(), input.will_normalize_F)
+                                  imin, imax, input.which_plot['clean'].items())
 
             
         x_entry.delete(0,"end") # update text field to match
@@ -581,6 +609,7 @@ def select_calibration_data(input, overtone_select, which_range):
     raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, raw_analysis.time_col)
 
 def analyze_data(input):
+
     analysis = Analysis(input.file)
     t0_str = str(input.abs_base_t0).lstrip('0')
     tf_str = str(input.abs_base_tf).lstrip('0')
@@ -691,38 +720,46 @@ def analyze_data(input):
             data_df[clean_freqs[i]] -= rf_base_avg # baseline correction
             data_df[clean_disps[i]] -= dis_base_avg # baseline correction
             # shift x to left to start at 0
-
             baseline_start = data_df[analysis.time_col].iloc[0]
             data_df[analysis.time_col] -= baseline_start # baseline correction
             data_df[analysis.time_col] /= divisor
             
             x_time = data_df[analysis.time_col]
-            y_rf = data_df[clean_freqs[i]]
-            # scale disipation by 10^6
+            y_freq = data_df[clean_freqs[i]]
             data_df[clean_disps[i]] *= 1000000 # unit conversion
             y_dis = data_df[clean_disps[i]]
 
+            if input.will_correct_slope:
+                slope_corrected_df = data_df.copy()
+                x_time_freq, y_freq = shift_by_slope(x_time, y_freq ,baseline_df, analysis.time_col, clean_freqs[i])
+                x_time_dis, y_dis = shift_by_slope(x_time, y_dis, baseline_df, analysis.time_col, clean_disps[i])
+                slope_corrected_df[clean_freqs[i]] = y_freq
+                slope_corrected_df[clean_disps[i]] = y_dis
+            else:
+                x_time_freq = x_time
+                x_time_dis = x_time
+
             if input.will_normalize_F: # need freqs NOT normalized for int plot and modeling purposes
-                unnormalized_df = data_df.copy()
+                if input.will_correct_slope:
+                    unnormalized_df = slope_corrected_df.copy()
+                else:
+                    unnormalized_df = data_df.copy()
                 unnormalized_df[clean_freqs[i]] *= overtone
 
             # PLOTTING
-            
-            # don't plot data for channels not selected
-            
             if i < freq_plot_cap:
-                freq_ax.plot(x_time[::points_idx], y_rf[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])), color=freq_color_map[clean_freqs[i]])
+                freq_ax.plot(x_time_freq[::points_idx], y_freq[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])), color=freq_color_map[clean_freqs[i]])
         
             if i < disp_plot_cap:
-                dis_ax.plot(x_time[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_disps[i])), color=dis_color_map[clean_disps[i]])
+                dis_ax.plot(x_time_dis[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_disps[i])), color=dis_color_map[clean_disps[i]])
 
             # plotting change in disp vs change in freq
             if input.will_plot_dD_v_dF:
-                disVfreq_ax.plot(y_rf[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])))
+                disVfreq_ax.plot(y_freq[::points_idx], y_dis[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(clean_freqs[i])))
             
             # multi axis plot for change in freq and change in dis vs time
             if input.will_plot_dF_dD_together:
-                plot_multiaxis(input, x_time, y_rf, y_dis,
+                plot_multiaxis(input, (x_time_freq, x_time_dis), y_freq, y_dis,
                                ordinal(get_num_from_string(clean_freqs[i])),
                                ordinal(get_num_from_string(clean_disps[i])),
                                mult_fig, mult_ax1, mult_ax2,freq_color_map[clean_freqs[i]])
@@ -733,13 +770,19 @@ def analyze_data(input):
             if input.will_overwrite_file or input.will_interactive_plot:
                 if i == 0:
                     cleaned_df = data_df[[analysis.time_col]]
-                    unnormalized_cleaned_df = data_df[[analysis.time_col]]
+                    if input.will_normalize_F:
+                        unnormalized_cleaned_df = data_df[[analysis.time_col]]
+                    if input.will_correct_slope:
+                        slope_corrected_cleaned_df = data_df[[analysis.time_col]]
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_freqs[i]]], axis=1)
                 cleaned_df = pd.concat([cleaned_df,data_df[clean_disps[i]]], axis=1)
                 if input.will_normalize_F:
                     unnormalized_cleaned_df = pd.concat([unnormalized_cleaned_df,unnormalized_df[clean_freqs[i]]], axis=1)
                     unnormalized_cleaned_df = pd.concat([unnormalized_cleaned_df,unnormalized_df[clean_disps[i]]], axis=1)
-
+                if input.will_correct_slope:
+                    slope_corrected_cleaned_df = pd.concat([slope_corrected_cleaned_df,slope_corrected_df[clean_freqs[i]]], axis=1)
+                    slope_corrected_cleaned_df = pd.concat([slope_corrected_cleaned_df,slope_corrected_df[clean_disps[i]]], axis=1)
+                
         if input.will_plot_temp_v_time:
             temperature_df[analysis.time_col] -= baseline_start
             temperature_df[analysis.time_col] /= divisor
@@ -803,9 +846,9 @@ def analyze_data(input):
             rf_data_df = df[[analysis.time_col,raw_freqs[i]]]
             rf_data_df = rf_data_df.dropna(axis=0, how='any', inplace=False)
             x_time = rf_data_df[analysis.time_col] / time_scale_divisor
-            y_rf = rf_data_df[raw_freqs[i]]
+            y_freq = rf_data_df[raw_freqs[i]]
         
-            raw_freq_ax.plot(x_time[::points_idx], y_rf[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(raw_freqs[i])), color=freq_color_map[raw_freqs[i]])
+            raw_freq_ax.plot(x_time[::points_idx], y_freq[::points_idx], '.', markersize=1, label=ordinal(get_num_from_string(raw_freqs[i])), color=freq_color_map[raw_freqs[i]])
             
         # gather and plot raw dissipation data
         raw_dis_fig = plt.figure()
@@ -819,21 +862,23 @@ def analyze_data(input):
             
         # save raw frequency plots
         rf_fn = f"qcmd-plots/RAW-resonant-freq-plot"
-        setup_plot(raw_freq_fig, raw_freq_ax, fig_x, determine_ylabel('freq', False), rf_fig_title, rf_fn, plot_customs['fig_format'])
+        setup_plot(raw_freq_fig, raw_freq_ax, fig_x, determine_ylabel('freq', False, True), rf_fig_title, rf_fn, plot_customs['fig_format'])
         raw_freq_fig.savefig(rf_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
 
         # save raw dissipation plots
         dis_fn = f"qcmd-plots/RAW-dissipation-plot"
-        setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False), dis_fig_title, dis_fn,  plot_customs['fig_format'])
+        setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False, True), dis_fig_title, dis_fn,  plot_customs['fig_format'])
         raw_dis_fig.savefig(dis_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
-
 
     # interactive plot
     if input.will_interactive_plot:
         if input.will_normalize_F:
-            cleaned_interactive_plot(input, unnormalized_cleaned_df, x_time, analysis.time_col)
+            cleaned_interactive_plot(input, unnormalized_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
+        elif input.will_correct_slope:
+            print(cleaned_df, '\n', slope_corrected_df)
+            cleaned_interactive_plot(input, slope_corrected_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
         else:
-            cleaned_interactive_plot(input, cleaned_df, x_time, analysis.time_col)
+            cleaned_interactive_plot(input, cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
 
 
     # clear plots and lists for next iteration

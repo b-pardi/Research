@@ -85,36 +85,38 @@ def format_Qsense(fmt_df, calibration_df):
         'F_1:11':freqs[5], 'D_1:11':disps[5],
         'F_1:13':freqs[6], 'D_1:13':disps[6],
         'Meas. Temp. Time':'Temp_Time', 'Tact':'Temp'}, inplace=True)
-    
+
+    fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*10e-6)
+
     if calibration_df.empty:
+        print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df
 
-    print(fmt_df.head())
-    print(calibration_df.head())
     calibration_vals = calibration_df.values.flatten()
     calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
     for col_i, val in enumerate(calibration_vals):
         fmt_df.iloc[:, col_i] += val
 
-    print(fmt_df.head())
     return fmt_df
 
-def format_raw_data(src_type, data_file, calibration_file):
+def format_raw_data(src_type, data_file, will_use_theoretical_vals):
     file_name, _ = os.path.splitext(data_file)
     file_name = os.path.basename(file_name)
     # check if file has already been formatted previously
-    if f"Formatted-{file_name}.csv" in os.listdir('raw_data') or data_file.__contains__("Formatted"):
+    if data_file.__contains__("Formatted"):
         print(f"{file_name} has been formatted previously, using previously formatted file...")
         return
     
+
     data_df = open_df_from_file(data_file)
+    print(f"*** Before formatting\n{data_df}")
     if src_type == 'QCM-d':
         formatted_df = format_QCMd(data_df)
     elif src_type == 'QCM-i':
         formatted_df = format_QCMi(data_df)
     elif src_type == 'Qsense':
-        if calibration_file != '':
-            calibration_df = open_df_from_file(calibration_file)
+        if not will_use_theoretical_vals:
+            calibration_df = open_df_from_file("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
         else:
             calibration_df = pd.DataFrame()
         formatted_df = format_Qsense(data_df, calibration_df)
@@ -123,6 +125,7 @@ def format_raw_data(src_type, data_file, calibration_file):
         sys.exit(1)
     
     print(file_name)
+    print(f"*** After formatting\n{formatted_df}")
     formatted_df.to_csv(f"raw_data/Formatted-{file_name}.csv", index=False)
 
 
