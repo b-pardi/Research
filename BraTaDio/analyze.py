@@ -487,7 +487,7 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
 
     int_plot_analysis = Analysis(input.file)
     spans = []        
-    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.clean_interactive_plot_overtone, plot_customs['time_scale'], cleaned_df, time_col)
+    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.interactive_plot_overtones['clean'], plot_customs['time_scale'], cleaned_df, time_col)
 
     def update_text(event):
         if input.which_range_selecting == '':

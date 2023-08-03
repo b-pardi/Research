@@ -38,7 +38,7 @@ class Input:
         self.will_interactive_plot = False # indicates if user selected interactive plot option
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
         self.which_range_selecting = '' # which range of the interactive plot is about to be selected
-        self.clean_interactive_plot_overtone = 0 # which overtone will be analyzed in the interactive plot
+        self.interactive_plot_overtones = {'raw': 0, 'clean': 0} # which overtones for clean and raw
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
@@ -647,12 +647,40 @@ class Col2(tk.Frame):
 
         print(input.which_plot)
 
+class InteractivePlotOptions(tk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+
+        # options for the int plot
+        self.interactive_plot_overtone_label = tk.Label(self, text="Select overtone to visualize:")
+        self.interactive_plot_overtone_label.grid(row=0, column=0, pady=12)
+        self.interactive_plot_overtone_select = tk.Entry(self, width=10)
+        self.interactive_plot_overtone_select.grid(row=1, column=0)
+
+        # define and place entry for range options
+        self.which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
+        self.which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
+        self.which_range_entry = tk.Entry(self, width=10)
+        self.which_range_entry.grid(row=3, column=0, pady=(2,4))
+
+        # button to submit range selected
+        self.which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
+        self.which_range_submit.grid(row=4, column=0, pady=4)
+        input.range_frame_flag = True
+
+    def confirm_range(self):
+        global input
+        input.which_range_selecting = self.which_range_entry.get()
+        print(f"confirmed range: {input.which_range_selecting}")
+
 
 class Col3(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
+        self.parent = parent
         self.col_position = 2
         self.is_visible = True
+        self.container = container
         self.plot_clean_data_var = tk.IntVar()
         self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data\n(Δf and Δd)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
         self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
@@ -660,6 +688,10 @@ class Col3(tk.Frame):
 
         # checkboxes for selecting which channels to plot for clean data
         self.clean_checks = create_checkboxes(self, 'clean')
+
+        self.clean_int_plot_var = tk.IntVar()
+        self.clean_int_plot_frame = InteractivePlotOptions(self)
+        self.clean_int_plot_check = tk.Checkbutton(self, text="Interactive plot", variable=self.clean_int_plot_var, onvalue=1, offvalue=0, command=self.clean_int_plot)
 
         self.clear_clean_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_clean_checks)
         self.select_all_clean_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_clean_checks)
@@ -680,7 +712,8 @@ class Col3(tk.Frame):
                 if cb.intvar.get() == 1:
                     input.which_plot[cb.key[0]][cb.key[1]] = True
                 else:
-                    input.which_plot[cb.key[0]][cb.key[1]] = False
+                    input.which_plot[cb.key[0]][cb.key[1]] = False        
+            self.clean_int_plot_check.grid(row=18, column=0, pady=12)
 
         else:
             input.will_plot_clean_data = False
@@ -691,6 +724,7 @@ class Col3(tk.Frame):
 
             self.select_all_clean_checks_button.grid_forget()
             self.clear_clean_checks_button.grid_forget()
+            self.clean_int_plot_check.grid_forget()
 
     def clear_clean_checks(self):
         global input
@@ -708,6 +742,23 @@ class Col3(tk.Frame):
 
         for channel in input.which_plot['clean']:
             input.which_plot['clean'][channel] = True
+
+
+    def clean_int_plot(self):
+        global input
+        print(self.clean_int_plot_var.get(), input.will_interactive_plot)
+        if self.clean_int_plot_var.get() == 1:
+            input.will_interactive_plot = True
+            print(self.clean_int_plot_var.get(), input.will_interactive_plot)
+            input.range_frame_flag = True
+            self.parent.repack_frames()
+            self.clean_int_plot_frame.grid(row=18, column=0)
+        else:
+            input.will_interactive_plot = False
+            input.range_frame_flag = False
+            self.parent.repack_frames()
+            self.clean_int_plot_frame.grid_forget()
+        print(self.clean_int_plot_var.get(), input.will_interactive_plot)
 
 
 class Col4(tk.Frame):
@@ -739,27 +790,7 @@ class Col4(tk.Frame):
         self.correct_slope_var = tk.IntVar()
         self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.correct_slope_check.grid(row=6, column=4)
-        self.interactive_plot_var = tk.IntVar()
-        self.interactive_plot_check = tk.Checkbutton(self, text="Interactive plot", variable=self.interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.interactive_plot_check.grid(row=7, column=4)
-        
-        # options for the int plot
-        self.interactive_plot_opts = tk.Frame(self)
-        self.interactive_plot_overtone_label = tk.Label(self.interactive_plot_opts, text="Select overtone to visualize:")
-        self.interactive_plot_overtone_label.grid(row=0, column=0)
-        self.interactive_plot_overtone_select = tk.Entry(self.interactive_plot_opts, width=10)
-        self.interactive_plot_overtone_select.grid(row=1, column=0)
 
-        # define and place entry for range options
-        self.which_range_label = tk.Label(self.interactive_plot_opts, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
-        self.which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
-        self.which_range_entry = tk.Entry(self.interactive_plot_opts, width=10)
-        self.which_range_entry.grid(row=3, column=0, pady=(2,4))
-        # button to submit range selected
-        self.which_range_submit = tk.Button(self.interactive_plot_opts, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
-        self.which_range_submit.grid(row=4, column=0, pady=4)
-        input.range_frame_flag = True
-        
         self.open_model_window_button = tk.Button(self, text="Modeling", padx=8, pady=6, command=self.model_window_button)
         self.open_model_window_button.grid(row=10, column=4, pady=8)
 
@@ -781,17 +812,6 @@ class Col4(tk.Frame):
         input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
         input.will_correct_slope = True if self.correct_slope_var.get() == 1 else False
 
-        if self.interactive_plot_var.get() == 1:
-            input.will_interactive_plot = True
-            input.range_frame_flag = True
-            self.parent.repack_frames()
-            self.interactive_plot_opts.grid(row=8, column=4)
-        else:
-            input.will_interactive_plot = False
-            input.range_frame_flag = False
-            self.parent.repack_frames()
-            self.interactive_plot_opts.grid_forget()
-
     # when interactive plot window opens, grabs number of range from text field
     def confirm_range(self):
         global input
@@ -808,8 +828,9 @@ class Col4(tk.Frame):
     def submit(self):
         global input
         err_check()
-        if self.interactive_plot_var.get() == 1:
-            input.clean_interactive_plot_overtone = int(self.interactive_plot_overtone_select.get())
+        
+        if input.will_interactive_plot:
+            input.interactive_plot_overtones['clean'] = int(self.parent.frames[Col3].clean_int_plot_frame.interactive_plot_overtone_select.get())
 
         global INPUT_ALTERED_FLAG
         if INPUT_ALTERED_FLAG:
