@@ -35,10 +35,11 @@ class Input:
         self.will_plot_dF_dD_together = False # indicates if user selected multi axis plot of dis and freq
         self.will_normalize_F = False # indicates if user selected to normalize frequency data
         self.will_plot_dD_v_dF = False # indicates if user selected to plot change in dis vs change in freq
-        self.will_interactive_plot = False # indicates if user selected interactive plot option
+        self.interactive_plot_data_fmt = {'raw': False, 'clean': False} # indicates which data user wants to interactive plot
         self.submit_pressed = False # submitting gui data the first time has different implications than if resubmitting
-        self.which_range_selecting = '' # which range of the interactive plot is about to be selected
-        self.interactive_plot_overtones = {'raw': 0, 'clean': 0} # which overtones for clean and raw
+        self.enable_interactive_plot = False
+        self.which_range_selecting = {'raw': '', 'clean': ''} # which range of the interactive plot is about to be selected
+        self.interactive_plot_overtone = {'raw': 0, 'clean': 0} # which overtones for clean and raw
         self.range_frame_flag = False
         self.first_run = True
         self.latex_installed = False
@@ -145,6 +146,23 @@ def generate_labelled_entries(frame):
 
     return labelled_entries
 
+def receive_int_plot_input(int_plot_input):
+    global input
+    self, frame, intvar, prev_frame = int_plot_input
+    print(intvar.get(), input.enable_interactive_plot)
+    if intvar.get() == 0: # if raw data curv
+        input.interactive_plot_data_fmt['raw'] = True
+        input.interactive_plot_data_fmt['clean'] = False
+        input.range_frame_flag = True
+    else:
+        input.interactive_plot_data_fmt['clean'] = True
+        input.interactive_plot_data_fmt['raw'] = False
+        input.range_frame_flag = False
+
+    frame.grid(row=20, column=0)
+    prev_frame.grid_forget()
+    self.parent.repack_frames()
+
 def err_check():
     global input
     '''Verify File Info'''
@@ -213,6 +231,11 @@ class App(tk.Tk):
         self.iconphoto(False, tk.PhotoImage(file="res/m3b_comp.png"))
         #self.configure(bg=DARKEST)
         #self.tk_setPalette(background=DARKEST, foreground=WHITE)
+
+        # Integer Variable for selecting radio button of interactive plot for either raw or clean data
+        # 0 raw, 1 clean
+        self.int_plot_data_fmt_var = tk.IntVar()
+        self.int_plot_data_fmt_var.set(-1)
 
         # defining containers
         container = tk.Frame(self)
@@ -598,6 +621,10 @@ class Col2(tk.Frame):
         # checkboxes for selecting which channels to plot for raw data
         self.raw_checks = create_checkboxes(self, 'raw')
 
+        self.raw_int_plot_frame = InteractivePlotOptions(self, 'raw')
+        self.raw_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=0,
+                                                 command=lambda: receive_int_plot_input((self, self.raw_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col3].clean_int_plot_frame)))
+
         self.clear_raw_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_raw_checks)
         self.select_all_raw_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_raw_checks)
 
@@ -607,8 +634,8 @@ class Col2(tk.Frame):
         if self.plot_raw_data_var.get() == 1:
             input.will_plot_raw_data = True
             self.which_raw_channels_label.grid(row=1, column=0, pady=(0,26))
-            self.select_all_raw_checks_button.grid(row=19, column=0, padx=(0,0), pady=(12,4))
-            self.clear_raw_checks_button.grid(row=20, column=0, padx=(0,0), pady=(4,4))
+            self.select_all_raw_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
+            self.clear_raw_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
             #self.calibration_data_button.grid(row=21, column=0, padx=(0,0), pady=(4,4))
             
             for i, cb in enumerate(self.raw_checks):
@@ -618,6 +645,7 @@ class Col2(tk.Frame):
                     input.which_plot[cb.key[0]][cb.key[1]] = True
                 else:
                     input.which_plot[cb.key[0]][cb.key[1]] = False
+            self.raw_int_plot_check.grid(row=18, column=0, pady=12)
 
         else:
             input.will_plot_raw_data = False
@@ -628,6 +656,8 @@ class Col2(tk.Frame):
 
             self.select_all_raw_checks_button.grid_forget()
             self.clear_raw_checks_button.grid_forget()
+            self.raw_int_plot_check.grid_forget()
+
         
     def clear_raw_checks(self):
         global input
@@ -643,13 +673,13 @@ class Col2(tk.Frame):
             cb.intvar.set(1)
 
         for channel in input.which_plot['raw']:
-            input.which_plot['raw'][channel] = True
-
-        print(input.which_plot)
+            input.which_plot['raw'][channel] = True        
 
 class InteractivePlotOptions(tk.Frame):
-    def __init__(self, container):
+    def __init__(self, container, data_fmt):
         super().__init__(container)
+
+        self.data_fmt = data_fmt
 
         # options for the int plot
         self.interactive_plot_overtone_label = tk.Label(self, text="Select overtone to visualize:")
@@ -670,7 +700,7 @@ class InteractivePlotOptions(tk.Frame):
 
     def confirm_range(self):
         global input
-        input.which_range_selecting = self.which_range_entry.get()
+        input.which_range_selecting[self.data_fmt] = self.which_range_entry.get()
         print(f"confirmed range: {input.which_range_selecting}")
 
 
@@ -690,8 +720,9 @@ class Col3(tk.Frame):
         self.clean_checks = create_checkboxes(self, 'clean')
 
         self.clean_int_plot_var = tk.IntVar()
-        self.clean_int_plot_frame = InteractivePlotOptions(self)
-        self.clean_int_plot_check = tk.Checkbutton(self, text="Interactive plot", variable=self.clean_int_plot_var, onvalue=1, offvalue=0, command=self.clean_int_plot)
+        self.clean_int_plot_frame = InteractivePlotOptions(self, 'clean')
+        self.clean_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=1,
+                                                   command=lambda: receive_int_plot_input((self, self.clean_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col2].raw_int_plot_frame)))
 
         self.clear_clean_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_clean_checks)
         self.select_all_clean_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_clean_checks)
@@ -703,8 +734,8 @@ class Col3(tk.Frame):
         if self.plot_clean_data_var.get() == 1:
             input.will_plot_clean_data = True
             self.which_clean_channels_label.grid(row=1, column=0, pady=(0,12))
-            self.select_all_clean_checks_button.grid(row=19, column=0, padx=(0,0), pady=(12,4))
-            self.clear_clean_checks_button.grid(row=20, column=0, padx=(0,0), pady=(4,4))
+            self.select_all_clean_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
+            self.clear_clean_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
             
             for i, cb in enumerate(self.clean_checks):
                 cb.checkbutton.grid(row=i+2, column=0)
@@ -744,23 +775,6 @@ class Col3(tk.Frame):
             input.which_plot['clean'][channel] = True
 
 
-    def clean_int_plot(self):
-        global input
-        print(self.clean_int_plot_var.get(), input.will_interactive_plot)
-        if self.clean_int_plot_var.get() == 1:
-            input.will_interactive_plot = True
-            print(self.clean_int_plot_var.get(), input.will_interactive_plot)
-            input.range_frame_flag = True
-            self.parent.repack_frames()
-            self.clean_int_plot_frame.grid(row=18, column=0)
-        else:
-            input.will_interactive_plot = False
-            input.range_frame_flag = False
-            self.parent.repack_frames()
-            self.clean_int_plot_frame.grid_forget()
-        print(self.clean_int_plot_var.get(), input.will_interactive_plot)
-
-
 class Col4(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
@@ -790,6 +804,9 @@ class Col4(tk.Frame):
         self.correct_slope_var = tk.IntVar()
         self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.correct_slope_check.grid(row=6, column=4)
+        self.enable_interactive_plot_var = tk.IntVar()
+        self.enable_interactive_plot_check = tk.Checkbutton(self, text="Enable interactive plot", variable=self.enable_interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.enable_interactive_plot_check.grid(row=7, column=4)
 
         self.open_model_window_button = tk.Button(self, text="Modeling", padx=8, pady=6, command=self.model_window_button)
         self.open_model_window_button.grid(row=10, column=4, pady=8)
@@ -811,6 +828,7 @@ class Col4(tk.Frame):
         input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
         input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
         input.will_correct_slope = True if self.correct_slope_var.get() == 1 else False
+        input.enable_interactive_plot = True if self.enable_interactive_plot_var.get() == 1 else False
 
     # when interactive plot window opens, grabs number of range from text field
     def confirm_range(self):
@@ -829,8 +847,14 @@ class Col4(tk.Frame):
         global input
         err_check()
         
-        if input.will_interactive_plot:
-            input.interactive_plot_overtones['clean'] = int(self.parent.frames[Col3].clean_int_plot_frame.interactive_plot_overtone_select.get())
+        try:
+            input.interactive_plot_overtone['clean'] = int(self.parent.frames[Col3].clean_int_plot_frame.interactive_plot_overtone_select.get())
+        except:
+            input.interactive_plot_overtone['clean'] = 0
+        try:
+            input.interactive_plot_overtone['raw'] = int(self.parent.frames[Col2].raw_int_plot_frame.interactive_plot_overtone_select.get())
+        except:
+            input.interactive_plot_overtone['raw'] = 0
 
         global INPUT_ALTERED_FLAG
         if INPUT_ALTERED_FLAG:
