@@ -533,6 +533,36 @@ class CalibrationWindow():
         calibration_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
         print(f"Offset values written succesfully\n: {calibration_df.head()}")
 
+
+class InteractivePlotOptions(tk.Frame):
+    def __init__(self, container, data_fmt):
+        super().__init__(container)
+
+        self.data_fmt = data_fmt
+
+        # options for the int plot
+        self.interactive_plot_overtone_label = tk.Label(self, text="Select overtone to visualize:")
+        self.interactive_plot_overtone_label.grid(row=0, column=0, pady=12)
+        self.interactive_plot_overtone_select = tk.Entry(self, width=10)
+        self.interactive_plot_overtone_select.grid(row=1, column=0)
+
+        # define and place entry for range options
+        self.which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
+        self.which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
+        self.which_range_entry = tk.Entry(self, width=10)
+        self.which_range_entry.grid(row=3, column=0, pady=(2,4))
+
+        # button to submit range selected
+        self.which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
+        self.which_range_submit.grid(row=4, column=0, pady=4)
+        input.range_frame_flag = True
+
+    def confirm_range(self):
+        global input
+        input.which_range_selecting[self.data_fmt] = self.which_range_entry.get()
+        print(f"confirmed range: {input.which_range_selecting}")
+
+
 class Col1(tk.Frame):
     def __init__(self, parent, container):
         super().__init__(container)
@@ -666,42 +696,16 @@ class Col2(tk.Frame):
 
         for channel in input.which_plot['raw']:
             input.which_plot['raw'][channel] = False
-            
+                    
     def select_all_raw_checks(self):
         global input
         for cb in self.raw_checks:
             cb.intvar.set(1)
 
         for channel in input.which_plot['raw']:
-            input.which_plot['raw'][channel] = True        
-
-class InteractivePlotOptions(tk.Frame):
-    def __init__(self, container, data_fmt):
-        super().__init__(container)
-
-        self.data_fmt = data_fmt
-
-        # options for the int plot
-        self.interactive_plot_overtone_label = tk.Label(self, text="Select overtone to visualize:")
-        self.interactive_plot_overtone_label.grid(row=0, column=0, pady=12)
-        self.interactive_plot_overtone_select = tk.Entry(self, width=10)
-        self.interactive_plot_overtone_select.grid(row=1, column=0)
-
-        # define and place entry for range options
-        self.which_range_label = tk.Label(self, text="Enter which range being selected\n(use identifier of your choosing\ni.e. numbers or choice of label)" )
-        self.which_range_label.grid(row=2, column=0, pady=(2,4), padx=4)
-        self.which_range_entry = tk.Entry(self, width=10)
-        self.which_range_entry.grid(row=3, column=0, pady=(2,4))
-
-        # button to submit range selected
-        self.which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
-        self.which_range_submit.grid(row=4, column=0, pady=4)
-        input.range_frame_flag = True
-
-    def confirm_range(self):
-        global input
-        input.which_range_selecting[self.data_fmt] = self.which_range_entry.get()
-        print(f"confirmed range: {input.which_range_selecting}")
+            input.which_plot['raw'][channel] = True   
+        print(input.which_plot)
+            
 
 
 class Col3(tk.Frame):
@@ -764,7 +768,7 @@ class Col3(tk.Frame):
 
         for channel in input.which_plot['clean']:
             input.which_plot['clean'][channel] = False
-
+        
     def select_all_clean_checks(self):
         global input
 
@@ -773,6 +777,8 @@ class Col3(tk.Frame):
 
         for channel in input.which_plot['clean']:
             input.which_plot['clean'][channel] = True
+        print(input.which_plot)
+        
 
 
 class Col4(tk.Frame):
@@ -845,6 +851,7 @@ class Col4(tk.Frame):
 
     def submit(self):
         global input
+        print("***FINAL",input.which_plot)
         err_check()
         
         try:
@@ -866,11 +873,15 @@ class Col4(tk.Frame):
 
     def clear_range_data(self):
         set_input_altered_flag(True)
-        rf_stats = open("selected_ranges/all_stats_rf.csv", 'w')
-        dis_stats = open("selected_ranges/all_stats_dis.csv", 'w')
+        rf_clean_stats = open("selected_ranges/clean_all_stats_rf.csv", 'w')
+        dis_clean_stats = open("selected_ranges/clean_all_stats_dis.csv", 'w')
+        rf_raw_stats = open("selected_ranges/raw_all_stats_rf.csv", 'w')
+        dis_raw_stats = open("selected_ranges/raw_all_stats_dis.csv", 'w')
         sauerbray_stats = open("selected_ranges/Sauerbrey_stats.csv", 'w')
         sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
-        files = [rf_stats, dis_stats, sauerbray_stats, sauerbrey_ranges]
+        tfa = open("selected_ranges/thin_film_air_output.csv", 'w')
+        tfl = open("selected_ranges/thin_film_liquid_output.csv", 'w')
+        files = [rf_clean_stats, dis_clean_stats, rf_raw_stats, dis_raw_stats, sauerbray_stats, sauerbrey_ranges, tfa, tfl]
         for file in files:
             file.write('')
 

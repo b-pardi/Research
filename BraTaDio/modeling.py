@@ -115,7 +115,7 @@ def get_calibration_values(which_plot, use_theoretical_vals):
 
 # plot will be mean of bandwidth shift vs overtone * mean of change in frequency
 def avg_and_propogate(label, sources, df, is_frequency):
-    df_ranges = df.loc[df['range_used'] == label]
+    df_ranges = df.loc[df['range_name'] == label]
 
     # group data by range and then source
     # values get averaged across sources respective to their range
@@ -298,11 +298,11 @@ def thin_film_liquid_analysis(user_input):
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+    rf_df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv", index_col=0)
+    dis_df = pd.read_csv("selected_ranges/clean_all_stats_dis.csv", index_col=0)
 
     # grab all unique labels from dataset
-    labels = rf_df['range_used'].unique()
+    labels = rf_df['range_name'].unique()
     sources = rf_df['data_source'].unique()
     print(f"*** found labels: {labels}\n\t from sources: {sources}\n")
     
@@ -325,7 +325,7 @@ def thin_film_liquid_analysis(user_input):
 
         # save calculations to file
         stats_out_fn = 'selected_ranges/thin_film_liquid_output.csv'                
-        header = f"n*Df,bandwidth_shift,bandwidth_shift_FIT,range_used,data_source\n"
+        header = f"n*Df,bandwidth_shift,bandwidth_shift_FIT,range_name,data_source\n"
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
             for i in range(len(delta_gamma)):
@@ -343,11 +343,11 @@ def thin_film_air_analysis(user_input):
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+    rf_df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv", index_col=0)
+    dis_df = pd.read_csv("selected_ranges/clean_all_stats_dis.csv", index_col=0)
 
     # grab all unique labels from dataset
-    labels = rf_df['range_used'].unique()
+    labels = rf_df['range_name'].unique()
     sources = rf_df['data_source'].unique()
     print(rf_df.index)
     overtones_df = rf_df[(rf_df!= 0).all(1)] # remove rows with 0 (unselected rows)
@@ -399,7 +399,7 @@ def thin_film_air_analysis(user_input):
 
         # save calculations to file
         stats_out_fn = 'selected_ranges/thin_film_air_output.csv'                
-        header = f"sq_overtones,delta_gamma_norm,delta_gamma_norm_fit,delta_freqs_norm,delta_freq_norm_fit,range_used,data_source\n"
+        header = f"sq_overtones,delta_gamma_norm,delta_gamma_norm_fit,delta_freqs_norm,delta_freq_norm_fit,range_name,data_source\n"
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
             for i in range(len(sq_overtones)):
@@ -455,7 +455,7 @@ def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
 
 def sauerbrey_fit(df, overtones, label, C, fig_format):
     # grabbing data from df
-    df_range = df.loc[df['range_used'] == label]
+    df_range = df.loc[df['range_name'] == label]
     # method 1 of Sauerbrey mass (linear fit slope * C)
     mu_Df = df_range['Dfreq_mean'].values # average change in frequency (y)
     delta_mu_Df = df_range['Dfreq_std_dev'].values # std dev of y
@@ -483,9 +483,9 @@ def sauerbrey(user_input):
     print("Analyzing Sauerbrey equation...")
 
     # grabbing df from csv
-    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv")
     df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
-    labels = df['range_used'].unique()
+    labels = df['range_name'].unique()
     overtones = df['overtone'].unique() # overtone number (x)
     overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
     sources = df['data_source'].unique()
@@ -513,7 +513,7 @@ def sauerbrey(user_input):
 
         # save calculations to file
         stats_out_fn = 'selected_ranges/sauerbrey_output.csv'                
-        header = f"overtone,avg_Df,avg_Df_err,avg_Df_FIT,avg_Dm,avg_Dm_err,C,range_used,data_source\n"
+        header = f"overtone,avg_Df,avg_Df_err,avg_Df_FIT,avg_Dm,avg_Dm_err,C,range_name,data_source\n"
         prepare_stats_file(header, label, sources[0], stats_out_fn)
         with open(stats_out_fn, 'a') as stat_file:
             for i in range(len(mu_Df)):
@@ -526,19 +526,19 @@ def avgs_analysis(fig_format):
     print("Analyzing average change in frequency and dissipation...")
 
     # grabbing df from csv
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    rf_df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv")
     rf_df = rf_df[(rf_df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
+    dis_df = pd.read_csv("selected_ranges/clean_all_stats_dis.csv")
     dis_df = dis_df[(dis_df!= 0).all(1)] # remove dis rows with 0 (unselected rows)
-    labels = rf_df['range_used'].unique()
+    labels = rf_df['range_name'].unique()
     overtones = rf_df['overtone'].unique() # overtone number (x)
     overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
     print(f"LABELS: {labels}; OVERTONES: {overtones}")
 
     for label in labels:
         # grabbing data from df
-        rf_df_range = rf_df.loc[rf_df['range_used'] == label]
-        dis_df_range = dis_df.loc[dis_df['range_used'] == label]
+        rf_df_range = rf_df.loc[rf_df['range_name'] == label]
+        dis_df_range = dis_df.loc[dis_df['range_name'] == label]
         mu_Df = rf_df_range['Dfreq_mean'].values # average change in frequency (y)
         delta_mu_Df = rf_df_range['Dfreq_std_dev'].values # std dev of y
         mu_Dd = dis_df_range['Ddis_mean'].values # average change in dissipation (y)

@@ -191,6 +191,26 @@ waiting on data:
 
 
 ### CHANGE LOG
+8/4 - 8/9
+- major restructure for interactive plot functionality with end goal of having interactive plot for raw and clean data
+    - moved interactive plot UI specifications to bottom of cleaned data and raw data columns for use of both
+    - changed checkbox for interactive plot to radio buttons so users don't select two interactive plots simultaneously
+    - added an enable interactive plot option in column 4
+    - all variables of class 'Input' pertaining to interactive plots have been adapted for a raw and clean interactive plot
+        -i.e. changed input.interactive_plot_overtone = 0 to input.interactive_plot_overtone = {'raw': 0, 'clean': 0} to account for raw and clean separately
+    - made interactive plot options frame into a class for easier duplicatability being in both columns
+    - changed function that handles interactive plot input to a global function instead of class specific for better reusability of code
+    - removed raw interactive plot function (originally used for deprecated method of selecting offset data)
+    - changed clean_interactive_plot function to also handle raw data by passing in data_fmt so it knows which sub dictionary to look in in which_plot
+    - adjusted function that prepares stats file to check data_fmt
+    - changed output file for stats by prepending 'clean' or 'raw' to the file names
+    - adjusted stats function for interactive plot to check for what data_fmt it is receiving
+    - adjusted all modeling functions to make sure it only grabs from the clean stats file
+    - updated clear saved ranges button to clean new file names
+- bug fix clear saved ranges did not also clear thin film outputs
+- bug fix when selecting overtones to use interactive for either raw or clean data, and then selecting overtones of other column, then clearing overtone selections of first column, says that no overtones were selected
+- bug fix in prepare stats file, file IO mode not specified, specified write
+
 7/8
 - added functionality to do slope correction of drift in baseline
     - takes slope of baseline data and 'rotates' points based on the angle given by the arctan of that slope

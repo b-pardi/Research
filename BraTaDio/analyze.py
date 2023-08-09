@@ -232,7 +232,7 @@ def prepare_stats_file(header, which_range, src_fn, stats_fn):
         except Exception as e:
             print(f"err 1: {e}")
             print("Creating modeling file...")
-            with open(stats_fn) as creating_new_modeling_file: 
+            with open(stats_fn, 'w') as creating_new_modeling_file: 
                 creating_new_modeling_file.write('')
             temp_df = pd.read_csv(stats_fn)
         if '' in temp_df['range_name'].unique(): # remove potentially erroneous range inputs
@@ -482,12 +482,12 @@ def interactive_plot_analysis(fn, df, range, imin, imax, which_plot, which_fmt):
 
     range_statistics(df, imin, imax, which_plot, range[which_fmt], which_fmt, fn)
 
-def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
+def interactive_plot(input, selected_df, x_time, time_col, data_fmt):
     plot_customs = get_plot_preferences()
 
     int_plot_analysis = Analysis(input.file)
     spans = []        
-    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.interactive_plot_overtone['clean'], plot_customs['time_scale'], cleaned_df, time_col)
+    int_plot, int_ax1, int_ax2, int_ax1_zoom, int_ax2_zoom, y_rf, y_dis = generate_interactive_plot(input.interactive_plot_overtone[data_fmt], plot_customs['time_scale'], selected_df, time_col)
 
     which_fmt = [fmt[0] for fmt in input.interactive_plot_data_fmt.items() if fmt[1] == True][0]
 
@@ -506,8 +506,8 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
 
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
                                   xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
-        interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
-                                  imin, imax, input.which_plot['clean'].items(), which_fmt)
+        interactive_plot_analysis(int_plot_analysis.formatted_fn, selected_df, input.which_range_selecting,
+                                  imin, imax, input.which_plot[data_fmt].items(), which_fmt)
     
     plot_win, x_entry = set_x_entry()
     x_entry.bind('<Return>', update_text)
@@ -524,8 +524,8 @@ def cleaned_interactive_plot(input, cleaned_df, x_time, time_col):
         
         imin, imax = update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_customs,
                                   xmin, xmax, x_time, y_rf, y_dis, plot_customs['time_scale'])
-        interactive_plot_analysis(int_plot_analysis.formatted_fn, cleaned_df, input.which_range_selecting,
-                                  imin, imax, input.which_plot['clean'].items(), which_fmt)
+        interactive_plot_analysis(int_plot_analysis.formatted_fn, selected_df, input.which_range_selecting,
+                                  imin, imax, input.which_plot[data_fmt].items(), which_fmt)
 
             
         x_entry.delete(0,"end") # update text field to match
@@ -873,22 +873,18 @@ def analyze_data(input):
         setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False, True), dis_fig_title, dis_fn,  plot_customs['fig_format'])
         raw_dis_fig.savefig(dis_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
 
-    print(input.interactive_plot_overtone, ';', input.enable_interactive_plot)
     # interactive plot
-    print(input.enable_interactive_plot)
     if input.enable_interactive_plot:
-        print("clean int plot")
         if input.interactive_plot_data_fmt['clean']:
             if input.will_normalize_F:
-                cleaned_interactive_plot(input, unnormalized_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
+                interactive_plot(input, unnormalized_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col, 'clean')
             elif input.will_correct_slope:
-                cleaned_interactive_plot(input, slope_corrected_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
+                interactive_plot(input, slope_corrected_cleaned_df, (x_time_freq, x_time_dis), analysis.time_col, 'clean')
             else:
-                cleaned_interactive_plot(input, cleaned_df, (x_time_freq, x_time_dis), analysis.time_col)
+                interactive_plot(input, cleaned_df, (x_time_freq, x_time_dis), analysis.time_col, 'clean')
 
         if input.interactive_plot_data_fmt['raw']:
-            print("raw int plot")
-            cleaned_interactive_plot(input, df, (x_time, x_time), analysis.time_col)
+            interactive_plot(input, df, (x_time, x_time), analysis.time_col, 'raw')
 
     # clear plots and lists for next iteration
     if input.will_plot_clean_data:
