@@ -201,6 +201,8 @@ waiting on data:
 
 8/10
 - now catch errors for if curve fit fails in interactive plot
+- bug fix, when entering offset values, works first time, crashes second time. removed index column when reading offset values file
+- when inputting offset data in window, make software create file for values (similar to interactive plot stats output) in case file not found for some reason
 
 8/4 - 8/9
 - major restructure for interactive plot functionality with end goal of having interactive plot for raw and clean data

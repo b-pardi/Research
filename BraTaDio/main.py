@@ -527,10 +527,19 @@ class CalibrationWindow():
                     print("WARNING: AT LEAST ONE ENTRY EXISTS WITH A MISSING OR INVALID INPUT\nWILL CONVERT THESE ENTRIES TO 0")
                     warned_flag = True
                 calibration_vals.append(0.0)
-            
-        calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
+        print(calibration_vals)
+        try: # if file is removed for some reason, create a new one to fill values with
+            calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=None)
+        except FileNotFoundError as fnfe:
+            print("Offset values file not found, creating new one...")
+            column_headers = "fundamental_freq,fundamental_dis,3rd_freq,3rd_dis,5th_freq,5th_dis,7th_freq,7th_dis,9th_freq,9th_dis,11th_freq,11th_dis,13th_freq,13th_dis\n"
+            with open("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", 'w') as offset_file:
+                offset_file.write(column_headers)
+            calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=None)
+            print("Success")
+        print(calibration_df)
         calibration_df.loc[0] = calibration_vals
-        calibration_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
+        calibration_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index=False)
         print(f"Offset values written succesfully\n: {calibration_df.head()}")
 
 
