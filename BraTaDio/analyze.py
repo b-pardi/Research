@@ -453,8 +453,16 @@ def update_interactive_plot(spans, int_plot, int_ax1_zoom, int_ax2_zoom, plot_cu
     # linear regression on zoomed data
     freq_units = f"Hz/{x_scale}"
     dis_units = f"1/{x_scale}"
-    linearly_analyze(zoomx, zoomy1, int_ax1_zoom, "frequency drift: ", freq_units)
-    linearly_analyze(zoomx, zoomy2, int_ax2_zoom, "dissipation drift: ", dis_units)
+
+    # in case data does not perform with linear fit
+    try:
+        linearly_analyze(zoomx, zoomy1, int_ax1_zoom, "frequency drift: ", freq_units)
+        linearly_analyze(zoomx, zoomy2, int_ax2_zoom, "dissipation drift: ", dis_units)
+    except Exception as e:
+        print(e)
+        err_txt = "Curve fit failed!"
+        legend_text = int_ax1_zoom.legend([err_txt], loc='best')
+        legend_text = int_ax2_zoom.legend([err_txt], loc='best')
     int_ax1_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
     int_ax2_zoom.legend(loc='best', fontsize=plot_customs['legend_text_size'], prop={'family': plot_customs['font']}, framealpha=0.3)
 

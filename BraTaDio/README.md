@@ -155,18 +155,25 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
+- when entering offset values, works first time, crashes second time
+- when inputting offset data in window, make software create file for values (similar to interactive plot stats output)
 
 format changes:
+- change lower case d to capital D
 
 features:
+- crystal thickness modeling
 - viscoelastic film modeling
-- gordon-kanazawa
+- gordon-kanazawa modeling
+- file format support for AWSensors
 
 publication/documentation: 
 - flowchart of workflow of software
     - rough draft on whiteboard
 - more explicit library acknowledgement sections
 - instructions on adding more files to format
+- add to highlighted sections of bratadio paper
+    - file directories and conversion instructions 
 
 optimizations/refactoring: 
 - remove unnecessary prints
@@ -191,6 +198,10 @@ waiting on data:
 
 
 ### CHANGE LOG
+
+8/10
+- now catch errors for if curve fit fails in interactive plot
+
 8/4 - 8/9
 - major restructure for interactive plot functionality with end goal of having interactive plot for raw and clean data
     - moved interactive plot UI specifications to bottom of cleaned data and raw data columns for use of both

@@ -186,7 +186,7 @@ def plot_data(xdata, ydata, xerr, yerr, label, has_err, color='black'):
     return fig, ax
 
 def linearly_analyze(x, y, ax, label_prefix='', label_postfix=''):
-    # performing the linear fit
+    # performing the linear fit 
     params, cov = curve_fit(linear, x, y)
     m, b = params
     sign = '-' if b < 0 else '+' 
