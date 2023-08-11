@@ -16,7 +16,7 @@ import pandas as pd
 import Exceptions
 from analyze import analyze_data, ordinal, select_calibration_data
 from format_file import format_raw_data
-from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis, gordon_kanazawa
+from modeling import thin_film_liquid_analysis, thin_film_air_analysis, sauerbrey, avgs_analysis, gordon_kanazawa, crystal_thickness
 
 '''Variable Initializations'''
 class Input:
@@ -916,29 +916,33 @@ class ModelingWindow():
 
         # run linear regression button
         self.run_tf_liquid_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Liquid", padx=6, pady=4, width=20,
-                                             command=lambda: thin_film_liquid_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed, input.fig_format)))
+                                             command=lambda: thin_film_liquid_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
         self.run_tf_liquid_analysis_button.grid(row=10, column=0, pady=4)
 
         # run sauerbrey button
         self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey Mass Analysis", padx=6, pady=4, width=20,
-                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.calibration_data_from_file, input.fig_format)))
+                                             command=lambda: sauerbrey((input.will_use_theoretical_vals, input.calibration_data_from_file)))
         self.run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
         # avg change in freq and dis against overtone button
         self.avgs_analysis = tk.Button(self.models_frame, text="Plot Average Δf and Δd\n of Overtones", padx=6, pady=4, width=20,
-                                             command=lambda: avgs_analysis(input.fig_format))
+                                             command=lambda: avgs_analysis())
         self.avgs_analysis.grid(row=8, column=0, pady=4)
 
         # avg change in freq against overtone button
         self.run_tf_air_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Air", padx=6, pady=4, width=20,
-                                             command=lambda: thin_film_air_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed, input.fig_format)))
+                                             command=lambda: thin_film_air_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
         # Gordon-Kanazawa model
         self.run_GK_button = tk.Button(self.models_frame, text="Run Gordon-Kanazawa Model", padx=6, pady=4, width=20,
-                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals, input.fig_format)))
+                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals)))
         self.run_GK_button.grid(row=12, column=0, pady=4)
 
+        # Quartz crystal thickness model
+        self.run_crystal_thickness_button = tk.Button(self.models_frame, text="Run Crystal Thickness Model", padx=6, pady=4, width=20,
+                                             command=lambda: crystal_thickness((input.which_plot['clean'], input.will_use_theoretical_vals)))
+        self.run_crystal_thickness_button.grid(row=12, column=0, pady=4)
 
     def test_modeling_window(self):
         self.model_window.deiconify()

@@ -12,6 +12,8 @@ from scipy.optimize import curve_fit
 import Exceptions
 from analyze import get_plot_preferences, get_num_from_string, prepare_stats_file, range_statistics
 
+PI = np.pi
+
 # pass in 3 dimensional array of data values
     # inner most arrays are of individual values [val_x1, val_x2, ... val_xn]
     # mid level arrays are pairs of each component [val_x, stddex_x], [val_y, stddev_y], [...], ...
@@ -54,6 +56,37 @@ def propogate_mean_err(means, errs, n_vals):
 
 def linear(x, m, b):
     return m * x + b
+
+def elastic_modulus_stiffening(n):
+    # constants
+    mu_q = 2.93e10      # N/m^2 elastic modulus of quarts
+    epsilon = -9.24e-2  # C/m^2 piezoelectric stress coefficient
+    kappa = 3.982e-11   # F/m   effecting dielectric constant for quartz
+    
+    # variables
+    # n is the overtone number
+
+    # elastic modulus of quarts accounting for piezoelectric stiffening
+    mu_qn = mu_q + ( epsilon ** 2 / kappa )\
+            - ( (8 * epsilon ** 2) / (PI ** 2 * n ** 2 * kappa) )
+    
+    return mu_qn
+
+def crystal_thickness_eqn(n, h_q):
+    # constants
+    rho_q = 2649.7      # kg/m^3 density of quarts
+
+    # variables
+    # f_Rn resonant frequency
+    # n is overtone number
+    mu_qn = elastic_modulus_stiffening(n)
+
+    # fitting paramaters
+    # h_q mm crystal thickness
+
+    f_Rn = ( n / ( 2 * h_q )) * np.sqrt( mu_qn / rho_q )
+    return f_Rn
+
 
 def get_overtones_selected(which_plot):
     overtones = []
@@ -181,7 +214,7 @@ def plot_data(xdata, ydata, xerr, yerr, label, has_err, color='black'):
             ax.plot(xdata, ydata, 'o', markersize=4, color=color)
             ax.errorbar(xdata, ydata, xerr=xerr, yerr=yerr, fmt='.', color=color)
     else:
-        ax.plot(xdata, ydata, markersize=1, label=label, color=color)
+        ax.plot(xdata, ydata, 'o', markersize=4, label=label, color=color)
 
     return fig, ax
 
@@ -246,6 +279,12 @@ def get_labels(label, type, subtype='', usetex=False):
         else:
             y = 'placeholder'
     
+    elif type == 'crystal':
+        data_label = None
+        title = "Placeholder title"
+        y = r"Resonant Frequency, $\it{f_{Rn}}$ (Hz)"
+        x = 'Overtone order, $\it{n}$'
+
     elif type == 'sauerbrey':
         data_label = f"average"
         title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
@@ -294,7 +333,8 @@ def process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf
 
 
 def thin_film_liquid_analysis(user_input):
-    which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
+    which_plot, use_theoretical_vals, latex_installed = user_input
+    fig_format = get_plot_preferences()['fig_format']
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
@@ -339,7 +379,8 @@ def thin_film_liquid_analysis(user_input):
         plt.rc('text', usetex=False)
 
 def thin_film_air_analysis(user_input):
-    which_plot, use_theoretical_vals, latex_installed, fig_format = user_input
+    which_plot, use_theoretical_vals, latex_installed = user_input
+    fig_format = get_plot_preferences()['fig_format']
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
@@ -406,7 +447,6 @@ def thin_film_air_analysis(user_input):
                 stat_file.write(f"{sq_overtones[i]},{delta_gamma_norm[i]:.8E},{delta_gamma_norm_fit[i]:.8E},{delta_gamma_norm[i]:.8E},{delta_freq_norm_fit[i]:.8E},{label},{sources[0]}\n")
 
         # save figure
-        print(fig_format)
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
         plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
@@ -415,11 +455,11 @@ def thin_film_air_analysis(user_input):
         plt.rc('text', usetex=False)
 
 def gordon_kanazawa(user_input):
-    which_plot, use_theoretical_vals, fig_format = user_input
+    which_plot, use_theoretical_vals = user_input
+    fig_format = get_plot_preferences()['fig_format']
     print("Analyzing Gordon-Kanazawa Equation...")
 
     # constants
-    pi = np.pi
     rhoQ = 2650 # (kg/m^3) density of quartz CONSTANT
     muQ = 3.3698e-4 # (m) thickness of quartz CONSTANT
     rhoL = 0 # (kg/m^3) density of quartz CONSTANT
@@ -430,11 +470,50 @@ def gordon_kanazawa(user_input):
     else:
         f0 = 1
 
-    Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (pi * muQ * rhoQ) )
+    Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (PI * muQ * rhoQ) )
 
     #print("Gordon-Kanazawa Analysis Complete")
     print("Gordon-Kanazawa Analysis is a Work in Progress, the button is currently a placeholder")
 
+
+def crystal_thickness(user_input):
+    which_plot, will_use_theoretical_vals = user_input
+    fig_format = get_plot_preferences()['fig_format']
+
+    overtones = get_overtones_selected(which_plot) # get overtones
+    overtones = [get_num_from_string(n[0]) for n in overtones]
+    offset_vals = get_calibration_values(which_plot, will_use_theoretical_vals)[0] # get offset data
+
+    print('*****', overtones, '\n', offset_vals)
+
+    # performing the for crystal thickness equation fit 
+    params, cov = curve_fit(crystal_thickness_eqn, overtones, offset_vals)
+    h_q = params[0]
+
+    # calculate fit data
+    y_fit = crystal_thickness_eqn(np.asarray(overtones), h_q)
+
+    # determine quality of the fit
+    squaredDiffs = np.square(offset_vals - y_fit)
+    squaredDiffsFromMean = np.square(offset_vals - np.mean(offset_vals))
+    rSquared = 1 - np.sum(squaredDiffs) / np.sum(squaredDiffsFromMean)
+    print(f"R² = {rSquared}")
+
+    # plotting data with fit
+    data_label, x_label, y_label, title = get_labels('','crystal')
+    crystal_fig, crystal_ax = plot_data(overtones, offset_vals, None, None, data_label, False)
+    crystal_ax.plot(overtones, y_fit, 'r', label=f"Crystal Thickness: {h_q*1000:.4f} (mm)", zorder=-1)
+    format_plot(crystal_ax, x_label, y_label, title, np.asarray(overtones))
+
+    crystal_fig.tight_layout()
+    crystal_fig.savefig(f"qcmd-plots/modeling/crystal_thickness.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+
+    stats_out_fn = 'selected_ranges/crystal_thickness_output.csv'                
+    header = f"overtone,offset_vals,offset_vals_FIT,crystal_thickness(mm)\n"
+    with open(stats_out_fn, 'w') as stat_file:
+        stat_file.write(header)
+        for i in range(len(overtones)):
+            stat_file.write(f"{overtones[i]},{offset_vals[i]:.8E},{y_fit[i]:.8E},{h_q*1000:.8E}\n")
 
 
 def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
@@ -479,7 +558,8 @@ def sauerbrey_fit(df, overtones, label, C, fig_format):
     return mu_Df, delta_mu_Df, mu_Df_fit
 
 def sauerbrey(user_input):
-    use_theoretical_vals, calibration_data_from_file, fig_format = user_input
+    use_theoretical_vals, calibration_data_from_file = user_input
+    fig_format = get_plot_preferences()['fig_format']
     print("Analyzing Sauerbrey equation...")
 
     # grabbing df from csv
@@ -522,7 +602,8 @@ def sauerbrey(user_input):
     print("Sauerbrey analysis complete")
     plt.rc('text', usetex=False)
 
-def avgs_analysis(fig_format):
+def avgs_analysis():
+    fig_format = get_plot_preferences()['fig_format']
     print("Analyzing average change in frequency and dissipation...")
 
     # grabbing df from csv

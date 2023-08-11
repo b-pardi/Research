@@ -155,14 +155,14 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
-- when entering offset values, works first time, crashes second time
-- when inputting offset data in window, make software create file for values (similar to interactive plot stats output)
 
 format changes:
 - change lower case d to capital D
 
 features:
+- offset values window entry have accommodation for FWHM
 - crystal thickness modeling
+    - 
 - viscoelastic film modeling
 - gordon-kanazawa modeling
 - file format support for AWSensors
@@ -203,6 +203,13 @@ waiting on data:
 - now catch errors for if curve fit fails in interactive plot
 - bug fix, when entering offset values, works first time, crashes second time. removed index column when reading offset values file
 - when inputting offset data in window, make software create file for values (similar to interactive plot stats output) in case file not found for some reason
+- refactor, modeling functions no longer receive fig_format variable passed into them from main, they instead call the get_plot_preferences function
+- added crystal thickness button to UI modeling window
+- added functions for equations for crystal thickness, and the supporting elastic modulus with stiffening
+- fit line to above functions
+- report r^2 to terminal of fit
+- plot fit and resonant frequency values against overtone order
+- write plotted data to csv file
 
 8/4 - 8/9
 - major restructure for interactive plot functionality with end goal of having interactive plot for raw and clean data
