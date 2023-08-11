@@ -503,7 +503,8 @@ def crystal_thickness(user_input):
     # plotting data with fit
     data_label, x_label, y_label, title = get_labels('','crystal')
     crystal_fig, crystal_ax = plot_data(overtones, offset_vals, None, None, data_label, False)
-    crystal_ax.plot(overtones, y_fit, 'r', label=f"Crystal Thickness: {h_q*1000:.4f} (mm)", zorder=-1)
+    crystal_label = f"Crystal Thickness: {h_q*1000:.4f} (mm)\n" + r'$R^2$: ' + f"{rSquared:.4f}"
+    crystal_ax.plot(overtones, y_fit, 'r', label=crystal_label, zorder=-1)
     format_plot(crystal_ax, x_label, y_label, title, np.asarray(overtones))
 
     crystal_fig.tight_layout()

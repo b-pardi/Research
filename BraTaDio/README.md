@@ -203,6 +203,7 @@ waiting on data:
         - similar to qsense, but with column reordering and removing
     - refactored and moved the code that adds offset data to qsense to a separate function, for reusability in AWSensors
     - added ability to remove indicies of calibration values being added to data file, as AWSensors only has overtones 3-11
+- R^2 now reported for crystal thickness in plot
 - bug fix, when not using all overtones for cyrstal thickness, it
 
 - format changes:
