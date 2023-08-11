@@ -158,12 +158,14 @@ bug fixes:
 
 format changes:
 - change lower case d to capital D
+- change column titles for 2 and 3 to raw/shifted overtone selection
+- remove 'model' in crystal thickness button
+- consistent capitalization (just first letters)
+- change placeholder title to crystal thickness
+- remove qsense warning for offset values window
+
 
 features:
-- offset values window entry have accommodation for FWHM
-- crystal thickness modeling
-    - 
-- viscoelastic film modeling
 - gordon-kanazawa modeling
 - file format support for AWSensors
 
@@ -198,6 +200,19 @@ waiting on data:
 
 
 ### CHANGE LOG
+
+8/11
+- added radio buttons to select dissipation or FWHM to offset values window
+- radio buttons now adjust labelled to entries to reflect above choice
+- when confirming selections, function converts values from FWHM to dissipation
+- formatting for input data from AWSensors
+    - added radio button option to file selection column of UI
+    - added format_AWSensors function to format_file.py
+        - similar to qsense, but with column reordering and removing
+    - refactored and moved the code that adds offset data to qsense to a separate function, for reusability in AWSensors
+    - added ability to remove indicies of calibration values being added to data file, as AWSensors only has overtones 3-11
+- format changes:
+    - adjusted instruction label for calibration window, opting to detail it in manuscript
 
 8/10
 - now catch errors for if curve fit fails in interactive plot

@@ -72,6 +72,19 @@ def format_QCMi(df):
 
     return fmt_df
 
+def add_offsets(calibration_df, fmt_df, overtones_skipped=(0)):
+    calibration_vals = calibration_df.values.flatten()    
+    for ov in tuple(sorted(overtones_skipped, reverse=True)):
+        calibration_vals = np.concatenate((calibration_vals[:ov-1], calibration_vals[ov+1:]))
+
+    calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
+    print('***fmt_df',fmt_df.shape,'\n', fmt_df)
+    for col_i, val in enumerate(calibration_vals):
+        print(col_i, val)
+        fmt_df.iloc[:, col_i] += val
+
+    return fmt_df
+
 def format_Qsense(fmt_df, calibration_df):
     print("Qsense selected")
 
@@ -91,12 +104,36 @@ def format_Qsense(fmt_df, calibration_df):
     if calibration_df.empty:
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df
+    
+    fmt_df = add_offsets(calibration_df, fmt_df)
+    return fmt_df
 
-    calibration_vals = calibration_df.values.flatten()
-    calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
-    for col_i, val in enumerate(calibration_vals):
-        fmt_df.iloc[:, col_i] += val
+def format_AWSensors(fmt_df, calibration_df):
+    print("AWSensors selected")
 
+    if 'Delta_F/n_n=3_(Hz)' in fmt_df.columns:
+        fmt_df.rename(columns={'Time_(s)':'Time',
+        'Delta_F/n_n=3_(Hz)':freqs[1], 'Delta_D_n=3_()':disps[1],
+        'Delta_F/n_n=5_(Hz)':freqs[2], 'Delta_D_n=5_()':disps[2],
+        'Delta_F/n_n=7_(Hz)':freqs[3], 'Delta_D_n=7_()':disps[3],
+        'Delta_F/n_n=9_(Hz)':freqs[4], 'Delta_D_n=9_()':disps[4],
+        'Delta_F/n_n=11_(Hz)':freqs[5], 'Delta_D_n=11_()':disps[5]}, inplace=True)
+
+        reorder = ['Time']
+        i = 1
+        while i < len(freqs)-1:
+            reorder.append(freqs[i])
+            reorder.append(disps[i])
+            i+=1
+        print(reorder)
+        fmt_df_reordered = fmt_df.reindex(columns=reorder)
+
+    if calibration_df.empty:
+        print("Opting for theoretical values, calibration values will NOT be added to data")
+        return fmt_df_reordered
+    print(fmt_df_reordered)
+    fmt_df_reordered = add_offsets(calibration_df, fmt_df_reordered, (1, 13))
+    print(fmt_df_reordered)
     return fmt_df
 
 def format_raw_data(src_type, data_file, will_use_theoretical_vals):
@@ -107,19 +144,18 @@ def format_raw_data(src_type, data_file, will_use_theoretical_vals):
         print(f"{file_name} has been formatted previously, using previously formatted file...")
         return
     
-
     data_df = open_df_from_file(data_file)
     print(f"*** Before formatting\n{data_df}")
     if src_type == 'QCM-d':
         formatted_df = format_QCMd(data_df)
     elif src_type == 'QCM-i':
         formatted_df = format_QCMi(data_df)
-    elif src_type == 'Qsense':
+    elif src_type == 'Qsense' or src_type == 'AWSensors':
         if not will_use_theoretical_vals:
             calibration_df = open_df_from_file("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
         else:
             calibration_df = pd.DataFrame()
-        formatted_df = format_Qsense(data_df, calibration_df)
+        formatted_df = format_Qsense(data_df, calibration_df) if src_type == 'Qsense' else format_AWSensors(data_df, calibration_df)
     else:
         print("invalid option selected")
         sys.exit(1)

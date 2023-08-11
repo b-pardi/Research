@@ -12,6 +12,7 @@ from datetime import time
 from tkinter import colorchooser
 import json
 import pandas as pd
+import numpy as np
 
 import Exceptions
 from analyze import analyze_data, ordinal, select_calibration_data
@@ -163,6 +164,24 @@ def receive_int_plot_input(int_plot_input):
     prev_frame.grid_forget()
     self.parent.repack_frames()
 
+# expects input in the form of a list with alternate freq, FWHM as depicted in the UI for selections
+def convert_FWHM(calibration_vals):
+    converted_vals = []
+    for i, val in enumerate(calibration_vals):
+        if val == 0:
+            converted_vals.append(0)
+        if i % 2 == 1: # only need to adjust dissipation values from FWHM
+            rf = calibration_vals[i-1]
+            if rf == 0:
+                calibration_vals.append(np.nan)
+            fwhm = val
+            dis = fwhm / rf
+            converted_vals.append(dis)
+        else:
+            converted_vals.append(val)
+    
+    return converted_vals
+
 def err_check():
     global input
     '''Verify File Info'''
@@ -287,6 +306,9 @@ class App(tk.Tk):
         self.calibration_window.open_calibration_window(self)
         self.calibration_window.fill_calibration_window(self)
 
+    def handle_offset_radios(self):
+        self.calibration_window.handle_offset_radios(self)
+
     def clear_selections(self):
         self.calibration_window.clear_selections(self)
 
@@ -325,19 +347,21 @@ class srcFileFrame(tk.Frame):
     def __init__(self, container):
         super().__init__(container)
         self.container = container
-        self.file_src_types = ['QCM-d', 'QCM-i', 'Qsense']
+        self.file_src_types = ['QCM-d', 'QCM-i', 'Qsense', 'AWSensors']
         self.file_src_type = ''
         file_src_label = tk.Label(self, text="What is the source of the data file?")
-        file_src_label.grid(row=0, column=0, columnspan=3, pady=(0,4), padx=6)
+        file_src_label.grid(row=0, column=0, columnspan=2, pady=(0,4), padx=6)
         self.file_src_var = tk.IntVar(value=5) # set value to one not in radios, so none selected by default
         self.opt1_radio = tk.Radiobutton(self, text="Open QCM Next", variable=self.file_src_var, value=0, command=self.handle_radios)
         self.opt1_radio.grid(row=1, column=0)
         self.opt2_radio = tk.Radiobutton(self, text="QCM-I ", variable=self.file_src_var, value=1, command=self.handle_radios)
         self.opt2_radio.grid(row=1, column=1)
         self.opt3_radio = tk.Radiobutton(self, text="QSense ", variable=self.file_src_var, value=2, command=self.handle_radios)
-        self.opt3_radio.grid(row=1, column=2)
+        self.opt3_radio.grid(row=2, column=0)
+        self.opt4_radio = tk.Radiobutton(self, text="AWSensors ", variable=self.file_src_var, value=3, command=self.handle_radios)
+        self.opt4_radio.grid(row=2, column=1)
 
-        self.calibration_warning_label = tk.Label(self, text="WARNING: When using Qsense,\nif not calibration data entered,\nuser is limited to only basic visualizations")
+        self.calibration_warning_label = tk.Label(self, text="WARNING: When using Qsense or AWSensors,\nif not calibration data entered,\nuser is limited to only basic visualizations")
 
     def handle_radios(self):
         self.file_src_type = self.file_src_types[self.file_src_var.get()]
@@ -345,9 +369,9 @@ class srcFileFrame(tk.Frame):
             input.is_relative_time = False
         elif self.file_src_type == 'QCM-i':
             input.is_relative_time = True
-        elif self.file_src_type == 'Qsense':
+        elif self.file_src_type == 'Qsense' or self.file_src_type == 'AWSensors':
             input.is_relative_time = True
-            self.calibration_warning_label.grid(row=2, column=0, columnspan=3)
+            self.calibration_warning_label.grid(row=3, column=0, columnspan=2)
         self.container.blit_time_input_frame(input.is_relative_time)
 
 class calibrationValsFrame(tk.Frame):
@@ -495,21 +519,39 @@ class CalibrationWindow():
         self.calibration_label = tk.Label(self.calibration_frame, text="Offset Data", font=('TkDefaultFont', 12, 'bold'))
         self.calibration_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
         instructions = "Input offset frequency values here\nthese values will be used for modeling purposes\n" +\
-                        "\nfor Qsense, these values will be added\nto all data points for full frequency values\n" +\
                         "Supports exponential format. i.e. 2.5e-6 or 1.34e7"
         self.instruction_label = tk.Label(self.calibration_frame, text=instructions)
         self.instruction_label.grid(row=2, column=0, columnspan=2, padx=16, pady=12)
 
+        # option for inputting FWHM instead of dissipation values
+        self.calibration_vals_fmt_label = tk.Label(self.calibration_frame, text="Are you reporting Dissipation values, or FWHM?")
+        self.calibration_vals_fmt_label.grid(row=3, column=0, columnspan=2, padx=16, pady=12)
+        self.calibration_vals_fmt_var = tk.IntVar()
+        self.dissipation_radio = tk.Radiobutton(self.calibration_frame, text="Dissipation", variable=self.calibration_vals_fmt_var, value=0, command=self.handle_offset_radios)
+        self.dissipation_radio.grid(row=4, column=0)
+        self.FWHM_radio = tk.Radiobutton(self.calibration_frame, text="FWHM", variable=self.calibration_vals_fmt_var, value=1, command=self.handle_offset_radios)
+        self.FWHM_radio.grid(row=4, column=1)
+        self.calibration_vals_fmt_var.set(0)
+
         self.labelled_entries = generate_labelled_entries(self.calibration_frame)
         print(self.labelled_entries)
         for i, labelled_entry in enumerate(self.labelled_entries):
-            labelled_entry.label.grid(row=i+3, column=0)
-            labelled_entry.entry.grid(row=i+3, column=1)
+            labelled_entry.label.grid(row=i+5, column=0)
+            labelled_entry.entry.grid(row=i+5, column=1)
 
         self.clear_selections_button = tk.Button(self.calibration_frame, text="Clear All Selections", padx=6, pady=4, width=20, command=self.clear_selections)
         self.clear_selections_button.grid(row=30, column=0, columnspan=2, pady=12)  
         self.confirm_selections_button = tk.Button(self.calibration_frame, text="Confirm Selections", padx=6, pady=4, width=20, command=self.confirm_values)
         self.confirm_selections_button.grid(row=31, column=0, columnspan=2, pady=12)  
+
+    def handle_offset_radios(self):
+        label_text = 'dissipation' if self.calibration_vals_fmt_var.get() == 0 else 'FWHM'
+        for i, labelled_entry in enumerate(self.labelled_entries):
+            overtone = (i+1) % 2
+            overtone = i+1 if overtone == 1 else i
+            if overtone != i+1:
+                text = ordinal(overtone) + ' ' + label_text
+                labelled_entry.label.config(text=text)
 
     def clear_selections(self):
         for le in self.labelled_entries:
@@ -527,6 +569,9 @@ class CalibrationWindow():
                     print("WARNING: AT LEAST ONE ENTRY EXISTS WITH A MISSING OR INVALID INPUT\nWILL CONVERT THESE ENTRIES TO 0")
                     warned_flag = True
                 calibration_vals.append(0.0)
+        print(calibration_vals)
+        if self.calibration_vals_fmt_var.get() == 1: # if inputted FWHM
+            calibration_vals = convert_FWHM(calibration_vals)
         print(calibration_vals)
         try: # if file is removed for some reason, create a new one to fill values with
             calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=None)
@@ -570,329 +615,6 @@ class InteractivePlotOptions(tk.Frame):
         global input
         input.which_range_selecting[self.data_fmt] = self.which_range_entry.get()
         print(f"confirmed range: {input.which_range_selecting}")
-
-
-class Col1(tk.Frame):
-    def __init__(self, parent, container):
-        super().__init__(container)
-        self.col_position = 0
-        self.is_visible = True
-        self.parent = parent
-        file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
-        file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
-
-        self.filename_label = tk.Label(self, text="Data File")
-        self.filename_label.grid(row=2, column=0, pady=(8,4))
-        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: select_data_file(self.filename_label))
-        self.browse_files_button.grid(row=1, column=0)
-
-        self.file_src_frame = srcFileFrame(self)
-        self.file_src_frame.grid(row=4, column=0, pady=(16,8))
-        self.rel_time_input = relTimeInputFrame(self)
-        self.abs_time_input = absTimeInputFrame(self)
-        self.abs_time_input.grid(row=6, column=0)
-
-        self.calibration_vals_frame = calibrationValsFrame(self)
-        self.calibration_vals_frame.grid(row=7, column=0)
-
-        self.cleared_label = tk.Label(self, text="Cleared!")
-        self.submitted_label = tk.Label(self, text="Submitted!")
-        self.err_label = tk.Label(self, text="Error occured,\nplease see terminal for details", font=("Arial",14))
-
-        self.file_data_submit_button = tk.Button(self, text="Submit file information", padx=8, pady=6, width=20, command=self.col_names_submit)
-        self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
-        self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
-        self.file_data_clear_button.grid(row=11, column=0, pady=4)
-
-        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
-        self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
-
-    def open_plot_opts(self):
-        self.parent.open_plot_opts_window()
-
-    def blit_time_input_frame(self, is_relative_time):
-        if is_relative_time:
-            self.abs_time_input.grid_forget()
-            self.rel_time_input.grid(row=6, column=0)
-        else:
-            self.rel_time_input.grid_forget()
-            self.abs_time_input.grid(row=6, column=0)
-
-    def col_names_submit(self):
-        global input
-        input.first_run = True
-        set_input_altered_flag(True)
-        input.file_src_type = self.file_src_frame.file_src_type
-        if input.is_relative_time:
-            input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
-        else:
-            input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
-
-        if input.first_run:
-            print(f"formatting {input.file} to BraTaDio convention...")
-            format_raw_data(input.file_src_type, input.file, input.will_use_theoretical_vals)
-            print("Format completed")
-        
-        self.submitted_label.grid(row=13, column=0)
-        self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
-
-    def clear_file_data(self):
-        global input
-        input.abs_base_t0 = time(0, 0, 0)
-        input.abs_base_tf = time(0, 0, 0)
-        self.cleared_label.grid(row=12, column=0)
-        self.filename_label.configure(text="Data File")
-        self.abs_time_input.clear()
-        self.rel_time_input.clear()
-        self.submitted_label.grid_forget()
-
-class Col2(tk.Frame):
-    def __init__(self, parent, container):
-        super().__init__(container)
-        self.parent = parent
-        self.col_position = 1
-        self.is_visible = True
-        self.plot_raw_data_var = tk.IntVar()
-        self.plot_raw_data_check = tk.Checkbutton(self, text="Plot raw data\n(f and d)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
-        self.plot_raw_data_check.grid(row=0, column=0, pady=(12,8), padx=(16,32))
-        self.which_raw_channels_label = tk.Label(self, text="Select overtones for full data")
-
-        # checkboxes for selecting which channels to plot for raw data
-        self.raw_checks = create_checkboxes(self, 'raw')
-
-        self.raw_int_plot_frame = InteractivePlotOptions(self, 'raw')
-        self.raw_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=0,
-                                                 command=lambda: receive_int_plot_input((self, self.raw_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col3].clean_int_plot_frame)))
-
-        self.clear_raw_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_raw_checks)
-        self.select_all_raw_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_raw_checks)
-
-    def receive_raw_checkboxes(self):
-        global input
-        set_input_altered_flag(True)
-        if self.plot_raw_data_var.get() == 1:
-            input.will_plot_raw_data = True
-            self.which_raw_channels_label.grid(row=1, column=0, pady=(0,26))
-            self.select_all_raw_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
-            self.clear_raw_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
-            #self.calibration_data_button.grid(row=21, column=0, padx=(0,0), pady=(4,4))
-            
-            for i, cb in enumerate(self.raw_checks):
-                cb.checkbutton.grid(row=i+2, column=0)
-
-                if cb.intvar.get() == 1:
-                    input.which_plot[cb.key[0]][cb.key[1]] = True
-                else:
-                    input.which_plot[cb.key[0]][cb.key[1]] = False
-            self.raw_int_plot_check.grid(row=18, column=0, pady=12)
-
-        else:
-            input.will_plot_raw_data = False
-            self.which_raw_channels_label.grid_forget()
-
-            for cb in self.raw_checks:
-                cb.checkbutton.grid_forget()
-
-            self.select_all_raw_checks_button.grid_forget()
-            self.clear_raw_checks_button.grid_forget()
-            self.raw_int_plot_check.grid_forget()
-
-        
-    def clear_raw_checks(self):
-        global input
-        for cb in self.raw_checks:
-            cb.intvar.set(0)
-
-        for channel in input.which_plot['raw']:
-            input.which_plot['raw'][channel] = False
-                    
-    def select_all_raw_checks(self):
-        global input
-        for cb in self.raw_checks:
-            cb.intvar.set(1)
-
-        for channel in input.which_plot['raw']:
-            input.which_plot['raw'][channel] = True   
-        print(input.which_plot)
-            
-
-
-class Col3(tk.Frame):
-    def __init__(self, parent, container):
-        super().__init__(container)
-        self.parent = parent
-        self.col_position = 2
-        self.is_visible = True
-        self.container = container
-        self.plot_clean_data_var = tk.IntVar()
-        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data\n(Δf and Δd)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
-        self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
-        self.which_clean_channels_label = tk.Label(self, text="Select overtones for\nbaseline corrected data")
-
-        # checkboxes for selecting which channels to plot for clean data
-        self.clean_checks = create_checkboxes(self, 'clean')
-
-        self.clean_int_plot_var = tk.IntVar()
-        self.clean_int_plot_frame = InteractivePlotOptions(self, 'clean')
-        self.clean_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=1,
-                                                   command=lambda: receive_int_plot_input((self, self.clean_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col2].raw_int_plot_frame)))
-
-        self.clear_clean_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_clean_checks)
-        self.select_all_clean_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_clean_checks)
-
-
-    def receive_clean_checkboxes(self):
-        global input
-        set_input_altered_flag(True)
-        if self.plot_clean_data_var.get() == 1:
-            input.will_plot_clean_data = True
-            self.which_clean_channels_label.grid(row=1, column=0, pady=(0,12))
-            self.select_all_clean_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
-            self.clear_clean_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
-            
-            for i, cb in enumerate(self.clean_checks):
-                cb.checkbutton.grid(row=i+2, column=0)
-
-                if cb.intvar.get() == 1:
-                    input.which_plot[cb.key[0]][cb.key[1]] = True
-                else:
-                    input.which_plot[cb.key[0]][cb.key[1]] = False        
-            self.clean_int_plot_check.grid(row=18, column=0, pady=12)
-
-        else:
-            input.will_plot_clean_data = False
-            self.which_clean_channels_label.grid_forget()
-            
-            for cb in self.clean_checks:
-                cb.checkbutton.grid_forget()
-
-            self.select_all_clean_checks_button.grid_forget()
-            self.clear_clean_checks_button.grid_forget()
-            self.clean_int_plot_check.grid_forget()
-
-    def clear_clean_checks(self):
-        global input
-        for cb in self.clean_checks:
-            cb.intvar.set(0)
-
-        for channel in input.which_plot['clean']:
-            input.which_plot['clean'][channel] = False
-        
-    def select_all_clean_checks(self):
-        global input
-
-        for cb in self.clean_checks:
-            cb.intvar.set(1)
-
-        for channel in input.which_plot['clean']:
-            input.which_plot['clean'][channel] = True
-        print(input.which_plot)
-        
-
-
-class Col4(tk.Frame):
-    def __init__(self, parent, container):
-        super().__init__(container)
-
-        self.col_position = 3
-        self.model_window_open_flag = False
-        self.is_visible = True
-        self.parent = parent
-        self.container = container
-        self.first_run = True
-        self.plot_options_label = tk.Label(self, text="Options for plots", font=('TkDefaultFont', 12, 'bold'))
-        self.plot_options_label.grid(row=0, column=4, pady=(14,16), padx=(0,6))
-
-        # miscellaneous plot options
-        self.plot_dF_dD_together_var = tk.IntVar()
-        self.plot_dF_dD_together_check = tk.Checkbutton(self, text="Plot Δf and Δd together", variable=self.plot_dF_dD_together_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.plot_dF_dD_together_check.grid(row=2, column=4)
-        self.normalize_F_var = tk.IntVar()
-        self.normalize_F_check = tk.Checkbutton(self, text="Normalize Δf with its\nrespective overtone", variable=self.normalize_F_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.normalize_F_check.grid(row=3, column=4)
-        self.plot_dD_v_dF_var = tk.IntVar()
-        self.plot_dD_v_dF_check = tk.Checkbutton(self, text="Plot Δd vs Δf", variable=self.plot_dD_v_dF_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.plot_dD_v_dF_check.grid(row=4, column=4)
-        self.plot_temp_v_time_var = tk.IntVar()
-        self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.plot_temp_v_time_check.grid(row=5, column=4)
-        self.correct_slope_var = tk.IntVar()
-        self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.correct_slope_check.grid(row=6, column=4)
-        self.enable_interactive_plot_var = tk.IntVar()
-        self.enable_interactive_plot_check = tk.Checkbutton(self, text="Enable interactive plot", variable=self.enable_interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
-        self.enable_interactive_plot_check.grid(row=7, column=4)
-
-        self.open_model_window_button = tk.Button(self, text="Modeling", padx=8, pady=6, command=self.model_window_button)
-        self.open_model_window_button.grid(row=10, column=4, pady=8)
-
-        self.submit_button = tk.Button(self, text="Submit", padx=8, pady=6, width=20, command=self.submit)
-        self.submit_button.grid(row=20, column=4, pady=4, padx=20)
-
-        self.clear_range_data_button = tk.Button(self, text="Clear Saved Range Data", padx=8, pady=6, width=20, command=self.clear_range_data)
-        self.clear_range_data_button.grid(row=21, column=4, pady=4)
-
-        self.exit_button = tk.Button(self, text="Exit", padx=8, pady=6, width=20, command=exit)
-        self.exit_button.grid(row=22, column=4, pady=4)
-
-    def receive_optional_checkboxes(self):
-        global input
-        set_input_altered_flag(True)
-        input.will_plot_dF_dD_together = True if self.plot_dF_dD_together_var.get() == 1 else False
-        input.will_normalize_F = True if self.normalize_F_var.get() == 1 else False
-        input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
-        input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
-        input.will_correct_slope = True if self.correct_slope_var.get() == 1 else False
-        input.enable_interactive_plot = True if self.enable_interactive_plot_var.get() == 1 else False
-
-    # when interactive plot window opens, grabs number of range from text field
-    def confirm_range(self):
-        global input
-        input.which_range_selecting = self.which_range_entry.get()
-
-        print(f"Confirmed range: {input.which_range_selecting}")
-
-    def model_window_button(self):
-        try:
-            self.parent.test_model_window()
-        except:
-            self.parent.open_model_window()
-
-    def submit(self):
-        global input
-        print("***FINAL",input.which_plot)
-        err_check()
-        
-        try:
-            input.interactive_plot_overtone['clean'] = int(self.parent.frames[Col3].clean_int_plot_frame.interactive_plot_overtone_select.get())
-        except:
-            input.interactive_plot_overtone['clean'] = 0
-        try:
-            input.interactive_plot_overtone['raw'] = int(self.parent.frames[Col2].raw_int_plot_frame.interactive_plot_overtone_select.get())
-        except:
-            input.interactive_plot_overtone['raw'] = 0
-
-        global INPUT_ALTERED_FLAG
-        if INPUT_ALTERED_FLAG:
-            analyze_data(input)
-        else:
-            print("No modifications made from previous iteration, no processing will be done")
-        set_input_altered_flag(False, False)
-        input.first_run = False
-
-    def clear_range_data(self):
-        set_input_altered_flag(True)
-        rf_clean_stats = open("selected_ranges/clean_all_stats_rf.csv", 'w')
-        dis_clean_stats = open("selected_ranges/clean_all_stats_dis.csv", 'w')
-        rf_raw_stats = open("selected_ranges/raw_all_stats_rf.csv", 'w')
-        dis_raw_stats = open("selected_ranges/raw_all_stats_dis.csv", 'w')
-        sauerbray_stats = open("selected_ranges/Sauerbrey_stats.csv", 'w')
-        sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
-        tfa = open("selected_ranges/thin_film_air_output.csv", 'w')
-        tfl = open("selected_ranges/thin_film_liquid_output.csv", 'w')
-        files = [rf_clean_stats, dis_clean_stats, rf_raw_stats, dis_raw_stats, sauerbray_stats, sauerbrey_ranges, tfa, tfl]
-        for file in files:
-            file.write('')
 
 
 class ModelingWindow():
@@ -1234,45 +956,332 @@ class PlotOptsWindow():
             self.empty_entries_notif_label.after(5000, lambda: self.empty_entries_notif_label.grid_forget())
             warned_flag = False
 
-
-            
-        '''
-        if self.which_time_scale_var.get() == 1:
-            self.options['time_scale'] = 's'
-        if self.which_time_scale_var.get() == 2:
-            self.options['time_scale'] = 'min'
-        if self.which_time_scale_var.get() == 3:
-            self.options['time_scale'] = 'hr'
-
-        if self.which_file_format_var.get() == 1:
-            self.options['fig_format'] = 'png'
-        if self.which_file_format_var.get() == 2:
-            self.options['fig_format'] = 'tiff'
-        if self.which_file_format_var.get() == 3:
-            self.options['fig_format'] = 'pdf'
-
-        if self.tick_direction_var.get() == 0:
-            self.options['tick_dir'] = 'in'
-        elif self.tick_direction_var.get() == 1:
-            self.options['tick_dir'] = 'out'
-        else:
-            self.options['tick_dir'] = 'inout'
-
-        self.options['points_plotted_index'] = int(self.points_plotted_index_entry.get())
-        '''
-        
-        '''warned_flag = False
-        for key in self.options.keys():
-            if self.options[key] == '':
-                self.options[key] = prev_opts[key]
-                if not warned_flag:
-                    self.empty_entries_notif_label.grid(row=31, column=6, pady=6)
-                    warned_flag = True
-                raise Exceptions.MissingPlotCustomizationException(key, "Please Specify Missing field. ")
-        self.empty_entries_notif_label.after(5000, lambda: self.empty_entries_notif_label.grid_forget())
-        warned_flag = False'''
         with open('plot_opts/plot_customizations.json', 'w') as fp:
             json.dump(self.options, fp)
+
+
+class Col1(tk.Frame):
+    def __init__(self, parent, container):
+        super().__init__(container)
+        self.col_position = 0
+        self.is_visible = True
+        self.parent = parent
+        file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
+        file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
+
+        self.filename_label = tk.Label(self, text="Data File")
+        self.filename_label.grid(row=2, column=0, pady=(8,4))
+        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: select_data_file(self.filename_label))
+        self.browse_files_button.grid(row=1, column=0)
+
+        self.file_src_frame = srcFileFrame(self)
+        self.file_src_frame.grid(row=4, column=0, pady=(16,8))
+        self.rel_time_input = relTimeInputFrame(self)
+        self.abs_time_input = absTimeInputFrame(self)
+        self.abs_time_input.grid(row=6, column=0)
+
+        self.calibration_vals_frame = calibrationValsFrame(self)
+        self.calibration_vals_frame.grid(row=7, column=0)
+
+        self.cleared_label = tk.Label(self, text="Cleared!")
+        self.submitted_label = tk.Label(self, text="Submitted!")
+        self.err_label = tk.Label(self, text="Error occured,\nplease see terminal for details", font=("Arial",14))
+
+        self.file_data_submit_button = tk.Button(self, text="Submit file information", padx=8, pady=6, width=20, command=self.col_names_submit)
+        self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
+        self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
+        self.file_data_clear_button.grid(row=11, column=0, pady=4)
+
+        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
+        self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
+
+    def open_plot_opts(self):
+        self.parent.open_plot_opts_window()
+
+    def blit_time_input_frame(self, is_relative_time):
+        if is_relative_time:
+            self.abs_time_input.grid_forget()
+            self.rel_time_input.grid(row=6, column=0)
+        else:
+            self.rel_time_input.grid_forget()
+            self.abs_time_input.grid(row=6, column=0)
+
+    def col_names_submit(self):
+        global input
+        input.first_run = True
+        set_input_altered_flag(True)
+        input.file_src_type = self.file_src_frame.file_src_type
+        if input.is_relative_time:
+            input.rel_t0, input.rel_tf = self.rel_time_input.get_rel_time()
+        else:
+            input.abs_base_t0, input.abs_base_tf = self.abs_time_input.get_abs_time()
+
+        if input.first_run:
+            print(f"formatting {input.file} to BraTaDio convention...")
+            format_raw_data(input.file_src_type, input.file, input.will_use_theoretical_vals)
+            print("Format completed")
+        
+        self.submitted_label.grid(row=13, column=0)
+        self.submitted_label.after(5000, lambda: self.submitted_label.grid_forget())
+
+    def clear_file_data(self):
+        global input
+        input.abs_base_t0 = time(0, 0, 0)
+        input.abs_base_tf = time(0, 0, 0)
+        self.cleared_label.grid(row=12, column=0)
+        self.filename_label.configure(text="Data File")
+        self.abs_time_input.clear()
+        self.rel_time_input.clear()
+        self.submitted_label.grid_forget()
+
+class Col2(tk.Frame):
+    def __init__(self, parent, container):
+        super().__init__(container)
+        self.parent = parent
+        self.col_position = 1
+        self.is_visible = True
+        self.plot_raw_data_var = tk.IntVar()
+        self.plot_raw_data_check = tk.Checkbutton(self, text="Plot raw data\n(f and d)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
+        self.plot_raw_data_check.grid(row=0, column=0, pady=(12,8), padx=(16,32))
+        self.which_raw_channels_label = tk.Label(self, text="Select overtones for full data")
+
+        # checkboxes for selecting which channels to plot for raw data
+        self.raw_checks = create_checkboxes(self, 'raw')
+
+        self.raw_int_plot_frame = InteractivePlotOptions(self, 'raw')
+        self.raw_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=0,
+                                                 command=lambda: receive_int_plot_input((self, self.raw_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col3].clean_int_plot_frame)))
+
+        self.clear_raw_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_raw_checks)
+        self.select_all_raw_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_raw_checks)
+
+    def receive_raw_checkboxes(self):
+        global input
+        set_input_altered_flag(True)
+        if self.plot_raw_data_var.get() == 1:
+            input.will_plot_raw_data = True
+            self.which_raw_channels_label.grid(row=1, column=0, pady=(0,26))
+            self.select_all_raw_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
+            self.clear_raw_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
+            #self.calibration_data_button.grid(row=21, column=0, padx=(0,0), pady=(4,4))
+            
+            for i, cb in enumerate(self.raw_checks):
+                cb.checkbutton.grid(row=i+2, column=0)
+
+                if cb.intvar.get() == 1:
+                    input.which_plot[cb.key[0]][cb.key[1]] = True
+                else:
+                    input.which_plot[cb.key[0]][cb.key[1]] = False
+            self.raw_int_plot_check.grid(row=18, column=0, pady=12)
+
+        else:
+            input.will_plot_raw_data = False
+            self.which_raw_channels_label.grid_forget()
+
+            for cb in self.raw_checks:
+                cb.checkbutton.grid_forget()
+
+            self.select_all_raw_checks_button.grid_forget()
+            self.clear_raw_checks_button.grid_forget()
+            self.raw_int_plot_check.grid_forget()
+
+        
+    def clear_raw_checks(self):
+        global input
+        for cb in self.raw_checks:
+            cb.intvar.set(0)
+
+        for channel in input.which_plot['raw']:
+            input.which_plot['raw'][channel] = False
+                    
+    def select_all_raw_checks(self):
+        global input
+        for cb in self.raw_checks:
+            cb.intvar.set(1)
+
+        for channel in input.which_plot['raw']:
+            input.which_plot['raw'][channel] = True   
+        print(input.which_plot)
+            
+
+
+class Col3(tk.Frame):
+    def __init__(self, parent, container):
+        super().__init__(container)
+        self.parent = parent
+        self.col_position = 2
+        self.is_visible = True
+        self.container = container
+        self.plot_clean_data_var = tk.IntVar()
+        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data\n(Δf and Δd)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
+        self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
+        self.which_clean_channels_label = tk.Label(self, text="Select overtones for\nbaseline corrected data")
+
+        # checkboxes for selecting which channels to plot for clean data
+        self.clean_checks = create_checkboxes(self, 'clean')
+
+        self.clean_int_plot_var = tk.IntVar()
+        self.clean_int_plot_frame = InteractivePlotOptions(self, 'clean')
+        self.clean_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=1,
+                                                   command=lambda: receive_int_plot_input((self, self.clean_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col2].raw_int_plot_frame)))
+
+        self.clear_clean_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_clean_checks)
+        self.select_all_clean_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_clean_checks)
+
+
+    def receive_clean_checkboxes(self):
+        global input
+        set_input_altered_flag(True)
+        if self.plot_clean_data_var.get() == 1:
+            input.will_plot_clean_data = True
+            self.which_clean_channels_label.grid(row=1, column=0, pady=(0,12))
+            self.select_all_clean_checks_button.grid(row=30, column=0, padx=(0,0), pady=(12,4))
+            self.clear_clean_checks_button.grid(row=31, column=0, padx=(0,0), pady=(4,4))
+            
+            for i, cb in enumerate(self.clean_checks):
+                cb.checkbutton.grid(row=i+2, column=0)
+
+                if cb.intvar.get() == 1:
+                    input.which_plot[cb.key[0]][cb.key[1]] = True
+                else:
+                    input.which_plot[cb.key[0]][cb.key[1]] = False        
+            self.clean_int_plot_check.grid(row=18, column=0, pady=12)
+
+        else:
+            input.will_plot_clean_data = False
+            self.which_clean_channels_label.grid_forget()
+            
+            for cb in self.clean_checks:
+                cb.checkbutton.grid_forget()
+
+            self.select_all_clean_checks_button.grid_forget()
+            self.clear_clean_checks_button.grid_forget()
+            self.clean_int_plot_check.grid_forget()
+
+    def clear_clean_checks(self):
+        global input
+        for cb in self.clean_checks:
+            cb.intvar.set(0)
+
+        for channel in input.which_plot['clean']:
+            input.which_plot['clean'][channel] = False
+        
+    def select_all_clean_checks(self):
+        global input
+
+        for cb in self.clean_checks:
+            cb.intvar.set(1)
+
+        for channel in input.which_plot['clean']:
+            input.which_plot['clean'][channel] = True
+        print(input.which_plot)
+        
+
+
+class Col4(tk.Frame):
+    def __init__(self, parent, container):
+        super().__init__(container)
+
+        self.col_position = 3
+        self.model_window_open_flag = False
+        self.is_visible = True
+        self.parent = parent
+        self.container = container
+        self.first_run = True
+        self.plot_options_label = tk.Label(self, text="Options for plots", font=('TkDefaultFont', 12, 'bold'))
+        self.plot_options_label.grid(row=0, column=4, pady=(14,16), padx=(0,6))
+
+        # miscellaneous plot options
+        self.plot_dF_dD_together_var = tk.IntVar()
+        self.plot_dF_dD_together_check = tk.Checkbutton(self, text="Plot Δf and Δd together", variable=self.plot_dF_dD_together_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_dF_dD_together_check.grid(row=2, column=4)
+        self.normalize_F_var = tk.IntVar()
+        self.normalize_F_check = tk.Checkbutton(self, text="Normalize Δf with its\nrespective overtone", variable=self.normalize_F_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.normalize_F_check.grid(row=3, column=4)
+        self.plot_dD_v_dF_var = tk.IntVar()
+        self.plot_dD_v_dF_check = tk.Checkbutton(self, text="Plot Δd vs Δf", variable=self.plot_dD_v_dF_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_dD_v_dF_check.grid(row=4, column=4)
+        self.plot_temp_v_time_var = tk.IntVar()
+        self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_temp_v_time_check.grid(row=5, column=4)
+        self.correct_slope_var = tk.IntVar()
+        self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.correct_slope_check.grid(row=6, column=4)
+        self.enable_interactive_plot_var = tk.IntVar()
+        self.enable_interactive_plot_check = tk.Checkbutton(self, text="Enable interactive plot", variable=self.enable_interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.enable_interactive_plot_check.grid(row=7, column=4)
+
+        self.open_model_window_button = tk.Button(self, text="Modeling", padx=8, pady=6, command=self.model_window_button)
+        self.open_model_window_button.grid(row=10, column=4, pady=8)
+
+        self.submit_button = tk.Button(self, text="Submit", padx=8, pady=6, width=20, command=self.submit)
+        self.submit_button.grid(row=20, column=4, pady=4, padx=20)
+
+        self.clear_range_data_button = tk.Button(self, text="Clear Saved Range Data", padx=8, pady=6, width=20, command=self.clear_range_data)
+        self.clear_range_data_button.grid(row=21, column=4, pady=4)
+
+        self.exit_button = tk.Button(self, text="Exit", padx=8, pady=6, width=20, command=exit)
+        self.exit_button.grid(row=22, column=4, pady=4)
+
+    def receive_optional_checkboxes(self):
+        global input
+        set_input_altered_flag(True)
+        input.will_plot_dF_dD_together = True if self.plot_dF_dD_together_var.get() == 1 else False
+        input.will_normalize_F = True if self.normalize_F_var.get() == 1 else False
+        input.will_plot_dD_v_dF = True if self.plot_dD_v_dF_var.get() == 1 else False
+        input.will_plot_temp_v_time = True if self.plot_temp_v_time_var.get() == 1 else False
+        input.will_correct_slope = True if self.correct_slope_var.get() == 1 else False
+        input.enable_interactive_plot = True if self.enable_interactive_plot_var.get() == 1 else False
+
+    # when interactive plot window opens, grabs number of range from text field
+    def confirm_range(self):
+        global input
+        input.which_range_selecting = self.which_range_entry.get()
+
+        print(f"Confirmed range: {input.which_range_selecting}")
+
+    def model_window_button(self):
+        try:
+            self.parent.test_model_window()
+        except:
+            self.parent.open_model_window()
+
+    def submit(self):
+        global input
+        print("***FINAL",input.which_plot)
+        err_check()
+        
+        try:
+            input.interactive_plot_overtone['clean'] = int(self.parent.frames[Col3].clean_int_plot_frame.interactive_plot_overtone_select.get())
+        except:
+            input.interactive_plot_overtone['clean'] = 0
+        try:
+            input.interactive_plot_overtone['raw'] = int(self.parent.frames[Col2].raw_int_plot_frame.interactive_plot_overtone_select.get())
+        except:
+            input.interactive_plot_overtone['raw'] = 0
+
+        global INPUT_ALTERED_FLAG
+        if INPUT_ALTERED_FLAG:
+            analyze_data(input)
+        else:
+            print("No modifications made from previous iteration, no processing will be done")
+        set_input_altered_flag(False, False)
+        input.first_run = False
+
+    def clear_range_data(self):
+        set_input_altered_flag(True)
+        rf_clean_stats = open("selected_ranges/clean_all_stats_rf.csv", 'w')
+        dis_clean_stats = open("selected_ranges/clean_all_stats_dis.csv", 'w')
+        rf_raw_stats = open("selected_ranges/raw_all_stats_rf.csv", 'w')
+        dis_raw_stats = open("selected_ranges/raw_all_stats_dis.csv", 'w')
+        sauerbray_stats = open("selected_ranges/Sauerbrey_stats.csv", 'w')
+        sauerbrey_ranges = open("selected_ranges/Sauerbrey_ranges.csv", 'w')
+        tfa = open("selected_ranges/thin_film_air_output.csv", 'w')
+        tfl = open("selected_ranges/thin_film_liquid_output.csv", 'w')
+        files = [rf_clean_stats, dis_clean_stats, rf_raw_stats, dis_raw_stats, sauerbray_stats, sauerbrey_ranges, tfa, tfl]
+        for file in files:
+            file.write('')
+
 
 
 menu = App()
