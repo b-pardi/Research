@@ -119,9 +119,9 @@ def determine_xlabel(x_timescale):
 def determine_ylabel(ydata_type, is_normalized, is_raw_data=False):
     if ydata_type == 'dis':
         if is_raw_data:
-            return r"Dissipation, $\mathit{d_{n}}$"
+            return r"Dissipation, $\mathit{D_{n}}$"
         else:
-            return r"Change in dissipation, $\mathit{Δd_{n}}$ ($10^{-6}$)"
+            return r"Change in dissipation, $\mathit{ΔD_{n}}$ ($10^{-6}$)"
     if ydata_type == 'freq':
         if is_raw_data:
             return r"Frequency, $\mathit{f_{n}}$ (Hz)"

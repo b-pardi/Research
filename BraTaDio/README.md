@@ -157,17 +157,9 @@ ValueError: invalid literal for int() with base 10: ''
 bug fixes:
 
 format changes:
-- change lower case d to capital D
-- change column titles for 2 and 3 to raw/shifted overtone selection
-- remove 'model' in crystal thickness button
-- consistent capitalization (just first letters)
-- change placeholder title to crystal thickness
-- remove qsense warning for offset values window
-
 
 features:
 - gordon-kanazawa modeling
-- file format support for AWSensors
 
 publication/documentation: 
 - flowchart of workflow of software
@@ -211,8 +203,17 @@ waiting on data:
         - similar to qsense, but with column reordering and removing
     - refactored and moved the code that adds offset data to qsense to a separate function, for reusability in AWSensors
     - added ability to remove indicies of calibration values being added to data file, as AWSensors only has overtones 3-11
+- bug fix, when not using all overtones for cyrstal thickness, it
+
 - format changes:
     - adjusted instruction label for calibration window, opting to detail it in manuscript
+    - change crystal thickness model to read overtone selection from 'raw'
+    - change lower case d to capital D
+    - change column titles for 2 and 3 to raw/shifted overtone selection
+    - remove 'model' in crystal thickness button
+    - consistent capitalization (just first letters)
+    - change placeholder title to crystal thickness
+    - remove qsense warning for offset values window
 
 8/10
 - now catch errors for if curve fit fails in interactive plot

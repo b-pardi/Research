@@ -264,13 +264,13 @@ def format_plot(ax, x_label, y_label, title, xticks=np.asarray(None)):
 def get_labels(label, type, subtype='', usetex=False):
     if type == 'film_liquid':
         data_label = None
-        title = "Thin Film in Liquid " + r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + "  for range: " + f"{label}"
+        title = "Thin Film in Liquid " + r"$\frac{\mathit{\Delta}\mathit{\Gamma}}{\mathit{-\Delta}f} \approx J^{\prime}_{f}\omega\eta_{bulk}$" + f"  for range: {label}"
         x = r"Overtone $\cdot$ Change in frequency, $\mathit{n\cdot\Delta}$$\mathit{f}$$_n$ (Hz)"
         y = r"Bandwidth shift, $\mathit{\Delta\Gamma}$$_n$"
 
     elif type == 'film_air':
         data_label = None
-        title = "placeholder film in air" + f"for range: {label}"
+        title = "Thin Film in Air " + f"for range: {label}"
         x = r"$\mathit{n^2}$"
         if subtype == 'gamma': # $\frac{ng}{cm^2}$
             y = r"Normalized Bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma_{n}}}{\mathit{n}}$ Hz"
@@ -281,13 +281,13 @@ def get_labels(label, type, subtype='', usetex=False):
     
     elif type == 'crystal':
         data_label = None
-        title = "Placeholder title"
+        title = "Crystal Thickness"
         y = r"Resonant Frequency, $\it{f_{Rn}}$ (Hz)"
         x = 'Overtone order, $\it{n}$'
 
     elif type == 'sauerbrey':
         data_label = f"average"
-        title = f"Average change in Frequency for Sauerbrey Mass\nfor range: {label}"
+        title = f"Average Change in Frequency for Sauerbrey Mass\nfor Range: {label}"
         x = 'Overtone order, $\it{n}$'
         if subtype == 'fit':
             y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
@@ -298,11 +298,11 @@ def get_labels(label, type, subtype='', usetex=False):
         data_label = f"average"
         x = 'Overtone order, $\it{n}$'
         if subtype == 'freq':
-            title = f"Average change in Frequency\nfor range: {label}"
+            title = f"Average Change in Frequency\nfor Range: {label}"
             y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
         if subtype == 'dis':
-            title = f"Average change in dissipation\nfor range: {label}"
-            y = r'Average change in dissipation, $\it{Δd_{n}}$'
+            title = f"Average Change in Dissipation\nfor Range: {label}"
+            y = r'Average change in dissipation, $\it{ΔD_{n}}$'
     
     else:
         return None
@@ -482,7 +482,8 @@ def crystal_thickness(user_input):
 
     overtones = get_overtones_selected(which_plot) # get overtones
     overtones = [get_num_from_string(n[0]) for n in overtones]
-    offset_vals = get_calibration_values(which_plot, will_use_theoretical_vals)[0] # get offset data
+    offset_vals = np.asarray(get_calibration_values(which_plot, will_use_theoretical_vals)[0]) # get offset data
+    offset_vals = offset_vals[offset_vals != 0]
 
     print('*****', overtones, '\n', offset_vals)
 

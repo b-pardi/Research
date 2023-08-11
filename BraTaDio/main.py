@@ -93,16 +93,16 @@ def browse_files(file_dir, btn_title):
 
 def select_data_file(label):
     global input
-    fp = browse_files('raw_data', 'Select Data File')
+    fp = browse_files('raw_data', 'Select data file')
     input.file = fp
-    label.configure(text=f"File Selected: {os.path.basename(fp)}")
+    label.configure(text=f"File selected: {os.path.basename(fp)}")
     print(input.file)
 
 def select_calibration_file(label):
     global input
-    fp = browse_files('offset_data', 'Select Calibration File')
+    fp = browse_files('offset_data', 'Select calibration file')
     input.calibration_file = fp
-    label.configure(text=f"File Selected: {os.path.basename(fp)}")
+    label.configure(text=f"File selected: {os.path.basename(fp)}")
     print(input.calibration_file)
 
 def create_checkboxes(frame, cleanliness):
@@ -396,7 +396,7 @@ class calibrationValsFrame(tk.Frame):
         #self.browse_files_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Select Calibration File", command=lambda: select_calibration_file(self.filename_label))
         
         self.calibration_file_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Copy/paste values\ndirectly into file in \n'offset_data' folder\n\nOR")
-        self.calibration_vals_window_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Enter Values Here", command=self.open_calibration_window)
+        self.calibration_vals_window_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Enter values here", command=self.open_calibration_window)
 
     def open_calibration_window(self):
         self.parent.parent.open_calibration_window()
@@ -518,13 +518,13 @@ class CalibrationWindow():
     def fill_calibration_window(self):
         self.calibration_label = tk.Label(self.calibration_frame, text="Offset Data", font=('TkDefaultFont', 12, 'bold'))
         self.calibration_label.grid(row=1, column=0, columnspan=2, padx=16, pady=12)
-        instructions = "Input offset frequency values here\nthese values will be used for modeling purposes\n" +\
+        instructions = "Input offset frequency values here\nthese values will be used for modeling purposes\n\n" +\
                         "Supports exponential format. i.e. 2.5e-6 or 1.34e7"
         self.instruction_label = tk.Label(self.calibration_frame, text=instructions)
         self.instruction_label.grid(row=2, column=0, columnspan=2, padx=16, pady=12)
 
         # option for inputting FWHM instead of dissipation values
-        self.calibration_vals_fmt_label = tk.Label(self.calibration_frame, text="Are you reporting Dissipation values, or FWHM?")
+        self.calibration_vals_fmt_label = tk.Label(self.calibration_frame, text="Are you reporting dissipation values, or FWHM?")
         self.calibration_vals_fmt_label.grid(row=3, column=0, columnspan=2, padx=16, pady=12)
         self.calibration_vals_fmt_var = tk.IntVar()
         self.dissipation_radio = tk.Radiobutton(self.calibration_frame, text="Dissipation", variable=self.calibration_vals_fmt_var, value=0, command=self.handle_offset_radios)
@@ -539,9 +539,9 @@ class CalibrationWindow():
             labelled_entry.label.grid(row=i+5, column=0)
             labelled_entry.entry.grid(row=i+5, column=1)
 
-        self.clear_selections_button = tk.Button(self.calibration_frame, text="Clear All Selections", padx=6, pady=4, width=20, command=self.clear_selections)
+        self.clear_selections_button = tk.Button(self.calibration_frame, text="Clear all selections", padx=6, pady=4, width=20, command=self.clear_selections)
         self.clear_selections_button.grid(row=30, column=0, columnspan=2, pady=12)  
-        self.confirm_selections_button = tk.Button(self.calibration_frame, text="Confirm Selections", padx=6, pady=4, width=20, command=self.confirm_values)
+        self.confirm_selections_button = tk.Button(self.calibration_frame, text="Confirm selections", padx=6, pady=4, width=20, command=self.confirm_values)
         self.confirm_selections_button.grid(row=31, column=0, columnspan=2, pady=12)  
 
     def handle_offset_radios(self):
@@ -607,7 +607,7 @@ class InteractivePlotOptions(tk.Frame):
         self.which_range_entry.grid(row=3, column=0, pady=(2,4))
 
         # button to submit range selected
-        self.which_range_submit = tk.Button(self, text='Confirm Range', padx=10, pady=4, command=self.confirm_range)
+        self.which_range_submit = tk.Button(self, text='Confirm range', padx=10, pady=4, command=self.confirm_range)
         self.which_range_submit.grid(row=4, column=0, pady=4)
         input.range_frame_flag = True
 
@@ -633,37 +633,37 @@ class ModelingWindow():
         # first column contains most plot customizations
         self.customize_label = tk.Label(self.models_frame, text="Modeling Options", font=('TkDefaultFont', 12, 'bold'))
         self.customize_label.grid(row=0, column=0, columnspan=3, padx=16, pady=12)
-        self.range_label = tk.Label(self.models_frame, text="NOTE: Visit this section AFTER Submitting")
+        self.range_label = tk.Label(self.models_frame, text="NOTE: Visit this section AFTER submitting")
         self.range_label.grid(row=1, column=0, padx=10, pady=(0,8))
 
         # run linear regression button
-        self.run_tf_liquid_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Liquid", padx=6, pady=4, width=20,
+        self.run_tf_liquid_analysis_button = tk.Button(self.models_frame, text="Run analysis of\nthin film in liquid", padx=6, pady=4, width=20,
                                              command=lambda: thin_film_liquid_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
         self.run_tf_liquid_analysis_button.grid(row=10, column=0, pady=4)
 
         # run sauerbrey button
-        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey Mass Analysis", padx=6, pady=4, width=20,
+        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run sauerbrey mass analysis", padx=6, pady=4, width=20,
                                              command=lambda: sauerbrey((input.will_use_theoretical_vals, input.calibration_data_from_file)))
         self.run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
         # avg change in freq and dis against overtone button
-        self.avgs_analysis = tk.Button(self.models_frame, text="Plot Average Δf and Δd\n of Overtones", padx=6, pady=4, width=20,
+        self.avgs_analysis = tk.Button(self.models_frame, text="Plot average Δf and ΔD\n of overtones", padx=6, pady=4, width=20,
                                              command=lambda: avgs_analysis())
         self.avgs_analysis.grid(row=8, column=0, pady=4)
 
         # avg change in freq against overtone button
-        self.run_tf_air_analysis_button = tk.Button(self.models_frame, text="Run Analysis of\nThin Film in Air", padx=6, pady=4, width=20,
+        self.run_tf_air_analysis_button = tk.Button(self.models_frame, text="Run analysis of\nthin film in air", padx=6, pady=4, width=20,
                                              command=lambda: thin_film_air_analysis((input.which_plot['clean'], input.will_use_theoretical_vals, input.latex_installed)))
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
         # Gordon-Kanazawa model
-        self.run_GK_button = tk.Button(self.models_frame, text="Run Gordon-Kanazawa Model", padx=6, pady=4, width=20,
+        self.run_GK_button = tk.Button(self.models_frame, text="Run Gordon-Kanazawa model", padx=6, pady=4, width=20,
                                              command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals)))
         self.run_GK_button.grid(row=12, column=0, pady=4)
 
         # Quartz crystal thickness model
-        self.run_crystal_thickness_button = tk.Button(self.models_frame, text="Run Crystal Thickness Model", padx=6, pady=4, width=20,
-                                             command=lambda: crystal_thickness((input.which_plot['clean'], input.will_use_theoretical_vals)))
+        self.run_crystal_thickness_button = tk.Button(self.models_frame, text="Run Crystal Thickness", padx=6, pady=4, width=20,
+                                             command=lambda: crystal_thickness((input.which_plot['raw'], input.will_use_theoretical_vals)))
         self.run_crystal_thickness_button.grid(row=12, column=0, pady=4)
 
     def test_modeling_window(self):
@@ -680,10 +680,6 @@ class PlotOptsWindow():
         opts_window.title('Customize Plots')
         self.opts_frame = tk.Frame(opts_window)
         self.opts_frame.pack(side='left', anchor='n')
-        '''self.opts_col2 = tk.Frame(opts_window)
-        self.opts_col2.pack(side='right', anchor='n')
-        self.opts_confirm = tk.Frame(opts_window)
-        self.opts_confirm.pack(side='bottom', anchor='e')'''
 
     def fill_opts_window(self):
         self.widgets = {}
@@ -699,25 +695,25 @@ class PlotOptsWindow():
         self.font_choice_entry.grid(row=3, column=3, columnspan=3, pady=(20,4))
         self.widgets['font'] = self.font_choice_entry
 
-        self.label_text_size_label = tk.Label(self.opts_frame, text="Enter Label font size:")
+        self.label_text_size_label = tk.Label(self.opts_frame, text="Enter label font size:")
         self.label_text_size_label.grid(row=4, column=0, columnspan=3, pady=(16,0))
         self.label_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.label_text_size_entry.grid(row=4, column=3, columnspan=3, pady=(16,0))
         self.widgets['label_text_size'] = self.label_text_size_entry
 
-        self.title_text_size_label = tk.Label(self.opts_frame, text="Enter Title font size:")
+        self.title_text_size_label = tk.Label(self.opts_frame, text="Enter title font size:")
         self.title_text_size_label.grid(row=5, column=0, columnspan=3, pady=(16,0))
         self.title_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.title_text_size_entry.grid(row=5, column=3, columnspan=3, pady=(16,0))
         self.widgets['title_text_size'] = self.title_text_size_entry
 
-        self.value_text_size_label = tk.Label(self.opts_frame, text="Enter Value font size:")
+        self.value_text_size_label = tk.Label(self.opts_frame, text="Enter value font size:")
         self.value_text_size_label.grid(row=6, column=0, columnspan=3, pady=(16,0))
         self.value_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.value_text_size_entry.grid(row=6, column=3, columnspan=3, pady=(16,0))
         self.widgets['value_text_size'] = self.value_text_size_entry
 
-        self.legend_text_size_label = tk.Label(self.opts_frame, text="Enter Legend font size:")
+        self.legend_text_size_label = tk.Label(self.opts_frame, text="Enter legend font size:")
         self.legend_text_size_label.grid(row=7, column=0, columnspan=3, pady=(16,0))
         self.legend_text_size_entry = tk.Entry(self.opts_frame, width=10)
         self.legend_text_size_entry.grid(row=7, column=3, columnspan=3, pady=(16,0))
@@ -793,22 +789,22 @@ class PlotOptsWindow():
         self.widgets['time_lower_bound'] = self.time_lower_bound_entry
         self.widgets['time_upper_bound'] = self.time_upper_bound_entry
 
-        self.frequency_lower_bound_label = tk.Label(self.bounds_frame, text="Frequency Lower: ")
+        self.frequency_lower_bound_label = tk.Label(self.bounds_frame, text="Frequency lower: ")
         self.frequency_lower_bound_label.grid(row=2, column=0, padx=4, pady=4)
         self.frequency_lower_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.frequency_lower_bound_entry.grid(row=2, column=1, padx=4, pady=4)
-        self.frequency_upper_bound_label = tk.Label(self.bounds_frame, text="Frequency Upper: ")
+        self.frequency_upper_bound_label = tk.Label(self.bounds_frame, text="Frequency upper: ")
         self.frequency_upper_bound_label.grid(row=2, column=2, padx=4, pady=4)
         self.frequency_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.frequency_upper_bound_entry.grid(row=2, column=3, padx=4, pady=4)
         self.widgets['frequency_lower_bound'] = self.frequency_lower_bound_entry
         self.widgets['frequency_upper_bound'] = self.frequency_upper_bound_entry
 
-        self.dissipation_lower_bound_label = tk.Label(self.bounds_frame, text="Dissipation Lower: ")
+        self.dissipation_lower_bound_label = tk.Label(self.bounds_frame, text="Dissipation lower: ")
         self.dissipation_lower_bound_label.grid(row=3, column=0, padx=4, pady=4)
         self.dissipation_lower_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.dissipation_lower_bound_entry.grid(row=3, column=1, padx=4, pady=4)
-        self.dissipation_upper_bound_label = tk.Label(self.bounds_frame, text="Dissipation Upper: ")
+        self.dissipation_upper_bound_label = tk.Label(self.bounds_frame, text="Dissipation upper: ")
         self.dissipation_upper_bound_label.grid(row=3, column=2, padx=4, pady=4)
         self.dissipation_upper_bound_entry = tk.Entry(self.bounds_frame, width=10)
         self.dissipation_upper_bound_entry.grid(row=3, column=3, padx=4, pady=4)
@@ -839,9 +835,9 @@ class PlotOptsWindow():
         self.empty_entries_notif_label = tk.Label(self.opts_frame, text="WARNING: Empty entries to default to\npreviously entered options", font=('TkDefaultFont', 10, 'bold'))
         self.options_saved_label = tk.Label(self.opts_frame, text="Confirming selections\nsaves preferences\neven when software\nis closed")
         self.options_saved_label.grid(row=28, column=6, pady=(24,4))
-        self.default_button = tk.Button(self.opts_frame, text="Default Values", width=14, command=self.set_default_values)
+        self.default_button = tk.Button(self.opts_frame, text="Default values", width=14, command=self.set_default_values)
         self.default_button.grid(row=29, column=6, pady=4)
-        self.confirm_button = tk.Button(self.opts_frame, text="Confirm Selections", width=14, command=self.confirm_opts)
+        self.confirm_button = tk.Button(self.opts_frame, text="Confirm selections", width=14, command=self.confirm_opts)
         self.confirm_button.grid(row=30, column=6, pady=(4,16))
 
     def choose_color(self, ov_num):
@@ -966,12 +962,12 @@ class Col1(tk.Frame):
         self.col_position = 0
         self.is_visible = True
         self.parent = parent
-        file_name_label = tk.Label(self, text="Enter data file information", font=('TkDefaultFont', 12, 'bold'))
+        file_name_label = tk.Label(self, text="Enter Data File Information", font=('TkDefaultFont', 12, 'bold'))
         file_name_label.grid(row=0, column=0, pady=(14,16), padx=(6,0))
 
-        self.filename_label = tk.Label(self, text="Data File")
+        self.filename_label = tk.Label(self, text="Data file")
         self.filename_label.grid(row=2, column=0, pady=(8,4))
-        self.browse_files_button = tk.Button(self, text="Select Data File", command=lambda: select_data_file(self.filename_label))
+        self.browse_files_button = tk.Button(self, text="Select data file", command=lambda: select_data_file(self.filename_label))
         self.browse_files_button.grid(row=1, column=0)
 
         self.file_src_frame = srcFileFrame(self)
@@ -989,10 +985,10 @@ class Col1(tk.Frame):
 
         self.file_data_submit_button = tk.Button(self, text="Submit file information", padx=8, pady=6, width=20, command=self.col_names_submit)
         self.file_data_submit_button.grid(row=10, column=0, pady=(16,4))
-        self.file_data_clear_button = tk.Button(self, text="Clear Entries", padx=8, pady=6, width=20, command=self.clear_file_data)
+        self.file_data_clear_button = tk.Button(self, text="Clear entries", padx=8, pady=6, width=20, command=self.clear_file_data)
         self.file_data_clear_button.grid(row=11, column=0, pady=4)
 
-        self.open_plot_opts_button = tk.Button(self, text="Customize Plot Options", width=20, command=self.open_plot_opts)
+        self.open_plot_opts_button = tk.Button(self, text="Customize plot options", width=20, command=self.open_plot_opts)
         self.open_plot_opts_button.grid(row=14, pady=(16, 4)) 
 
     def open_plot_opts(self):
@@ -1029,7 +1025,7 @@ class Col1(tk.Frame):
         input.abs_base_t0 = time(0, 0, 0)
         input.abs_base_tf = time(0, 0, 0)
         self.cleared_label.grid(row=12, column=0)
-        self.filename_label.configure(text="Data File")
+        self.filename_label.configure(text="Data file")
         self.abs_time_input.clear()
         self.rel_time_input.clear()
         self.submitted_label.grid_forget()
@@ -1041,7 +1037,7 @@ class Col2(tk.Frame):
         self.col_position = 1
         self.is_visible = True
         self.plot_raw_data_var = tk.IntVar()
-        self.plot_raw_data_check = tk.Checkbutton(self, text="Plot raw data\n(f and d)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
+        self.plot_raw_data_check = tk.Checkbutton(self, text="Raw Data Overtone Selection\n(f and D)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_raw_data_var, onvalue=1, offvalue=2, command=self.receive_raw_checkboxes)
         self.plot_raw_data_check.grid(row=0, column=0, pady=(12,8), padx=(16,32))
         self.which_raw_channels_label = tk.Label(self, text="Select overtones for full data")
 
@@ -1052,8 +1048,8 @@ class Col2(tk.Frame):
         self.raw_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=0,
                                                  command=lambda: receive_int_plot_input((self, self.raw_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col3].clean_int_plot_frame)))
 
-        self.clear_raw_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_raw_checks)
-        self.select_all_raw_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_raw_checks)
+        self.clear_raw_checks_button = tk.Button(self, text='Clear all', width=8, command=self.clear_raw_checks)
+        self.select_all_raw_checks_button = tk.Button(self, text='Select all', width=8, command=self.select_all_raw_checks)
 
     def receive_raw_checkboxes(self):
         global input
@@ -1113,7 +1109,7 @@ class Col3(tk.Frame):
         self.is_visible = True
         self.container = container
         self.plot_clean_data_var = tk.IntVar()
-        self.plot_clean_data_check = tk.Checkbutton(self, text="Plot shifted data\n(Δf and Δd)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
+        self.plot_clean_data_check = tk.Checkbutton(self, text="Shifted Data Overtone Selection\n(Δf and ΔD)", font=('TkDefaultFont', 12, 'bold'), variable=self.plot_clean_data_var, onvalue=1, offvalue=0, command=self.receive_clean_checkboxes)
         self.plot_clean_data_check.grid(row=0, column=0, pady=(12,8), padx=(32,16))
         self.which_clean_channels_label = tk.Label(self, text="Select overtones for\nbaseline corrected data")
 
@@ -1125,8 +1121,8 @@ class Col3(tk.Frame):
         self.clean_int_plot_check = tk.Radiobutton(self, text="Interactive plot", variable=self.parent.int_plot_data_fmt_var, value=1,
                                                    command=lambda: receive_int_plot_input((self, self.clean_int_plot_frame, self.parent.int_plot_data_fmt_var, self.parent.frames[Col2].raw_int_plot_frame)))
 
-        self.clear_clean_checks_button = tk.Button(self, text='clear all', width=8, command=self.clear_clean_checks)
-        self.select_all_clean_checks_button = tk.Button(self, text='select all', width=8, command=self.select_all_clean_checks)
+        self.clear_clean_checks_button = tk.Button(self, text='Clear all', width=8, command=self.clear_clean_checks)
+        self.select_all_clean_checks_button = tk.Button(self, text='Select all', width=8, command=self.select_all_clean_checks)
 
 
     def receive_clean_checkboxes(self):
@@ -1188,18 +1184,18 @@ class Col4(tk.Frame):
         self.parent = parent
         self.container = container
         self.first_run = True
-        self.plot_options_label = tk.Label(self, text="Options for plots", font=('TkDefaultFont', 12, 'bold'))
+        self.plot_options_label = tk.Label(self, text="Options For Plots", font=('TkDefaultFont', 12, 'bold'))
         self.plot_options_label.grid(row=0, column=4, pady=(14,16), padx=(0,6))
 
         # miscellaneous plot options
         self.plot_dF_dD_together_var = tk.IntVar()
-        self.plot_dF_dD_together_check = tk.Checkbutton(self, text="Plot Δf and Δd together", variable=self.plot_dF_dD_together_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_dF_dD_together_check = tk.Checkbutton(self, text="Plot Δf and ΔD together", variable=self.plot_dF_dD_together_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_dF_dD_together_check.grid(row=2, column=4)
         self.normalize_F_var = tk.IntVar()
         self.normalize_F_check = tk.Checkbutton(self, text="Normalize Δf with its\nrespective overtone", variable=self.normalize_F_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.normalize_F_check.grid(row=3, column=4)
         self.plot_dD_v_dF_var = tk.IntVar()
-        self.plot_dD_v_dF_check = tk.Checkbutton(self, text="Plot Δd vs Δf", variable=self.plot_dD_v_dF_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.plot_dD_v_dF_check = tk.Checkbutton(self, text="Plot ΔD vs Δf", variable=self.plot_dD_v_dF_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_dD_v_dF_check.grid(row=4, column=4)
         self.plot_temp_v_time_var = tk.IntVar()
         self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
@@ -1217,7 +1213,7 @@ class Col4(tk.Frame):
         self.submit_button = tk.Button(self, text="Submit", padx=8, pady=6, width=20, command=self.submit)
         self.submit_button.grid(row=20, column=4, pady=4, padx=20)
 
-        self.clear_range_data_button = tk.Button(self, text="Clear Saved Range Data", padx=8, pady=6, width=20, command=self.clear_range_data)
+        self.clear_range_data_button = tk.Button(self, text="Clear saved range data", padx=8, pady=6, width=20, command=self.clear_range_data)
         self.clear_range_data_button.grid(row=21, column=4, pady=4)
 
         self.exit_button = tk.Button(self, text="Exit", padx=8, pady=6, width=20, command=exit)
