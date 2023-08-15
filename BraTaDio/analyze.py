@@ -96,7 +96,7 @@ def shift_by_slope(x_time, y_data, baseline_df, time_col, freq):
     # slope accounted baseline correction
     params, _ = curve_fit(linear, baseline_df[time_col], baseline_df[freq])
     m, b = params
-    theta = -np.arctan(m) # negate the angle s.t. the baseline will have a slope of 0
+    theta = -np.arctan(2*m) # negate the angle s.t. the baseline will have a slope of 0
 
     x_time_adjsuted, y_data_adjusted = rotate_point(x_time, y_data, theta)
     x_time_adjsuted = np.asarray(x_time_adjsuted)

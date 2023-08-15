@@ -72,10 +72,12 @@ def format_QCMi(df):
 
     return fmt_df
 
-def add_offsets(calibration_df, fmt_df, overtones_skipped=(0)):
-    calibration_vals = calibration_df.values.flatten()    
-    for ov in tuple(sorted(overtones_skipped, reverse=True)):
-        calibration_vals = np.concatenate((calibration_vals[:ov-1], calibration_vals[ov+1:]))
+def add_offsets(calibration_df, fmt_df, overtones_skipped=[]):
+    calibration_vals = calibration_df.values.flatten() 
+    print('***', '\n', overtones_skipped, '\n', len(overtones_skipped), '***')  
+    if len(overtones_skipped) != 0:
+        for ov in tuple(sorted(overtones_skipped, reverse=True)):
+            calibration_vals = np.concatenate((calibration_vals[:ov-1], calibration_vals[ov+1:]))
 
     calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
     print('***fmt_df',fmt_df.shape,'\n', fmt_df)
@@ -132,7 +134,7 @@ def format_AWSensors(fmt_df, calibration_df):
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df_reordered
     print(fmt_df_reordered)
-    fmt_df_reordered = add_offsets(calibration_df, fmt_df_reordered, (1, 13))
+    fmt_df_reordered = add_offsets(calibration_df, fmt_df_reordered, [1, 13])
     print(fmt_df_reordered)
     return fmt_df
 

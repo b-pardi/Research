@@ -193,6 +193,9 @@ waiting on data:
 
 ### CHANGE LOG
 
+8/14
+- bug fix with file conversion when adding offset data. If no overtones skipped, would try to iterate over integer (0), so made default empty list, as well as check if list of overtones skipped is empty or not 
+
 8/11
 - added radio buttons to select dissipation or FWHM to offset values window
 - radio buttons now adjust labelled to entries to reflect above choice
