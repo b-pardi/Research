@@ -155,13 +155,23 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
+- scrollbar not filling horizontally
 
 format changes:
 
+
 features:
 - gordon-kanazawa modeling
+- select file feature for calibration data
+- customization option for line plot (and other types)
 
 publication/documentation: 
+- for flowchart
+    - add legend
+    - fix squished text
+    - color code different sections
+        - smaller blocks lighter shades
+    - make big squares smaller, small squares bigger
 - flowchart of workflow of software
     - rough draft on whiteboard
 - more explicit library acknowledgement sections
@@ -192,6 +202,28 @@ waiting on data:
 
 
 ### CHANGE LOG
+
+8/18
+- scrollbar
+    - added inner_frame inside app_canvas inside container in the app class
+    - added y scrollbar
+    - bound y scrollbar to mousewheel
+    - y scollbar will scroll with wheel intelligently
+        - will scroll on app window only when mouse hovering over it
+    - added x scrollbar
+    - fixed dimensions of window
+
+8/17
+- new information says qsense data is normalized by default, added unnormalize() function to format_file.py to unnormalize data when converting file
+
+- format changes:
+    - change window title to BraTaDio - pyQCM-D Analyzer
+    - t in crystal thickness make lowercase and f lower case in frequency
+    - shear dependent compliance for slope of thin film in liquid and report just slope 1/pascal
+    - sauerbray mass m lower case
+    - capital s for sauerbray in modeling window
+    - also in model window lower case crystal thickness
+    - change slope correction to drift correction
 
 8/14
 - bug fix with file conversion when adding offset data. If no overtones skipped, would try to iterate over integer (0), so made default empty list, as well as check if list of overtones skipped is empty or not 

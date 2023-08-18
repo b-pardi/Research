@@ -7,7 +7,7 @@ Last Modified: 3/16/2023, 8:19 pm
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, least_squares
 
 import Exceptions
 from analyze import get_plot_preferences, get_num_from_string, prepare_stats_file, range_statistics
@@ -86,6 +86,25 @@ def crystal_thickness_eqn(n, h_q):
 
     f_Rn = ( n / ( 2 * h_q )) * np.sqrt( mu_qn / rho_q )
     return f_Rn
+
+def gk_eqn(rhoL, etaL):
+    # constants
+    rhoQ = 2650 # (kg/m^3) density of quartz
+    muQ = 3.3698e-4 # (m) thickness of quartz
+    f0 = 4.5e6
+    # fitting parameters
+    '''
+        rhoL (kg/m^3) 
+        etaL (Pa*s) dynamic viscosity
+    '''
+
+    return ( ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (PI * muQ * rhoQ) ) )
+
+def gk_objective(params, Df_n_data):
+    rhoL, etaL = params
+    model_Df_n = gk_eqn(rhoL, etaL)
+    err = model_Df_n - Df_n_data
+    return err
 
 
 def get_overtones_selected(which_plot):
@@ -273,7 +292,7 @@ def get_labels(label, type, subtype='', usetex=False):
         title = "Thin Film in Air " + f"for range: {label}"
         x = r"$\mathit{n^2}$"
         if subtype == 'gamma': # $\frac{ng}{cm^2}$
-            y = r"Normalized Bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma_{n}}}{\mathit{n}}$ Hz"
+            y = r"Normalized bandwidth shift, $\frac{\mathit{\Delta}\mathit{\Gamma_{n}}}{\mathit{n}}$ Hz"
         elif subtype == 'freq':
             y = r"Normalized change in frequency, $\frac{\mathit{\Delta}f_{n}}{\mathit{n}}$ Hz"
         else:
@@ -282,7 +301,7 @@ def get_labels(label, type, subtype='', usetex=False):
     elif type == 'crystal':
         data_label = None
         title = "Crystal Thickness"
-        y = r"Resonant Frequency, $\it{f_{Rn}}$ (Hz)"
+        y = r"Resonant frequency, $\it{f_{Rn}}$ (Hz)"
         x = 'Overtone order, $\it{n}$'
 
     elif type == 'sauerbrey':
@@ -292,7 +311,7 @@ def get_labels(label, type, subtype='', usetex=False):
         if subtype == 'fit':
             y = r'Average change in frequency, $\it{Δf_{n}}$ ' + '(Hz)'
         if subtype == 'avgs':
-            y = r'Sauerbrey Mass, $\it{m_{n}}$ ($\frac{ng}{cm^2}$)'
+            y = r'Sauerbrey mass, $\it{m_{n}}$ ($\frac{ng}{cm^2}$)'
 
     elif type == 'avgs':
         data_label = f"average"
@@ -360,7 +379,7 @@ def thin_film_liquid_analysis(user_input):
                                  sigma_delta_gamma, data_label, True)
         
         # take care of all linear fitting analysis    
-        m, b = linearly_analyze(n_mean_delta_freqs, delta_gamma, ax) 
+        m, b = linearly_analyze(n_mean_delta_freqs, delta_gamma, ax, 'Shear dependent compliance: ', r'$\frac{1}{Pa}$')
         delta_gamma_fit = linear(n_mean_delta_freqs, m, b)
 
         # save calculations to file
@@ -455,22 +474,57 @@ def thin_film_air_analysis(user_input):
         plt.rc('text', usetex=False)
 
 def gordon_kanazawa(user_input):
-    which_plot, use_theoretical_vals = user_input
+    which_plot, will_use_theoretical_vals, data_fn = user_input
     fig_format = get_plot_preferences()['fig_format']
     print("Analyzing Gordon-Kanazawa Equation...")
 
-    # constants
-    rhoQ = 2650 # (kg/m^3) density of quartz CONSTANT
-    muQ = 3.3698e-4 # (m) thickness of quartz CONSTANT
-    rhoL = 0 # (kg/m^3) density of quartz CONSTANT
-    etaL = 0 # (m) thickness of quartz CONSTANT
-
-    if use_theoretical_vals:
+    # get offset of fundamental frequency
+    if will_use_theoretical_vals:
         f0 = 4998264.628859391 # (HZ) calibration fundamental frequency value (will be experimentally determined later)
     else:
-        f0 = 1
+        f0_which_plot = which_plot
+        f0_which_plot['fundamental_freq'] = True
+        f0 = np.asarray(get_calibration_values(f0_which_plot, will_use_theoretical_vals)[0])[0] # get offset data
+    print(f"***f0 = {f0}")
 
-    Df_GK = ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (PI * muQ * rhoQ) )
+    stats_df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv")
+    stats_df = stats_df[(stats_df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
+    labels = stats_df['range_name'].unique()
+    overtones = stats_df['overtone'].unique() # overtone number (x)
+    overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
+    sources = stats_df['data_source'].unique()
+    data_df = pd.read_csv(data_fn)
+
+    print(f"***GK***: {labels}, {overtones}, {sources}\n{stats_df.head()}")
+
+    # stats file has x range,
+    # take that x range and grab all df values in range from fmt_df
+    # 2d array with y values in x range for each overtone repeated for each range selection
+
+    for label in labels:
+        # grab xbounds from stats df
+        stats_df_range = stats_df.loc[stats_df['range_name'] == label]
+        xbounds = (stats_df_range['x_lower'].unique()[0], stats_df_range['x_upper'].unique()[0])
+        print(xbounds)
+
+        # grab data from shifted data df and grab columns with freq values
+        data_df_range = data_df[data_df['Time'].between(xbounds[0], xbounds[1])]
+        print(data_df_range)
+        freqs_in_range = []
+        for col_name in data_df_range.columns:
+            if col_name.__contains__('freq'):
+                ov = get_num_from_string(col_name) # get overtone from col name
+                norm_freqs = data_df_range[col_name].values / ov # normalize column
+                freqs_in_range.append(norm_freqs)
+
+        print(freqs_in_range)
+        p0 = [1, 0.001]
+        res = least_squares(gk_objective, p0, args=(freqs_in_range[1],))
+        print(res.x[0], res.x[1])
+
+
+
+
 
     #print("Gordon-Kanazawa Analysis Complete")
     print("Gordon-Kanazawa Analysis is a Work in Progress, the button is currently a placeholder")
@@ -503,7 +557,7 @@ def crystal_thickness(user_input):
     # plotting data with fit
     data_label, x_label, y_label, title = get_labels('','crystal')
     crystal_fig, crystal_ax = plot_data(overtones, offset_vals, None, None, data_label, False)
-    crystal_label = f"Crystal Thickness: {h_q*1000:.4f} (mm)\n" + r'$R^2$: ' + f"{rSquared:.4f}"
+    crystal_label = f"Crystal thickness: {h_q*1000:.4f} (mm)\n" + r'$R^2$: ' + f"{rSquared:.4f}"
     crystal_ax.plot(overtones, y_fit, 'r', label=crystal_label, zorder=-1)
     format_plot(crystal_ax, x_label, y_label, title, np.asarray(overtones))
 
@@ -662,4 +716,4 @@ if __name__ == "__main__":
                             '13th_freq': False, '13th_dis': False}}
     
     #linear_regression((which_plot['clean'], True, False))
-    sauerbrey((which_plot['clean'], True, False))
+    gordon_kanazawa((which_plot['clean'], True, 'raw_data/Formatted-gk_sample.csv'))

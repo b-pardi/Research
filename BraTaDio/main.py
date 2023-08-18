@@ -5,6 +5,7 @@ Last Modified: 3/8/2022, 9:16 pm
 """
 
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 import sys
 import os
@@ -246,8 +247,9 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__() # initialize parent class for the child
 
-        self.title('BraTaDio - Quartz Crystal Microbalance Analysis Tool')
+        self.title('BraTaDio - pyQCM-D Analyzer')
         self.iconphoto(False, tk.PhotoImage(file="res/m3b_comp.png"))
+        self.geometry("1200x800")
         #self.configure(bg=DARKEST)
         #self.tk_setPalette(background=DARKEST, foreground=WHITE)
 
@@ -261,6 +263,23 @@ class App(tk.Tk):
         container.pack(side='top', fill='both', expand=True)
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
+
+        # scrollbar
+        self.app_canvas = tk.Canvas(container)
+        self.app_canvas.pack(side='left', fill='both', expand=True)
+        self.scrollbarX = ttk.Scrollbar(container, orient='horizontal', command=self.app_canvas.xview)
+        self.scrollbarX.pack(side='bottom', fill='x')
+        self.scrollbarY = ttk.Scrollbar(container, orient='vertical', command=self.app_canvas.yview)
+        self.scrollbarY.pack(side='right', fill='y')
+        self.app_canvas.configure(yscrollcommand=self.scrollbarY.set, xscrollcommand=self.scrollbarX.set)
+        
+        self.inner_frame = tk.Frame(self.app_canvas)
+        self.inner_frame.bind("<Configure>", lambda event: self.update_scrollregion())
+        self.app_canvas.create_window((0,0), window=self.inner_frame, anchor='nw')
+        self.inner_frame.bind("<Enter>", self.bind_mousewheel)
+        self.inner_frame.bind("<Leave>", self.unbind_mousewheel)
+        
+
         
         # initializing frames
         self.frames = {}
@@ -271,7 +290,7 @@ class App(tk.Tk):
 
         # define and pack frames
         for f in [Col1, Col2, Col3, Col4]:
-            frame = f(self, container)
+            frame = f(self, self.inner_frame)
             self.frames[f] = frame
             print(f)
             if frame.is_visible:
@@ -297,6 +316,18 @@ class App(tk.Tk):
                 frame.grid(row=0, column=frame.col_position, sticky = 'nsew')
             else:
                 frame.grid_forget()
+
+    def bind_mousewheel(self, event):
+        self.app_canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+        
+    def unbind_mousewheel(self, event):
+        self.app_canvas.unbind_all("<MouseWheel>")
+
+    def on_mousewheel(self, event):
+        self.app_canvas.yview_scroll(int(-1*(event.delta/100)), "units")
+
+    def update_scrollregion(self):
+        self.app_canvas.configure(scrollregion=self.app_canvas.bbox("all"))
 
     def open_plot_opts_window(self):
         self.plot_opts_window.open_opts_window(self)
@@ -642,7 +673,7 @@ class ModelingWindow():
         self.run_tf_liquid_analysis_button.grid(row=10, column=0, pady=4)
 
         # run sauerbrey button
-        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run sauerbrey mass analysis", padx=6, pady=4, width=20,
+        self.run_sauerbrey_analysis_button = tk.Button(self.models_frame, text="Run Sauerbrey mass analysis", padx=6, pady=4, width=20,
                                              command=lambda: sauerbrey((input.will_use_theoretical_vals, input.calibration_data_from_file)))
         self.run_sauerbrey_analysis_button.grid(row=9, column=0, pady=4)
 
@@ -657,14 +688,20 @@ class ModelingWindow():
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
         # Gordon-Kanazawa model
+        file_name, _ = os.path.splitext(input.file)
+        file_name = os.path.basename(file_name)
+        if input.file.__contains__("Formatted"):
+            formatted_fn = f"raw_data/{file_name}.csv"
+        else:
+            formatted_fn = f"raw_data/Formatted-{file_name}.csv"
         self.run_GK_button = tk.Button(self.models_frame, text="Run Gordon-Kanazawa model", padx=6, pady=4, width=20,
-                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals)))
+                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals, formatted_fn)))
         self.run_GK_button.grid(row=12, column=0, pady=4)
 
         # Quartz crystal thickness model
-        self.run_crystal_thickness_button = tk.Button(self.models_frame, text="Run Crystal Thickness", padx=6, pady=4, width=20,
+        self.run_crystal_thickness_button = tk.Button(self.models_frame, text="Run crystal thickness", padx=6, pady=4, width=20,
                                              command=lambda: crystal_thickness((input.which_plot['raw'], input.will_use_theoretical_vals)))
-        self.run_crystal_thickness_button.grid(row=12, column=0, pady=4)
+        self.run_crystal_thickness_button.grid(row=13, column=0, pady=4)
 
     def test_modeling_window(self):
         self.model_window.deiconify()
@@ -1201,7 +1238,7 @@ class Col4(tk.Frame):
         self.plot_temp_v_time_check = tk.Checkbutton(self, text="Plot temperature vs time", variable=self.plot_temp_v_time_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.plot_temp_v_time_check.grid(row=5, column=4)
         self.correct_slope_var = tk.IntVar()
-        self.correct_slope_check = tk.Checkbutton(self, text="Slope Correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
+        self.correct_slope_check = tk.Checkbutton(self, text="Drift correction", variable=self.correct_slope_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)
         self.correct_slope_check.grid(row=6, column=4)
         self.enable_interactive_plot_var = tk.IntVar()
         self.enable_interactive_plot_check = tk.Checkbutton(self, text="Enable interactive plot", variable=self.enable_interactive_plot_var, onvalue=1, offvalue=0, command=self.receive_optional_checkboxes)

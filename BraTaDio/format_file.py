@@ -87,6 +87,16 @@ def add_offsets(calibration_df, fmt_df, overtones_skipped=[]):
 
     return fmt_df
 
+def unnormalize(df):
+    overtones = np.asarray([i if i%2 == 1 else i-1 for i in range(1,15)])
+    overtones = np.insert(overtones, 0,0)
+    print(overtones)
+    for i, val in enumerate(overtones):
+        if i != 0:
+            df.iloc[:, i] *= val
+
+    return df
+
 def format_Qsense(fmt_df, calibration_df):
     print("Qsense selected")
 
@@ -107,6 +117,7 @@ def format_Qsense(fmt_df, calibration_df):
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df
     
+    fmt_df = unnormalize(fmt_df)
     fmt_df = add_offsets(calibration_df, fmt_df)
     return fmt_df
 
@@ -134,6 +145,7 @@ def format_AWSensors(fmt_df, calibration_df):
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df_reordered
     print(fmt_df_reordered)
+    fmt_df_reordered = unnormalize(fmt_df_reordered)
     fmt_df_reordered = add_offsets(calibration_df, fmt_df_reordered, [1, 13])
     print(fmt_df_reordered)
     return fmt_df
