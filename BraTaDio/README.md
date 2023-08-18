@@ -155,13 +155,12 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
-- scrollbar not filling horizontally
+- crystal thickness not grabbing calibration values
 
 format changes:
 
 
 features:
-- gordon-kanazawa modeling
 - select file feature for calibration data
 - customization option for line plot (and other types)
 
@@ -212,6 +211,21 @@ waiting on data:
         - will scroll on app window only when mouse hovering over it
     - added x scrollbar
     - fixed dimensions of window
+- added y scrollbar to plot customization window
+- added scrollbar to offset data window
+- gordon-kanazawa
+    - Df_n was attempted to use a range, will now be an average
+    - viscocity and density of liquid will not be separated, system of eqns doesn't have a dependent variable to split those up
+    - values being reported will be eta*rho of liquid, the kinematic viscocity
+    - solved gk values will reported for each overtone in each range into a csv file (no plots since no dependent variable)
+    - removed gk_objective
+    - adjust gk_eqn to be a simple equation not for finding fitting parameters, and just solving for kinematic viscocity
+- moved temperature vs time dataframe separation further up in analyze_data() execution to fix bug where either data would not be found for overtone when selected, or it would mess up the time associated with the overtones' data in the rest of plots
+- removed baseline corrections for temp v time
+- added customization option to adjust dpi in customization window
+- updated json files to accommodate figure dpi user setting
+- adjusted all figure saving to use aforementioned user customization option
+
 
 8/17
 - new information says qsense data is normalized by default, added unnormalize() function to format_file.py to unnormalize data when converting file

@@ -87,25 +87,17 @@ def crystal_thickness_eqn(n, h_q):
     f_Rn = ( n / ( 2 * h_q )) * np.sqrt( mu_qn / rho_q )
     return f_Rn
 
-def gk_eqn(rhoL, etaL):
+def gk_eqn(mu_Df_n, f0):
     # constants
     rhoQ = 2650 # (kg/m^3) density of quartz
     muQ = 3.3698e-4 # (m) thickness of quartz
-    f0 = 4.5e6
     # fitting parameters
-    '''
+    ''' eta*rho = kinematic_viscosity
         rhoL (kg/m^3) 
         etaL (Pa*s) dynamic viscosity
     '''
-
-    return ( ( -1 * np.power(f0, 3/2) ) * np.sqrt( ( rhoL * etaL ) / (PI * muQ * rhoQ) ) )
-
-def gk_objective(params, Df_n_data):
-    rhoL, etaL = params
-    model_Df_n = gk_eqn(rhoL, etaL)
-    err = model_Df_n - Df_n_data
-    return err
-
+    kinematic_viscosity = ( np.power(mu_Df_n, 2) * PI * muQ * rhoQ ) / np.power(f0, 3)
+    return kinematic_viscosity
 
 def get_overtones_selected(which_plot):
     overtones = []
@@ -353,7 +345,9 @@ def process_bandwidth_calculations_for_linear_regression(which_plot, sources, rf
 
 def thin_film_liquid_analysis(user_input):
     which_plot, use_theoretical_vals, latex_installed = user_input
-    fig_format = get_plot_preferences()['fig_format']
+    plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
+    dpi = plot_customs['fig_dpi']
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
@@ -393,13 +387,15 @@ def thin_film_liquid_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_liquid_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
         print("Thin film in liquid analysis complete")
         plt.rc('text', usetex=False)
 
 def thin_film_air_analysis(user_input):
     which_plot, use_theoretical_vals, latex_installed = user_input
-    fig_format = get_plot_preferences()['fig_format']
+    plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
+    dpi = plot_customs['fig_dpi']
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
@@ -446,7 +442,7 @@ def thin_film_air_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_air_GAMMA_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_GAMMA_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
         
         # repeat above plotting/saving for Df/n v n^2
         data_label, x_label, y_label, title = get_labels(label, 'film_air', 'freq', latex_installed)     
@@ -468,13 +464,13 @@ def thin_film_air_analysis(user_input):
         # save figure
         format_plot(ax, x_label, y_label, title)
         lin_plot.tight_layout() # fixes issue of graph being cut off on the edges when displaying/saving
-        plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=200)
+        plt.savefig(f"qcmd-plots/modeling/thin_film_air_FREQ_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
         print("Thin film in air analysis complete")
         plt.rc('text', usetex=False)
 
 def gordon_kanazawa(user_input):
-    which_plot, will_use_theoretical_vals, data_fn = user_input
+    which_plot, will_use_theoretical_vals = user_input
     fig_format = get_plot_preferences()['fig_format']
     print("Analyzing Gordon-Kanazawa Equation...")
 
@@ -487,60 +483,46 @@ def gordon_kanazawa(user_input):
         f0 = np.asarray(get_calibration_values(f0_which_plot, will_use_theoretical_vals)[0])[0] # get offset data
     print(f"***f0 = {f0}")
 
+    # for saving output data
+    header = "overtone,mu_Df,mu_Df_n,kinematic_viscosity,range_name,data_source\n"
+    stats_out_fn = 'selected_ranges/gordon-kanazawa_output.csv'                
+
+    # grab data from file
     stats_df = pd.read_csv("selected_ranges/clean_all_stats_rf.csv")
     stats_df = stats_df[(stats_df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
     labels = stats_df['range_name'].unique()
-    overtones = stats_df['overtone'].unique() # overtone number (x)
-    overtones = np.asarray([get_num_from_string(ov) for ov in overtones]) # get just the number from overtone labels
-    sources = stats_df['data_source'].unique()
-    data_df = pd.read_csv(data_fn)
-
-    print(f"***GK***: {labels}, {overtones}, {sources}\n{stats_df.head()}")
-
-    # stats file has x range,
-    # take that x range and grab all df values in range from fmt_df
-    # 2d array with y values in x range for each overtone repeated for each range selection
+    print(labels)
+    overtone_labels = stats_df['overtone'].unique() # overtone number (x)
+    overtones = np.asarray([get_num_from_string(ov) for ov in overtone_labels]) # get just the number from overtone labels
+    source = stats_df['data_source'].unique()[0]
 
     for label in labels:
-        # grab xbounds from stats df
         stats_df_range = stats_df.loc[stats_df['range_name'] == label]
-        xbounds = (stats_df_range['x_lower'].unique()[0], stats_df_range['x_upper'].unique()[0])
-        print(xbounds)
+        mu_Df = stats_df_range['Dfreq_mean'].values # grab averages and normalize
+        mu_Df_n = mu_Df / overtones # grab averages and normalize
+        sigma_mu_Df_n = stats_df_range['Dfreq_std_dev'].values
+        kinematic_viscosity = gk_eqn(mu_Df_n, f0)
+        print(f"** Kinematic Viscocity for {label}: {kinematic_viscosity}")
+        prepare_stats_file(header, label, source, stats_out_fn)
+        with open(stats_out_fn, 'a') as stat_file:
+            for i in range(len(kinematic_viscosity)):
+                stat_file.write(f"{overtones[i]},{mu_Df[i]},{mu_Df_n[i]},{kinematic_viscosity[i]},{label},{source}\n")
 
-        # grab data from shifted data df and grab columns with freq values
-        data_df_range = data_df[data_df['Time'].between(xbounds[0], xbounds[1])]
-        print(data_df_range)
-        freqs_in_range = []
-        for col_name in data_df_range.columns:
-            if col_name.__contains__('freq'):
-                ov = get_num_from_string(col_name) # get overtone from col name
-                norm_freqs = data_df_range[col_name].values / ov # normalize column
-                freqs_in_range.append(norm_freqs)
-
-        print(freqs_in_range)
-        p0 = [1, 0.001]
-        res = least_squares(gk_objective, p0, args=(freqs_in_range[1],))
-        print(res.x[0], res.x[1])
-
-
-
-
-
-    #print("Gordon-Kanazawa Analysis Complete")
-    print("Gordon-Kanazawa Analysis is a Work in Progress, the button is currently a placeholder")
+    print("Gordon-Kanazawa Analysis Complete")
 
 
 def crystal_thickness(user_input):
     which_plot, will_use_theoretical_vals = user_input
-    fig_format = get_plot_preferences()['fig_format']
-
+    plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
+    dpi = plot_customs['fig_dpi']
+    
     overtones = get_overtones_selected(which_plot) # get overtones
     overtones = [get_num_from_string(n[0]) for n in overtones]
     offset_vals = np.asarray(get_calibration_values(which_plot, will_use_theoretical_vals)[0]) # get offset data
     offset_vals = offset_vals[offset_vals != 0]
 
-    print('*****', overtones, '\n', offset_vals)
-
+    print('*****', will_use_theoretical_vals, '\n', overtones, '\n', offset_vals)
     # performing the for crystal thickness equation fit 
     params, cov = curve_fit(crystal_thickness_eqn, overtones, offset_vals)
     h_q = params[0]
@@ -562,7 +544,7 @@ def crystal_thickness(user_input):
     format_plot(crystal_ax, x_label, y_label, title, np.asarray(overtones))
 
     crystal_fig.tight_layout()
-    crystal_fig.savefig(f"qcmd-plots/modeling/crystal_thickness.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+    crystal_fig.savefig(f"qcmd-plots/modeling/crystal_thickness.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
     stats_out_fn = 'selected_ranges/crystal_thickness_output.csv'                
     header = f"overtone,offset_vals,offset_vals_FIT,crystal_thickness(mm)\n"
@@ -572,7 +554,7 @@ def crystal_thickness(user_input):
             stat_file.write(f"{overtones[i]},{offset_vals[i]:.8E},{y_fit[i]:.8E},{h_q*1000:.8E}\n")
 
 
-def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
+def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format, dpi):
     # method 2 avg rf * C for each overtone
     mu_Dm = mu_Df * C / overtones
     delta_mu_Dm = np.abs(delta_mu_Df * C / overtones)
@@ -584,11 +566,11 @@ def sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format):
     avg_Dm_fig, avg_Dm_ax = plot_data(overtones, mu_Dm, None, delta_mu_Dm, data_label, True)
     format_plot(avg_Dm_ax, x_label, y_label, title, overtones)
     avg_Dm_fig.tight_layout()
-    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_avgs_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_avgs_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
     return mu_Dm, delta_mu_Dm
 
-def sauerbrey_fit(df, overtones, label, C, fig_format):
+def sauerbrey_fit(df, overtones, label, C, fig_format, dpi):
     # grabbing data from df
     df_range = df.loc[df['range_name'] == label]
     # method 1 of Sauerbrey mass (linear fit slope * C)
@@ -609,13 +591,15 @@ def sauerbrey_fit(df, overtones, label, C, fig_format):
     format_plot(avg_Df_ax, x_label, y_label, title, overtones)
     avg_Df_fig.tight_layout()
     plt.legend().get_texts()[1].set_text("Sauerbrey mass: " + f"{m*C:.1f}" + r" ($\frac{ng}{cm^2}$)")
-    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_fit_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+    plt.savefig(f"qcmd-plots/modeling/Sauerbrey_fit_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
     return mu_Df, delta_mu_Df, mu_Df_fit
 
 def sauerbrey(user_input):
     use_theoretical_vals, calibration_data_from_file = user_input
-    fig_format = get_plot_preferences()['fig_format']
+    plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
+    dpi = plot_customs['fig_dpi']
     print("Analyzing Sauerbrey equation...")
 
     # grabbing df from csv
@@ -644,8 +628,8 @@ def sauerbrey(user_input):
     print(f"C: {C}")
 
     for label in labels:
-        mu_Df, delta_mu_Df, mu_Df_fit = sauerbrey_fit(df, overtones, label, C, fig_format)
-        mu_Dm, delta_mu_Dm = sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format)
+        mu_Df, delta_mu_Df, mu_Df_fit = sauerbrey_fit(df, overtones, label, C, fig_format, dpi)
+        mu_Dm, delta_mu_Dm = sauerbrey_avgs(mu_Df, delta_mu_Df, C, overtones, label, fig_format, dpi)
 
         # save calculations to file
         stats_out_fn = 'selected_ranges/sauerbrey_output.csv'                
@@ -659,7 +643,9 @@ def sauerbrey(user_input):
     plt.rc('text', usetex=False)
 
 def avgs_analysis():
-    fig_format = get_plot_preferences()['fig_format']
+    plot_customs = get_plot_preferences()
+    fig_format = plot_customs['fig_format']
+    dpi = plot_customs['fig_dpi']
     print("Analyzing average change in frequency and dissipation...")
 
     # grabbing df from csv
@@ -690,14 +676,14 @@ def avgs_analysis():
         avg_Df_range_plot, ax = plot_data(overtones, mu_Df, None, delta_mu_Df, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Df_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Df_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
         # plotting average dissipations
         data_label, x_label, y_label, title = get_labels(label, 'avgs', 'dis')
         avg_Dd_range_plot, ax = plot_data(overtones, mu_Dd, None, delta_mu_Dd, data_label, True)
         format_plot(ax, x_label, y_label, title, overtones)
         avg_Dd_range_plot.tight_layout()
-        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        plt.savefig(f"qcmd-plots/modeling/Avg_Dd_range_{label}.{fig_format}", format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
     print("Average change in frequency and dissipation analysis complete")
     plt.rc('text', usetex=False)
@@ -716,4 +702,4 @@ if __name__ == "__main__":
                             '13th_freq': False, '13th_dis': False}}
     
     #linear_regression((which_plot['clean'], True, False))
-    gordon_kanazawa((which_plot['clean'], True, 'raw_data/Formatted-gk_sample.csv'))
+    gordon_kanazawa((which_plot['clean'], True))

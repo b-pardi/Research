@@ -132,6 +132,7 @@ def determine_ylabel(ydata_type, is_normalized, is_raw_data=False):
 
 def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, will_save=False, legend=True):
     plot_customs = get_plot_preferences()
+    dpi = plot_customs['fig_dpi']
     fig_format = plot_customs['fig_format']
     plt.figure(fig.number)
 
@@ -165,7 +166,7 @@ def setup_plot(fig, ax, fig_x, fig_y, fig_title, fn, will_save=False, legend=Tru
     plt.tick_params(axis='both', direction=plot_customs['tick_dir'])
     plt.title(fig_title, fontsize=plot_customs['title_text_size'], fontfamily=plot_customs['font'])
     if will_save:
-        fig.savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=400)
+        fig.savefig(fn + '.' + fig_format, format=fig_format, bbox_inches='tight', transparent=True, dpi=dpi)
 
 def find_nearest_time(time, my_df, time_col_name, is_relative_time):
     # locate where baseline starts/ends
@@ -620,7 +621,6 @@ def select_calibration_data(input, overtone_select, which_range):
     raw_interactive_plot(input, raw_df, overtone_select, which_range, x_time, raw_analysis.time_col)
 
 def analyze_data(input):
-
     analysis = Analysis(input.file)
     t0_str = str(input.abs_base_t0).lstrip('0')
     tf_str = str(input.abs_base_tf).lstrip('0')
@@ -630,6 +630,7 @@ def analyze_data(input):
     freq_color_map, dis_color_map = map_colors()
 
     plot_customs = get_plot_preferences()
+    dpi = plot_customs['fig_dpi']
     points_idx = plot_customs['points_plotted_index']
 
     '''Cleaning Data and plotting clean data'''
@@ -653,6 +654,17 @@ def analyze_data(input):
         if input.will_plot_dF_dD_together:
             mult_fig, mult_ax1 = plt.subplots()
             mult_ax2 = mult_ax1.twinx()
+
+        if input.will_plot_temp_v_time:
+            try:
+                if input.file_src_type != 'Qsense':
+                    analysis.temp_time_col = analysis.time_col
+                temperature_df = df[[analysis.temp_time_col, analysis.temp_col]].copy()
+                temperature_df = temperature_df.dropna(axis=0, how='any', inplace=False)
+            except Exception as e:
+                print(f"Experiment file does not have temperature data\nerr: {e}")
+                temperature_df = df[[analysis.time_col]]
+                temperature_df[analysis.temp_col] = 0
 
         # if different num of freq and raw channels, must do equal amount for plotting,
         # but can just not plot the results later; set plot cap for the lesser
@@ -687,17 +699,6 @@ def analyze_data(input):
         else:
             base_tf_ind = find_nearest_time(tf_str, df, analysis.abs_time_col, input.is_relative_time) # baseline correction
         baseline_df = df[:base_tf_ind].copy()
-        
-        if input.will_plot_temp_v_time:
-            try:
-                if input.file_src_type == 'Qsense':
-                    analysis.time_col = analysis.temp_time_col
-                temperature_df = df[[analysis.time_col, analysis.temp_col]].copy()
-                temperature_df = temperature_df.dropna(axis=0, how='any', inplace=False)
-            except Exception as e:
-                print(f"Experiment file does not have temperature data\nerr: {e}")
-                temperature_df = df[[analysis.time_col]]
-                temperature_df[analysis.temp_col] = 0
 
         # choose appropriate divisor for x scale of time
         if plot_customs['time_scale'] == 'min':
@@ -795,11 +796,9 @@ def analyze_data(input):
                     slope_corrected_cleaned_df = pd.concat([slope_corrected_cleaned_df,slope_corrected_df[clean_disps[i]]], axis=1)
                 
         if input.will_plot_temp_v_time:
-            temperature_df[analysis.time_col] -= baseline_start
-            temperature_df[analysis.time_col] /= divisor
             tempVtime_fig = plt.figure()
             tempVtime_ax = tempVtime_fig.add_subplot(111)
-            plot_temp_v_time(tempVtime_fig, tempVtime_ax, temperature_df[analysis.time_col].values, temperature_df[analysis.temp_col].values, plot_customs['time_scale'], plot_customs['fig_format'])    
+            plot_temp_v_time(tempVtime_fig, tempVtime_ax, temperature_df[analysis.temp_time_col].values, temperature_df[analysis.temp_col].values, plot_customs['time_scale'], plot_customs['fig_format'])    
 
         if input.will_overwrite_file:
             df.to_csv(f"raw_data/CLEANED-{analysis.formatted_fn}", index=False)
@@ -818,14 +817,14 @@ def analyze_data(input):
         setup_plot(dis_fig, dis_ax, fig_x, determine_ylabel('dis', input.will_normalize_F),
                    dis_fig_title, dis_fn)
         
-        freq_fig.savefig(f"qcmd-plots/frequency_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
-        dis_fig.savefig(f"qcmd-plots/dissipation_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
+        freq_fig.savefig(f"qcmd-plots/frequency_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi)
+        dis_fig.savefig(f"qcmd-plots/dissipation_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi)
         
         if input.will_plot_dD_v_dF:
             dVf_fn = f"qcmd-plots/disp_V_freq-plot"
             setup_plot(disVfreq_fig, disVfreq_ax, determine_ylabel('freq', input.will_normalize_F), determine_ylabel('dis', input.will_normalize_F),
                        dis_fig_title, dVf_fn)
-            disVfreq_fig.savefig(f"qcmd-plots/disp_V_freq_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
+            disVfreq_fig.savefig(f"qcmd-plots/disp_V_freq_plot.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi)
             
 
         # saving multiaxis plot.
@@ -833,7 +832,7 @@ def analyze_data(input):
             box = mult_ax1.get_position()
             mult_ax1.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
             mult_fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.1), ncol=2, fancybox=True, shadow=True, fontsize=plot_customs['legend_text_size'], prop={'family': 'Arial'}, framealpha=0.1)
-            mult_fig.savefig(f"qcmd-plots/freq_dis_V_time.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=800)
+            mult_fig.savefig(f"qcmd-plots/freq_dis_V_time.{plot_customs['fig_format']}", format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi*1.25) # slightly higher dpi for dense graph
 
     # Gathering raw data for individual plots
     if input.will_plot_raw_data:
@@ -874,12 +873,12 @@ def analyze_data(input):
         # save raw frequency plots
         rf_fn = f"qcmd-plots/RAW-resonant-freq-plot"
         setup_plot(raw_freq_fig, raw_freq_ax, fig_x, determine_ylabel('freq', False, True), rf_fig_title, rf_fn, plot_customs['fig_format'])
-        raw_freq_fig.savefig(rf_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
+        raw_freq_fig.savefig(rf_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi)
 
         # save raw dissipation plots
         dis_fn = f"qcmd-plots/RAW-dissipation-plot"
         setup_plot(raw_dis_fig, raw_dis_ax, fig_x, determine_ylabel('dis', False, True), dis_fig_title, dis_fn,  plot_customs['fig_format'])
-        raw_dis_fig.savefig(dis_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=400)
+        raw_dis_fig.savefig(dis_fn + '.' + plot_customs['fig_format'], format=plot_customs['fig_format'], bbox_inches='tight', transparent=True, dpi=dpi)
 
     # interactive plot
     if input.enable_interactive_plot:

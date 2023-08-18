@@ -279,8 +279,6 @@ class App(tk.Tk):
         self.inner_frame.bind("<Enter>", self.bind_mousewheel)
         self.inner_frame.bind("<Leave>", self.unbind_mousewheel)
         
-
-        
         # initializing frames
         self.frames = {}
         self.col1 = Col1 # file input information
@@ -688,14 +686,8 @@ class ModelingWindow():
         self.run_tf_air_analysis_button.grid(row=11, column=0, pady=4)
 
         # Gordon-Kanazawa model
-        file_name, _ = os.path.splitext(input.file)
-        file_name = os.path.basename(file_name)
-        if input.file.__contains__("Formatted"):
-            formatted_fn = f"raw_data/{file_name}.csv"
-        else:
-            formatted_fn = f"raw_data/Formatted-{file_name}.csv"
         self.run_GK_button = tk.Button(self.models_frame, text="Run Gordon-Kanazawa model", padx=6, pady=4, width=20,
-                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals, formatted_fn)))
+                                             command=lambda: gordon_kanazawa((input.which_plot['clean'], input.will_use_theoretical_vals)))
         self.run_GK_button.grid(row=12, column=0, pady=4)
 
         # Quartz crystal thickness model
@@ -712,10 +704,18 @@ class PlotOptsWindow():
         super().__init__(container) # initialize parent class for the child
         self.parent = parent
 
+        
+
     def open_opts_window(self):
         opts_window = tk.Toplevel(self)
         opts_window.title('Customize Plots')
-        self.opts_frame = tk.Frame(opts_window)
+        self.scrollbarY = tk.Scrollbar(opts_window, orient='vertical')
+        self.scrollbarY.pack(side='right', fill='y')
+        self.opts_canv = tk.Canvas(opts_window)
+        self.opts_canv.pack(side='left', fill='both', expand=True)
+        self.scrollbarY.config(command=self.opts_canv.yview)
+        self.opts_canv.config(yscrollcommand=self.scrollbarY.set)
+        self.opts_frame = tk.Frame(self.opts_canv)
         self.opts_frame.pack(side='left', anchor='n')
 
     def fill_opts_window(self):
@@ -799,6 +799,13 @@ class PlotOptsWindow():
         self.pdf_check = tk.Radiobutton(self.file_format_frame, text=".pdf", variable=self.which_file_format_var, value=3, command=self.receive_file_format_radios)
         self.pdf_check.grid(row=0, column=4, columnspan=2)
         self.widgets['fig_format'] = self.which_file_format_var
+
+        # option to change DPI (quality) of saved figures
+        self.fig_dpi_label = tk.Label(self.opts_frame, text="Figure DPI (quality)")
+        self.fig_dpi_label.grid(row=19, column=0, columnspan=3, pady=8)
+        self.fig_dpi_entry = tk.Entry(self.opts_frame, width=10)
+        self.fig_dpi_entry.grid(row=19, column=3, columnspan=3, pady=8)
+        self.widgets['fig_dpi'] = self.fig_dpi_entry
 
         # option to index how many points user would like to plot (i.e. every 5th point)
         self.points_plotted_index_label = tk.Label(self.opts_frame, text="Points to plot index:\ni.e. plot every 5th point")
