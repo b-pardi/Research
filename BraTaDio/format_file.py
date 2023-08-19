@@ -111,12 +111,12 @@ def format_Qsense(fmt_df, calibration_df):
         'F_1:13':freqs[6], 'D_1:13':disps[6],
         'Meas. Temp. Time':'Temp_Time', 'Tact':'Temp'}, inplace=True)
 
-    fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*10e-6)
 
     if calibration_df.empty:
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df
     
+    fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*10e-6)
     fmt_df = unnormalize(fmt_df)
     fmt_df = add_offsets(calibration_df, fmt_df)
     return fmt_df

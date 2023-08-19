@@ -1,7 +1,0 @@
-sq_overtones,delta_gamma_norm,delta_gamma_norm_fit,delta_freqs_norm,delta_freq_norm_fit,range_name,data_source
-9,1.43469355E-01,-1.91426962E-02,1.43469355E-01,-1.91426962E-02,y,raw_data/Formatted-QSense-BSA-exp.csv
-25,-2.56220807E-01,-8.97763931E-03,-2.56220807E-01,-8.97763931E-03,y,raw_data/Formatted-QSense-BSA-exp.csv
-49,6.77494014E-02,6.26994594E-03,6.77494014E-02,6.26994594E-03,y,raw_data/Formatted-QSense-BSA-exp.csv
-81,1.52121152E-02,2.66000596E-02,1.52121152E-02,2.66000596E-02,y,raw_data/Formatted-QSense-BSA-exp.csv
-121,1.18881294E-01,5.20127017E-02,1.18881294E-01,5.20127017E-02,y,raw_data/Formatted-QSense-BSA-exp.csv
-169,5.01788862E-02,8.25078722E-02,5.01788862E-02,8.25078722E-02,y,raw_data/Formatted-QSense-BSA-exp.csv

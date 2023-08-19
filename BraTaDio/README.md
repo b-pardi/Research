@@ -155,10 +155,9 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
-- crystal thickness not grabbing calibration values
+- qsense dissipation values potentially recorded even more different from qcmi than expected
 
 format changes:
-
 
 features:
 - select file feature for calibration data
@@ -188,17 +187,8 @@ optimizations/refactoring:
 - refactor analyze() to put each opt into its own function
 
 waiting on data: 
-- plot calibration values from data against overtone
-    - calibration values come from the flatlining of points that we normally removed before the baseline
-    - will be receiving more data soon with this air stabilization
-    - interactive plot for RAW data to select the pre baseline baseline
-    - bring up new window to enter range selections for each baseline (considering Bernardo's temperature jumps)
-
-- calibration data from file option will need file formatting akin to experimental data formatting done in 'format_file.py' 
-
-- qsense will need option to add calibration freqs to values because qsense records just change in frequency, qcmi and open qcm next record actual frequency
-    - prompt user to put absolute frequencies of measured overtones into separate file, than in formatting script add those to each of the delta freq values
-
+- thin film in air data to test accuracy of corresponding model
+- full gordon-kanazawa data
 
 ### CHANGE LOG
 

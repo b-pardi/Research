@@ -242,6 +242,8 @@ def set_frame_flag():
 def exit():
     sys.exit()
 
+
+
 # menu class inherits Tk class 
 class App(tk.Tk):
     def __init__(self):
@@ -274,10 +276,10 @@ class App(tk.Tk):
         self.app_canvas.configure(yscrollcommand=self.scrollbarY.set, xscrollcommand=self.scrollbarX.set)
         
         self.inner_frame = tk.Frame(self.app_canvas)
-        self.inner_frame.bind("<Configure>", lambda event: self.update_scrollregion())
+        self.inner_frame.bind("<Configure>", lambda event: self.update_app_scrollregion())
         self.app_canvas.create_window((0,0), window=self.inner_frame, anchor='nw')
-        self.inner_frame.bind("<Enter>", self.bind_mousewheel)
-        self.inner_frame.bind("<Leave>", self.unbind_mousewheel)
+        self.inner_frame.bind("<Enter>", self.bind_app_mousewheel)
+        self.inner_frame.bind("<Leave>", self.unbind_app_mousewheel)
         
         # initializing frames
         self.frames = {}
@@ -315,17 +317,23 @@ class App(tk.Tk):
             else:
                 frame.grid_forget()
 
-    def bind_mousewheel(self, event):
-        self.app_canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+    def bind_app_mousewheel(self, event):
+        self.app_canvas.bind_all("<MouseWheel>", self.on_app_mousewheel)
         
-    def unbind_mousewheel(self, event):
+    def unbind_app_mousewheel(self, event):
         self.app_canvas.unbind_all("<MouseWheel>")
 
-    def on_mousewheel(self, event):
+    def on_app_mousewheel(self, event):
         self.app_canvas.yview_scroll(int(-1*(event.delta/100)), "units")
 
-    def update_scrollregion(self):
+    def update_app_scrollregion(self):
         self.app_canvas.configure(scrollregion=self.app_canvas.bbox("all"))
+
+    def update_opts_scrollregion(self, event):
+        self.plot_opts_window.update_opts_scrollregion(self, event)
+
+    def update_calibration_scrollregion(self, event):
+        self.calibration_window.update_calibration_scrollregion(self, event)
 
     def open_plot_opts_window(self):
         self.plot_opts_window.open_opts_window(self)
@@ -541,8 +549,21 @@ class CalibrationWindow():
     def open_calibration_window(self):
         calibration_window = tk.Toplevel(self)
         calibration_window.title('Input/Select Offset Data')
-        self.calibration_frame = tk.Frame(calibration_window)
-        self.calibration_frame.pack(anchor='n')
+        calibration_window.geometry('400x650')
+
+        self.wrapper_frame = tk.Frame(calibration_window)
+        self.calibration_canv = tk.Canvas(self.wrapper_frame)
+        self.calibration_canv.pack(side='left', fill='both', expand=True)
+
+        scrollbarY = ttk.Scrollbar(self.wrapper_frame, orient='vertical', command=self.calibration_canv.yview)
+        scrollbarY.pack(side='right', fill='y')
+
+        self.calibration_canv.configure(yscrollcommand=scrollbarY.set)
+        self.calibration_canv.bind("<Configure>", self.update_calibration_scrollregion)
+
+        self.calibration_frame = tk.Frame(self.calibration_canv)
+        self.calibration_canv.create_window((0,0), window=self.calibration_frame, anchor='nw')
+        self.wrapper_frame.pack(fill='both', expand=True)
 
     def fill_calibration_window(self):
         self.calibration_label = tk.Label(self.calibration_frame, text="Offset Data", font=('TkDefaultFont', 12, 'bold'))
@@ -572,6 +593,9 @@ class CalibrationWindow():
         self.clear_selections_button.grid(row=30, column=0, columnspan=2, pady=12)  
         self.confirm_selections_button = tk.Button(self.calibration_frame, text="Confirm selections", padx=6, pady=4, width=20, command=self.confirm_values)
         self.confirm_selections_button.grid(row=31, column=0, columnspan=2, pady=12)  
+
+    def update_calibration_scrollregion(self, event):
+        self.calibration_canv.configure(scrollregion=self.calibration_canv.bbox('all'))
 
     def handle_offset_radios(self):
         label_text = 'dissipation' if self.calibration_vals_fmt_var.get() == 0 else 'FWHM'
@@ -703,20 +727,26 @@ class PlotOptsWindow():
     def __init__(self, parent, container):
         super().__init__(container) # initialize parent class for the child
         self.parent = parent
-
-        
+        self.container = container
 
     def open_opts_window(self):
         opts_window = tk.Toplevel(self)
         opts_window.title('Customize Plots')
-        self.scrollbarY = tk.Scrollbar(opts_window, orient='vertical')
-        self.scrollbarY.pack(side='right', fill='y')
-        self.opts_canv = tk.Canvas(opts_window)
+        opts_window.geometry('700x900')
+
+        self.wrapper_frame = tk.Frame(opts_window)        
+        self.opts_canv = tk.Canvas(self.wrapper_frame)
         self.opts_canv.pack(side='left', fill='both', expand=True)
-        self.scrollbarY.config(command=self.opts_canv.yview)
-        self.opts_canv.config(yscrollcommand=self.scrollbarY.set)
+
+        scrollbarY = ttk.Scrollbar(self.wrapper_frame, orient='vertical', command=self.opts_canv.yview)
+        scrollbarY.pack(side='right', fill='y')
+
+        self.opts_canv.configure(yscrollcommand=scrollbarY.set)
+        self.opts_canv.bind('<Configure>', self.update_opts_scrollregion)
+
         self.opts_frame = tk.Frame(self.opts_canv)
-        self.opts_frame.pack(side='left', anchor='n')
+        self.opts_canv.create_window((0,0), window=self.opts_frame, anchor='nw')
+        self.wrapper_frame.pack(fill='both', expand=True)
 
     def fill_opts_window(self):
         self.widgets = {}
@@ -883,6 +913,9 @@ class PlotOptsWindow():
         self.default_button.grid(row=29, column=6, pady=4)
         self.confirm_button = tk.Button(self.opts_frame, text="Confirm selections", width=14, command=self.confirm_opts)
         self.confirm_button.grid(row=30, column=6, pady=(4,16))
+
+    def update_opts_scrollregion(self, event=None):
+        self.opts_canv.configure(scrollregion=self.opts_canv.bbox('all'))
 
     def choose_color(self, ov_num):
         self.color_code = colorchooser.askcolor(title="Choose color for overtone", parent=self)
