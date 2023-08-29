@@ -298,8 +298,8 @@ def thin_film_liquid_analysis(user_input):
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+    rf_df = pd.read_csv("selected_ranges/CLEAN_all_stats_rf.csv", index_col=0)
+    dis_df = pd.read_csv("selected_ranges/CLEAN_all_stats_dis.csv", index_col=0)
 
     # grab all unique labels from dataset
     labels = rf_df['range_used'].unique()
@@ -343,8 +343,8 @@ def thin_film_air_analysis(user_input):
     print("Performing thin film in liquid analysis...")
 
     # grab statistical data of overtones from files generated in interactive plot
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv", index_col=0)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv", index_col=0)
+    rf_df = pd.read_csv("selected_ranges/CLEAN_all_stats_rf.csv", index_col=0)
+    dis_df = pd.read_csv("selected_ranges/CLEAN_all_stats_dis.csv", index_col=0)
 
     # grab all unique labels from dataset
     labels = rf_df['range_used'].unique()
@@ -483,7 +483,7 @@ def sauerbrey(user_input):
     print("Analyzing Sauerbrey equation...")
 
     # grabbing df from csv
-    df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    df = pd.read_csv("selected_ranges/CLEAN_all_stats_rf.csv")
     df = df[(df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
     labels = df['range_used'].unique()
     overtones = df['overtone'].unique() # overtone number (x)
@@ -526,9 +526,9 @@ def avgs_analysis(fig_format):
     print("Analyzing average change in frequency and dissipation...")
 
     # grabbing df from csv
-    rf_df = pd.read_csv("selected_ranges/all_stats_rf.csv")
+    rf_df = pd.read_csv("selected_ranges/CLEAN_all_stats_rf.csv")
     rf_df = rf_df[(rf_df!= 0).all(1)] # remove freq rows with 0 (unselected rows)
-    dis_df = pd.read_csv("selected_ranges/all_stats_dis.csv")
+    dis_df = pd.read_csv("selected_ranges/CLEAN_all_stats_dis.csv")
     dis_df = dis_df[(dis_df!= 0).all(1)] # remove dis rows with 0 (unselected rows)
     labels = rf_df['range_used'].unique()
     overtones = rf_df['overtone'].unique() # overtone number (x)
