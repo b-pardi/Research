@@ -5,6 +5,17 @@ qcmi_df = pd.read_csv("../raw_data/QSM-I-BSA_1mgpml.csv")
 qsense_df = pd.read_excel("../raw_data/Qsense-BSA-exp.xlsx")
 print(qcmi_df, '\n', qsense_df)
 
+qsense_offset_df = pd.read_excel("../offset_data/QSense_BSA-offset.xlsx", index_col=None)
+qcmi_offset_df = pd.read_excel("../offset_data/QCMI-BSA-offset.xlsx", index_col=None)
+
+# only want dissipation
+qsense_offset_df = qsense_offset_df.filter(like='D_')
+qcmi_offset_df = qcmi_offset_df.filter(like='D_')
+
+# convert qcmi from FWHM to actual value
+print('***OFFSETS\nQCMI:', '\n', qcmi_offset_df, '\nQSENSE:', '\n', qsense_offset_df)
+
+
 qsense_cols = [
     'Time',
     #'fundamental_dis',
