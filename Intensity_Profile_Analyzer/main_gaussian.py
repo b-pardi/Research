@@ -14,12 +14,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
 
-# path to where folder is located, copy from file explorer window
-# make sure not to delete the 'r' here when updating data file path
-#           ↓
 FILE= ""
-COLUMNS = (0,0) # specify which column in the file are being analyzed
-SHEET = '' # if file has multiple sheets, indicate here, else leave blank
 
 
 def set_fp(fp):
@@ -37,8 +32,8 @@ def set_sheet(sheet):
 def browse_files(default_dir, btn_title):
     initdir = os.path.join(os.getcwd(), default_dir)
     fp = filedialog.askopenfilename(initialdir=initdir, title=btn_title, filetypes=(
-        ("Comma Separated Value files", "*.csv"),
         ("Excel file 2007 and later", "*.xlsx"),
+        ("Comma Separated Value files", "*.csv"),
         ("Excel file 1997-2003", "*.xls"),
         ("Text file", "*.txt")
     ))
@@ -63,33 +58,33 @@ def window():
 
     select_file_label = tk.Label(container, text="Data File")
     select_file_label.grid(row=2, column=0, pady=8)
-    select_file_button = tk.Button(container, text="Select Data File", command=lambda: select_file(select_file_label))
+    select_file_button = tk.Button(container, text="Select Data File", width=15, command=lambda: select_file(select_file_label))
     select_file_button.grid(row=1,column=0,pady=16)
 
     columns_label = tk.Label(container, text="Enter columns being analyzed\n(separate by a comma i.e. x,y)")
     columns_label.grid(row=3, column=0)
     columns_entry = tk.Entry(container)
-    columns_entry.grid(row=4, column=0,pady=(16,0))
+    columns_entry.grid(row=4, column=0,pady=(8,16))
 
     sheet_label = tk.Label(container, text="If your file has multiple sheets,\nindicate which one to analyze here\nelse leave blank")
     sheet_label.grid(row=5, column=0)
     sheet_entry = tk.Entry(container)
-    sheet_entry.grid(row=6, column=0)
+    sheet_entry.grid(row=6, column=0,pady=(8,16))
 
-    submit_button = tk.Button(container, text="Submit", command=set_and_run)
-    submit_button.grid(row=19, column=0)
-    close_button = tk.Button(container, text="Close", command=root.destroy)
-    close_button.grid(row=20, column=0)
+    submit_button = tk.Button(container, text="Submit", width=10, command=lambda: set_and_run(columns_entry, sheet_entry))
+    submit_button.grid(row=19, column=0,pady=(16,0))
+    close_button = tk.Button(container, text="Close", width=10, command=root.destroy)
+    close_button.grid(row=20, column=0, pady=8)
 
     root.mainloop()
-
 
 def set_and_run(columns_entry, sheet_entry):
     global FILE
     file = FILE
 
-    columns = columns.get()
+    columns = columns_entry.get()
     columns = columns.split(',')
+    columns = [int(c) for c in columns]
 
     sheet = sheet_entry.get()
     print(file, columns, sheet)
@@ -107,17 +102,16 @@ def find_nearest(array, value):
     return array[index], index
 
 # grab data
-def grab_data(file):
+def grab_data(file,sheet):
     _, ext = os.path.splitext(file)
-    global SHEET
-    if SHEET == '':
-        SHEET = None
+    if sheet == '':
+        sheet = None
     print(ext)
     if ext == '.csv':
-        df = pd.read_csv(file, SHEET)
+        df = pd.read_csv(file, sheet)
     elif ext == '.xlsx':
         xlsx = pd.ExcelFile(file)
-        df = pd.read_excel(xlsx, SHEET)
+        df = pd.read_excel(xlsx, sheet)
     else:
         print("\nPlease enter file with valid format\n",
               "valid formats are .csv or .xlsx\n",
@@ -126,9 +120,9 @@ def grab_data(file):
 
     return df
 
-def assign_colors(df):
-    data_source = df.columns.values[COLUMNS[0]-COLUMNS[0]%4]
-    strain_direction = df.iloc[0,COLUMNS[0]-1] # determine if longitudinal or lateral strain measurements
+def assign_colors(df, columns):
+    data_source = df.columns.values[columns[0]-columns[0]%4]
+    strain_direction = df.iloc[0,columns[0]-1] # determine if longitudinal or lateral strain measurements
     print(f"{data_source} - {strain_direction}")
 
     color = ('','') # assign color values depending on strain direction
@@ -174,7 +168,7 @@ def format_plot(data_source, strain_direction):
 
     return span_plot, ax, span_ax, zoom_ax
 
-def gaussian_analyze(xspan, yspan):
+def gaussian_analyze(xspan, yspan, xdata):
     # initial paramaters for gaussian fit
     mean = sum(xspan * yspan) / sum(yspan)
     sigma = np.sqrt(sum(yspan * (xspan - mean) ** 2) / sum(yspan))
@@ -213,7 +207,7 @@ def avg_min(xspan, yspan):
 
 
 # set up plots
-def plot_analyze(data_source, strain_direction):
+def plot_analyze(data_source, strain_direction, xdata, ydata, color):
     span_plot, ax, span_ax, zoom_ax = format_plot(data_source, strain_direction)
     
     # plotting the data
@@ -240,7 +234,7 @@ def plot_analyze(data_source, strain_direction):
         # plot the newly specified range
         zoom_ax.plot(xspan, yspan, '.', color=color[1], markersize=4, label='spanned intensity data')
         
-        xfit, yfit, x0_gauss, y0_gauss = gaussian_analyze(xspan, yspan)
+        xfit, yfit, x0_gauss, y0_gauss = gaussian_analyze(xspan, yspan, xdata)
 
         # plot the fit data on top of the zoomed plot
         zoom_ax.plot(xfit, yfit, 'black', label='gaussian fit')
@@ -264,19 +258,18 @@ def plot_analyze(data_source, strain_direction):
     plt.show()
 
 
-def analyze_data():
-    global FILE
-    global COLUMNS
-    global SHEET
+def analyze_data(file, columns, sheet):
+    df = grab_data(file, sheet)
 
-    df = grab_data(FILE)
-    color, data_source, strain_direction = assign_colors(df)
+    print(df)
+    color, data_source, strain_direction = assign_colors(df,columns)
 
     # grab data from sheet into numpy array, while removing na values from end of list
-    xdata = df.iloc[2:,COLUMNS[0]-1].dropna().values
-    ydata = df.iloc[2:,COLUMNS[1]-1].dropna().values
+    xdata = df.iloc[2:,columns[0]-1].dropna().values
+    ydata = df.iloc[2:,columns[1]-1].dropna().values
+    print(xdata,ydata)
 
-    plot_analyze(data_source, strain_direction)
+    plot_analyze(data_source, strain_direction, xdata, ydata, color)
 
 
 if __name__ == '__main__':
