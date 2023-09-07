@@ -156,6 +156,14 @@ ValueError: invalid literal for int() with base 10: ''
 
 bug fixes:
 - qsense dissipation values potentially recorded even more different from qcmi than expected
+    - qcmi will no longer use user entered offset values
+    - offsets for modeling purposes will use the average of full frequency and dissipation values in data file within the baseline
+    - adjusted UI to explain qcmi will not need manually entered offsets
+    - add boolean to input class that will be true if qcmi selected and need to calculate offset
+    - add to analyze.py to calculate offsets for qcmi
+        - calculations just averaging values of each overtones full values (not deltas)
+    - save these calculations to offset file
+
 
 format changes:
 
@@ -191,6 +199,10 @@ waiting on data:
 - full gordon-kanazawa data
 
 ### CHANGE LOG
+
+9/5
+- updated theoretical values for offset data
+
 
 8/18
 - scrollbar
