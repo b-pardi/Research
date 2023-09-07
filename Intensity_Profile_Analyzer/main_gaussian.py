@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+import tkinter as tk
+from tkinter import filedialog
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector
@@ -15,10 +17,84 @@ from matplotlib.widgets import SpanSelector
 # path to where folder is located, copy from file explorer window
 # make sure not to delete the 'r' here when updating data file path
 #           ↓
-FILE_PATH = r"C:\Users\Brandon\Documents\00 School Files 00\University\Research\Intensity_Profile_Analyzer\fiji_data" 
-FILE_NAME = "2022_12_30_example of stiff Poisson ratio_ BP.xlsx" # specify file (with extension) to be opened
-COLUMNS = (3,4) # specify which column in the file are being analyzed
-SHEET = 'Sheet2' # if file has multiple sheets, indicate here, else leave blank
+FILE= ""
+COLUMNS = (0,0) # specify which column in the file are being analyzed
+SHEET = '' # if file has multiple sheets, indicate here, else leave blank
+
+
+def set_fp(fp):
+    global FILE
+    FILE = fp
+
+def set_cols(cols):
+    global COLUMNS
+    COLUMNS = cols
+
+def set_sheet(sheet):
+    global SHEET
+    SHEET = sheet
+
+def browse_files(default_dir, btn_title):
+    initdir = os.path.join(os.getcwd(), default_dir)
+    fp = filedialog.askopenfilename(initialdir=initdir, title=btn_title, filetypes=(
+        ("Comma Separated Value files", "*.csv"),
+        ("Excel file 2007 and later", "*.xlsx"),
+        ("Excel file 1997-2003", "*.xls"),
+        ("Text file", "*.txt")
+    ))
+
+    return fp
+
+def select_file(label):
+    default_fp = 'fiji_data' # local default path
+    fp = browse_files(default_fp, 'Select data file')
+    label.configure(text=f"File chosen: {os.path.basename(fp)}")
+    print(f"*** {fp} Chosen")
+    set_fp(fp)
+
+# Get the above variables for use in analysis
+def window():
+    root = tk.Tk()
+    root.title("Data Entry for IPA")
+    container = tk.Frame(root)
+    container.pack(side='top', fill='both', expand=True)
+    container.grid_columnconfigure(0, weight=1)
+    container.grid_rowconfigure(0, weight=1)
+
+    select_file_label = tk.Label(container, text="Data File")
+    select_file_label.grid(row=2, column=0, pady=8)
+    select_file_button = tk.Button(container, text="Select Data File", command=lambda: select_file(select_file_label))
+    select_file_button.grid(row=1,column=0,pady=16)
+
+    columns_label = tk.Label(container, text="Enter columns being analyzed\n(separate by a comma i.e. x,y)")
+    columns_label.grid(row=3, column=0)
+    columns_entry = tk.Entry(container)
+    columns_entry.grid(row=4, column=0,pady=(16,0))
+
+    sheet_label = tk.Label(container, text="If your file has multiple sheets,\nindicate which one to analyze here\nelse leave blank")
+    sheet_label.grid(row=5, column=0)
+    sheet_entry = tk.Entry(container)
+    sheet_entry.grid(row=6, column=0)
+
+    submit_button = tk.Button(container, text="Submit", command=set_and_run)
+    submit_button.grid(row=19, column=0)
+    close_button = tk.Button(container, text="Close", command=root.destroy)
+    close_button.grid(row=20, column=0)
+
+    root.mainloop()
+
+
+def set_and_run(columns_entry, sheet_entry):
+    global FILE
+    file = FILE
+
+    columns = columns.get()
+    columns = columns.split(',')
+
+    sheet = sheet_entry.get()
+    print(file, columns, sheet)
+    analyze_data(file, columns, sheet)
+
 
 def gaussian(x, a, b, c, d):
     return a * np.exp(-(x - b) ** 2 / (2 * c ** 2)) + d
@@ -188,11 +264,12 @@ def plot_analyze(data_source, strain_direction):
     plt.show()
 
 
-if __name__ == '__main__':
-    #FILE_PATH = FILE_PATH.replace('\\', '/')
-    print(FILE_PATH)
-    file = os.path.join(FILE_PATH, FILE_NAME)
-    df = grab_data(file)
+def analyze_data():
+    global FILE
+    global COLUMNS
+    global SHEET
+
+    df = grab_data(FILE)
     color, data_source, strain_direction = assign_colors(df)
 
     # grab data from sheet into numpy array, while removing na values from end of list
@@ -200,3 +277,7 @@ if __name__ == '__main__':
     ydata = df.iloc[2:,COLUMNS[1]-1].dropna().values
 
     plot_analyze(data_source, strain_direction)
+
+
+if __name__ == '__main__':
+    window()

@@ -29,6 +29,9 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install',
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
 'cPickle'])
 
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 
+'tkinter'])
+
 
 
 # xlrd library deprecated support for xlsx files, so using older version
