@@ -306,6 +306,20 @@ def save_calibration_data(df, imin, imax, which_plots, range, fn):
             n = get_num_from_string(ov)
             calibration_file.write(f"{n},{mean_y:.16E},{std_dev_y:.16E},{range},{fn}\n")
 
+def find_offset_values(df):
+    offset_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
+    print(f"** OFFSETS BEFORE:\n{offset_df}")
+    offset_dict = {}
+    for i, col in enumerate(df.columns):
+        if col != 'Time' and col != 'Temp':
+            offset = df[col].mean()
+            offset_dict[col] = offset
+
+    offset_df = pd.DataFrame(offset_dict, index=['index'])
+    #offset_df = offset_df.drop(['index'])
+    print(offset_dict)
+    print(f"** OFFSETS FOUND:\n{offset_df}")
+    offset_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")
 
 # removing axis lines for plots
 def remove_axis_lines(ax):
@@ -699,6 +713,9 @@ def analyze_data(input):
         else:
             base_tf_ind = find_nearest_time(tf_str, df, analysis.abs_time_col, input.is_relative_time) # baseline correction
         baseline_df = df[:base_tf_ind].copy()
+
+        if input.will_calculate_offset:
+            find_offset_values(baseline_df)
 
         # choose appropriate divisor for x scale of time
         if plot_customs['time_scale'] == 'min':

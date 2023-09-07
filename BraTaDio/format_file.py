@@ -49,13 +49,13 @@ def format_QCMd(df):
 def format_QCMi(df):
     print("QCM-i selected")
     slim_df = df[['Channel A QCM Time [sec]', # grab only relevant columns
-             'Channel A Fundamental Dissipation [ ]', 'Channel A Fundamental Frequency [Hz]',
-             'Channel A 3. Dissipation  [ ]', 'Channel A 3. Overtone [Hz]',
-             'Channel A 5. Dissipation  [ ]', 'Channel A 5. Overtone [Hz]',
-             'Channel A 7. Dissipation  [ ]', 'Channel A 7. Overtone [Hz]',
-             'Channel A 9. Dissipation  [ ]', 'Channel A 9. Overtone [Hz]',
-             'Channel A 11. Dissipation  [ ]', 'Channel A 11. Overtone [Hz]',
-             'Channel A 13. Dissipation  [ ]', 'Channel A 13. Overtone [Hz]',
+             'Channel A Fundamental Frequency [Hz]', 'Channel A Fundamental Dissipation [ ]',
+             'Channel A 3. Overtone [Hz]', 'Channel A 3. Dissipation  [ ]',
+             'Channel A 5. Overtone [Hz]', 'Channel A 5. Dissipation  [ ]',
+             'Channel A 7. Overtone [Hz]', 'Channel A 7. Dissipation  [ ]',
+             'Channel A 9. Overtone [Hz]', 'Channel A 9. Dissipation  [ ]',
+             'Channel A 11. Overtone [Hz]', 'Channel A 11. Dissipation  [ ]',
+             'Channel A 13. Overtone [Hz]', 'Channel A 13. Dissipation  [ ]',
              'Channel A Temp [Celsius]']]
     
     # rename columns
@@ -117,6 +117,7 @@ def format_Qsense(fmt_df, calibration_df):
         return fmt_df
     
     fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*10e-6)
+    print(f"AAAA***A*A*A*SD: \n{fmt_df}")
     fmt_df = unnormalize(fmt_df)
     fmt_df = add_offsets(calibration_df, fmt_df)
     return fmt_df

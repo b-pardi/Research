@@ -49,6 +49,7 @@ class Input:
         self.calibration_data_from_file = False
         self.will_plot_temp_v_time = False
         self.will_correct_slope = False
+        self.will_calculate_offset = False
         self.is_relative_time = False # depending on file src input, some machines record time relatively (start at 0) or absolutely (start at current time of day)
         self.file_src_type = '' # different machines output data differently
         self.which_plot = {'raw': {'fundamental_freq': False, 'fundamental_dis': False, '3rd_freq': False, '3rd_dis': False,
@@ -406,6 +407,7 @@ class srcFileFrame(tk.Frame):
             input.is_relative_time = False
         elif self.file_src_type == 'QCM-i':
             input.is_relative_time = True
+            input.will_calculate_offset = True
         elif self.file_src_type == 'Qsense' or self.file_src_type == 'AWSensors':
             input.is_relative_time = True
             self.calibration_warning_label.grid(row=3, column=0, columnspan=2)
