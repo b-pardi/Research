@@ -30,8 +30,8 @@ class Input:
         self.will_overwrite_file = False # if user wants copy of data data saved after processing
         self.abs_base_t0 = time(0, 0, 0) # beginning of baseline time
         self.abs_base_tf = time(0, 0, 0) # end of baseline time
-        self.rel_t0 = 0
-        self.rel_tf = 0
+        self.rel_t0 = 0 # beginning of baseline time
+        self.rel_tf = 0 # end of baseline time
         self.fig_format = 'png' # format to save figures that can be changed in the gui to tiff or pdf
         self.x_timescale = 's' # change scale of time of x axis of plots from seconds to either minutes or hours
         self.will_plot_dF_dD_together = False # indicates if user selected multi axis plot of dis and freq
@@ -305,6 +305,7 @@ class App(tk.Tk):
 
         # initialize plot customizations with previously saved values
         self.plot_opts_window = PlotOptsWindow
+
         with open('plot_opts/plot_customizations.json', 'r') as fp:
             self.options = json.load(fp)
         self.prev_opts = self.options
@@ -381,6 +382,7 @@ class App(tk.Tk):
     def confirm_range(self):
         self.modeling_window.confirm_range(self)
 
+
 class srcFileFrame(tk.Frame):
     def __init__(self, container):
         super().__init__(container)
@@ -402,7 +404,10 @@ class srcFileFrame(tk.Frame):
         self.calibration_warning_label = tk.Label(self, text="WARNING: When using Qsense or AWSensors,\nif not calibration data entered,\nuser is limited to only basic visualizations")
 
     def handle_radios(self):
+        global input
         self.file_src_type = self.file_src_types[self.file_src_var.get()]
+        input.file_src_type = self.file_src_type
+
         if self.file_src_type == 'QCM-d':
             input.is_relative_time = False
         elif self.file_src_type == 'QCM-i':
@@ -435,6 +440,7 @@ class calibrationValsFrame(tk.Frame):
         #self.browse_files_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Select Calibration File", command=lambda: select_calibration_file(self.filename_label))
         
         self.calibration_file_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="Copy/paste values\ndirectly into file in \n'offset_data' folder\n\nOR")
+        self.qcmi_warning_label = tk.Label(self.theoretical_or_calibration_peak_freq_frame, text="QCM-i will grab offsets automatically\nfrom baseline range")
         self.calibration_vals_window_button = tk.Button(self.theoretical_or_calibration_peak_freq_frame, text="Enter values here", command=self.open_calibration_window)
 
     def open_calibration_window(self):
@@ -443,13 +449,20 @@ class calibrationValsFrame(tk.Frame):
     def handle_radios(self):
         global input
         set_input_altered_flag(True)
+        is_qcmi = input.file_src_type == 'QCM-i'
+        print(is_qcmi)
         input.will_use_theoretical_vals = self.theoretical_or_calibration_peak_freq_var.get()
-        if not input.will_use_theoretical_vals:
+        if not input.will_use_theoretical_vals and not is_qcmi:
             self.calibration_file_label.grid(row=3, column=0, columnspan=2, pady=(2,4))
             self.calibration_vals_window_button.grid(row=4, column=0, columnspan=2, pady=(8,4))
+            self.qcmi_warning_label.grid_forget()
         else:
             self.calibration_file_label.grid_forget()
             self.calibration_vals_window_button.grid_forget()
+
+        if is_qcmi:
+            self.qcmi_warning_label.grid(row=4, column=0, columnspan=2, pady=(8,4))
+            
 
 class absTimeInputFrame(tk.Frame):
     def __init__(self, container):
