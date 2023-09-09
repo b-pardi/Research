@@ -311,12 +311,12 @@ def find_offset_values(df):
     print(f"** OFFSETS BEFORE:\n{offset_df}")
     offset_dict = {}
     for i, col in enumerate(df.columns):
-        if col != 'Time' and col != 'Temp':
+        if not col.__contains__('Time') and not col.__contains__('Temp'):
+            print("COL TEST", col)
             offset = df[col].mean()
             offset_dict[col] = offset
 
     offset_df = pd.DataFrame(offset_dict, index=['index'])
-    #offset_df = offset_df.drop(['index'])
     print(offset_dict)
     print(f"** OFFSETS FOUND:\n{offset_df}")
     offset_df.to_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv")

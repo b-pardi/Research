@@ -193,6 +193,13 @@ waiting on data:
 
 ### CHANGE LOG
 
+9/9
+- UI has been updated to reflect automatic qcmi offset calculation
+    - when selecting qcmi and then selecting offset data, instead of a prompt to enter calibration values, user is shown a label that informs them of qcmi auto offset calculation
+    - when clicking qsense and then offset, normal offset entry label/button shown
+- qcmi offset calculation function adjusted to not add 'temp time'
+- calibration window functionality adjusted to accommodate adding of index column from qcmi offset calculations to maintain consisten file format
+
 9/5-9/8
 - updated theoretical values for offset data
 - fixed qcmi issue

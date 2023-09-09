@@ -637,6 +637,7 @@ class CalibrationWindow():
                     print("WARNING: AT LEAST ONE ENTRY EXISTS WITH A MISSING OR INVALID INPUT\nWILL CONVERT THESE ENTRIES TO 0")
                     warned_flag = True
                 calibration_vals.append(0.0)
+        calibration_vals.insert(0,'index')
         print(calibration_vals)
         if self.calibration_vals_fmt_var.get() == 1: # if inputted FWHM
             calibration_vals = convert_FWHM(calibration_vals)
@@ -645,7 +646,8 @@ class CalibrationWindow():
             calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=None)
         except FileNotFoundError as fnfe:
             print("Offset values file not found, creating new one...")
-            column_headers = "fundamental_freq,fundamental_dis,3rd_freq,3rd_dis,5th_freq,5th_dis,7th_freq,7th_dis,9th_freq,9th_dis,11th_freq,11th_dis,13th_freq,13th_dis\n"
+            # empty first entry in headers for index column
+            column_headers = " ,fundamental_freq,fundamental_dis,3rd_freq,3rd_dis,5th_freq,5th_dis,7th_freq,7th_dis,9th_freq,9th_dis,11th_freq,11th_dis,13th_freq,13th_dis\n"
             with open("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", 'w') as offset_file:
                 offset_file.write(column_headers)
             calibration_df = pd.read_csv("offset_data/COPY-PASTE_OFFSET_VALUES_HERE.csv", index_col=None)
