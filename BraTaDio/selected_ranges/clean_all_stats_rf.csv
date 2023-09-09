@@ -1,0 +1,8 @@
+overtone,Dfreq_mean,Dfreq_std_dev,Dfreq_median,range_name,x_lower,x_upper,data_source
+fundamental_freq,0.0000000000000000E+00,0.0000000000000000E+00,0.0000000000000000E+00,qsense super good fix,0.0000000000000000E+00,0.0000000000000000E+00,raw_data/Formatted-QSense-BSA-exp.csv
+3rd_freq,-6.8785552142951147E+01,1.8203876684515080E-01,-6.8781906145624816E+01,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+5th_freq,-1.1135321557371834E+02,4.3224195887378170E-01,-1.1135087026469409E+02,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+7th_freq,-1.5250289276773177E+02,5.2294647346466461E-01,-1.5251149087771773E+02,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+9th_freq,-1.9272963258465685E+02,8.2411263870364582E-01,-1.9272383741661906E+02,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+11th_freq,-2.3165732406436371E+02,8.1794075627969576E-01,-2.3162235059589148E+02,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+13th_freq,-2.6823483745001630E+02,1.6914009347617305E+00,-2.6819320904463530E+02,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv

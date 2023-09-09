@@ -155,14 +155,7 @@ ValueError: invalid literal for int() with base 10: ''
 ### WIP
 
 bug fixes:
-- qsense dissipation values potentially recorded even more different from qcmi than expected
-    - qcmi will no longer use user entered offset values
-    - offsets for modeling purposes will use the average of full frequency and dissipation values in data file within the baseline
-    - adjusted UI to explain qcmi will not need manually entered offsets
-    - add boolean to input class that will be true if qcmi selected and need to calculate offset
-    - add to analyze.py to calculate offsets for qcmi
-        - calculations just averaging values of each overtones full values (not deltas)
-    - save these calculations to offset file
+
 
 
 format changes:
@@ -200,8 +193,22 @@ waiting on data:
 
 ### CHANGE LOG
 
-9/5
+9/5-9/8
 - updated theoretical values for offset data
+- fixed qcmi issue
+    - qcmi will no longer use user entered offset values
+    - offsets for modeling purposes will use the average of full frequency and dissipation values in data file within the baseline
+    - adjusted UI to explain qcmi will not need manually entered offsets
+    - add boolean to input class that will be true if qcmi selected and need to calculate offset
+    - add to analyze.py to calculate offsets for qcmi
+        - calculations just averaging values of each overtones full values (not deltas)
+    - save these calculations to offset file
+- qcmi feature added an index row to offset data file
+    - adjusted ad offsets function to compensate for this and correctly still add the offsets
+- as per new information from Bernardo, adjusted qsense file conversions specifically for dissipation
+    - dissipation no longer unnormalized (since it wasn't normalized to begin with)
+    - dissipation multiplied by 1e-6 instead of 10e-6
+    - dissipation works correctly now!!
 
 
 8/18

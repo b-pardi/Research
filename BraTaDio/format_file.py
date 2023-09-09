@@ -79,11 +79,11 @@ def add_offsets(calibration_df, fmt_df, overtones_skipped=[]):
         for ov in tuple(sorted(overtones_skipped, reverse=True)):
             calibration_vals = np.concatenate((calibration_vals[:ov-1], calibration_vals[ov+1:]))
 
-    calibration_vals = np.insert(calibration_vals, 0,0) # prepend 0 since time col is at start
     print('***fmt_df',fmt_df.shape,'\n', fmt_df)
     for col_i, val in enumerate(calibration_vals):
         print(col_i, val)
-        fmt_df.iloc[:, col_i] += val
+        if val != 'index': # skip index col in offset vals, also meaning skip time col in dataframe
+            fmt_df.iloc[:, col_i] += val
 
     return fmt_df
 
@@ -92,7 +92,7 @@ def unnormalize(df):
     overtones = np.insert(overtones, 0,0)
     print(overtones)
     for i, val in enumerate(overtones):
-        if i != 0:
+        if i != 0 and df.columns[i].__contains__("freq"):
             df.iloc[:, i] *= val
 
     return df
@@ -116,10 +116,14 @@ def format_Qsense(fmt_df, calibration_df):
         print("Opting for theoretical values, calibration values will NOT be added to data")
         return fmt_df
     
-    fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*10e-6)
-    print(f"AAAA***A*A*A*SD: \n{fmt_df}")
+    fmt_df.to_csv(f"raw_data/qsenseA.csv", index=False)
+    fmt_df.loc[:, disps] = fmt_df.loc[:, disps].apply(lambda x: x*1e-6)
+    fmt_df.to_csv(f"raw_data/qsenseB.csv", index=False)
     fmt_df = unnormalize(fmt_df)
+    fmt_df.to_csv(f"raw_data/qsenseC.csv", index=False)
     fmt_df = add_offsets(calibration_df, fmt_df)
+    fmt_df.to_csv(f"raw_data/qsenseD.csv", index=False)
+
     return fmt_df
 
 def format_AWSensors(fmt_df, calibration_df):

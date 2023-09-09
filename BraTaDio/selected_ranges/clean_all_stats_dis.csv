@@ -1,0 +1,8 @@
+overtone,Ddis_mean,Ddis_std_dev,Ddis_median,range_name,x_lower,x_upper,data_source
+fundamental_dis,0.0000000000000000E+00,0.0000000000000000E+00,0.0000000000000000E+00,qsense super good fix,0.0000000000000000E+00,0.0000000000000000E+00,raw_data/Formatted-QSense-BSA-exp.csv
+3rd_dis,1.0586483559336220E-06,2.4521964388399607E-08,1.0586397573587994E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+5th_dis,1.0551274366291304E-06,3.2204070547595138E-08,1.0529008689331651E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+7th_dis,1.0284824519413310E-06,2.7840106129597011E-08,1.0290461336515455E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+9th_dis,1.0407529760278415E-06,4.0609913180355397E-08,1.0390322871917340E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+11th_dis,1.0974465720894080E-06,2.9240658320257728E-08,1.0971034248210008E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
+13th_dis,1.0721452010228106E-06,5.4491414531080077E-08,1.0730783126617632E-06,qsense super good fix,5658.47616,5992.78592,raw_data/Formatted-QSense-BSA-exp.csv
